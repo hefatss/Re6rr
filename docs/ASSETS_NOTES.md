@@ -84,12 +84,65 @@ skipped. Stream 0 yields 920 vertices and 1,438 triangles as a sanity check.
 The decoded z values are near zero for many vertices, so this stream may be a
 decal/sprite mesh rather than the car body. No claim about mesh semantics yet.
 
-## Next decode steps
+## NTWD textures (decoded from Ghidra)
 
-1. Decode section 0 records (material/bone ids) and align them with the vertex
-   runs; explain the gaps in section 2.
-2. For textures: parse the `NTWD` header inside `.tex` for width/height/format,
-   then the `GIDX` entries; identify DXT/BCn blocks by size (`w*h/2` for DXT1,
-   `w*h` for DXT5).
-3. Confirm the `GIDX` hash is a name hash (compare with the car id strings in
-   `data/car/**/*.lua`).
+`python tools/assets/ntwd_texture.py FILE` parses every NTWD stream. The
+loader functions `FUN_140cae1a0`, `FUN_140cbc000`, `FUN_140cbc0d0`,
+`FUN_140cbc0f0`, `FUN_140cbc190` and `FUN_140cbc270` in `wmn6r.exe` give this
+layout:
+
+| offset | field |
+|---|---|
+| `0x00` | `NTWD` |
+| `0x04` | `u8` type = 2 in this dump (1 also handled), `u8` pad, `u16` texture count |
+| `0x08` | two `u32` zeros |
+| `0x10` | texture headers, `count` of them, stride = `u16` at header `+0xc` (normally `0x50`) |
+
+Texture header (relative to its start):
+
+| offset | field |
+|---|---|
+| `+0x00` | `u32` type-1 stride / total size |
+| `+0x08` | `u32` pixel byte count |
+| `+0x0c` | `u16` header stride (`0x50`) |
+| `+0x11` | `u8` face count |
+| `+0x13` | `u8` format: `0` = BC1 (4 bpp), `2` = BC3/BC5 (8 bpp), `0x15` = RGBA8 (32 bpp) |
+| `+0x14` | `u16` width, `u16` height |
+| `+0x1c` | `u32` flags; bit 9 shifts the `eXt`/`GIDX` chunks by `0x10`, bit 17 marks cube maps |
+| `+0x20` | `u32` type-2 pixel offset from header start |
+| `+0x30` | face table, then `eXt` chunk, then `GIDX` chunk; hash at `GIDX+8` |
+
+All texture headers come first; pixel blobs start after them. Blob range
+`header + data_off .. + data_size` was valid for all 10,555 textures in 3,374
+NTWD streams from 683 `.tex` files (8 files were not gzip members), checked by
+`python tools/assets/ntwd_validate.py DIR`. Size ratios of 5.33/10.67 bpp come
+from full mip chains (`4/3` of the base size).
+`GIDX` value is a texture id: `FUN_140c8f7d0` formats it as `"0x%08x"` and
+uses that string as a lookup key, not a name hash.
+
+## NDWD section 0 records (decoded from Ghidra)
+
+`python tools/assets/ndwd_records.py FILE --stream N` prints the structures
+below. Loader functions are `FUN_140ca78b0`, `FUN_140ca7b00`, `FUN_140ca7c10`
+and `FUN_140ca7ed0`.
+
+| offset | field |
+|---|---|
+| `0x00` | `NDWD`, `u32` id, `u16` version = 2, `u16` group count |
+| `0x10` | four `u32` section sizes; sections start at `0x50` |
+| `0x30` | group records, `0x30` bytes each: `u32` name offset at `+0x20`, `u16` subrecord count at `+0x2a`, `u32` subrecord start at `+0x2c` |
+| subrecord | `0x30` bytes; four `u32` texture hashes at `+0x10..0x1c`, `u16` extra count at `+0xa`; material chain at `+0x20 + extra*0x18`, walking `u32` strides while the byte at `+0xb` is nonzero |
+
+Section 1 is `u16` triangle-strip indices with `0xffff` separators. Section 2
+contains `28-byte` vertex runs with a `0xffffffff` word at index 4 (bone id
+`-1`), but other layouts also occur in the same section, so a single stride
+does not cover the whole section. `PLC_BNR34.mdl` stream 0 has three runs of
+449, 790 and 88 such vertices with gaps between them; those gaps are the
+other layouts, not padding.
+
+## Remaining unknowns
+
+- Which subrecord layout selects each section-2 vertex format.
+- Meaning of the `u32` values at subrecord `+0x20`/`+0x24` (chain records and
+  texture hashes are decoded; their role in geometry is not).
+- Mip/cube face table entry semantics for textures with `face count > 1`.
