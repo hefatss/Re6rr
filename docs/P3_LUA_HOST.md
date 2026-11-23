@@ -1,0 +1,87 @@
+# Phase 3 — Lua host
+
+## Correction to the P0 binding report
+
+`docs/recon/BINDINGS.md` called the 219 names "native implementations". That
+reading is wrong. Ghidra decompilation shows the executable *calling Lua
+globals* by name:
+
+- `FUN_1400ffb60` (`docs/recon/ghidra_c/func_1400ffb60.c`):
+  `lua_getfield(L, LUA_GLOBALSINDEX, name)`, check `lua_type == LUA_TFUNCTION`,
+  push a string key and an integer index, call `FUN_1400ff990(L, 2)`, read the
+  top three results with `FUN_1400d20d0` into a `Vec3`, then restore
+  `lua_settop`. Caller `FUN_1401018c0` passes `"GetCustomGTWingPos"`.
+- `FUN_140100540` does the same inline for `"GetTirePos"`.
+- `FUN_1400ffdf0` passes one integer; `FUN_1400ffc60` passes one string.
+- `FUN_1400ff990` is `lua_pcall(L, n, LUA_MULTRET, 0)`; any error is logged as
+  `CallFunction %s` and reported through an error flag pointer.
+- `FUN_1400d20d0` reads stack slots `-3, -2, -1` as three `float`s and marks
+  any `nil` as failure.
+
+Only three `luaL_Reg` tables exist in the binary (`name_table_summary.txt`):
+27 unknown `@SVWH`-style entries, 12 sound functions at `0x1e1a070`, and 3
+more at `0x1640e70`. The 219 names are therefore data-script functions that
+the native engine consumes, not C functions the port must write. This makes
+the port simpler: load the scripts, then call their globals.
+
+## Native → Lua call protocol to reproduce
+
+| direction | form |
+|---|---|
+| native → Lua | `getglobal(name)`, push `(string key, int index)` or `(int)` or `(string)`, `pcall(n, LUA_MULTRET)` |
+| Lua → native | top three results as `Vec3`; single number/string for scalar calls |
+| on error | error flag set, stack restored, default zero value returned |
+
+Examples recovered from the callers: `GetTirePos`, `GetCenterPos`,
+`GetHeadLightPos`, `GetTailLampPos`, `GetStroboPos`, `GetStroboRoofPos`,
+`GetCustomGTWingPos` all take a car-name string plus a zero-based index.
+
+## Globals the native side must provide
+
+Loading all 4,885 scripts under `data/` with a nil-global hook found only 31
+names that no script defines:
+
+- `SettingConst` — a table with `Locale`, `Language`, `Difficult`,
+  `NetworkMode`, `NetworkID`, `ForceFeedBackLevel`, `State`.
+  `data/setting/setting_default.lua` states it is defined by the program.
+- `WHEEL_SCALE_INC_13` … `WHEEL_SCALE_INC_22`
+- `TIRE_WIDTH_SCALE_155` … `TIRE_WIDTH_SCALE_355`
+
+`tools/lua/lua_probe.py` installs all of them (numeric values are placeholders
+for now) and all 4,885 scripts load without errors.
+
+## Script context matters
+
+The data scripts reuse global names: loading the whole tree makes the last
+car's `CarDataPosList` and last colour library's `ColorMax` win. For example:
+
+- with `getTirePos_CRC_928GT_Masaki.lua` alone:
+  `GetTirePos("CRC_928GT_Masaki", 0) = (-7.73, 0.016652, 12.400767)`,
+  `ColorMax() = 250` after also loading `LibraryColor.lua`;
+- with all scripts loaded: `GetTirePos(...) = (0, 0, 0)`,
+  `ColorMax() = 6`.
+
+The engine must load one context at a time (one car position file, one colour
+library, one course section set). `tools/lua/lua_probe.py --scripts` does that.
+
+## Validation
+
+    python tools/lua/lua_probe.py --dump D:\Games\W6W-05
+    python tools/lua/lua_probe.py --dump D:\Games\W6W-05 \
+      --scripts "D:\Games\W6W-05\data\car\position\pos\getTirePos_CRC_928GT_Masaki.lua" \
+      --query GetTirePos CRC_928GT_Masaki 0 --vec3
+
+First command: 4,885 scripts, 0 load errors, 0 missing globals. Second:
+`(-7.73, 0.016652, 12.400767)`. `tools/lua/lua_host.py` is the reusable ctypes
+wrapper; the Android engine will link Lua 5.1 directly but use the same call
+protocol.
+
+## Next
+
+1. Recover real values for `SettingConst` and the wheel/tire scale constants
+   from `wmn6r.exe` (code that pushes them, not just the names).
+2. Determine script load sets and their order from the engine's script loader
+   (`luaL_loadfile` callers), instead of loading the whole `data/` tree.
+3. Port the `Vec3`/scalar helpers and the error-flag convention to the engine
+   side, then wire the first subsystem (car position/colour) to the asset
+   loaders from Phase 2.

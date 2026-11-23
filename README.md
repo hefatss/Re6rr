@@ -12,9 +12,9 @@ dump you own (`wmn6r.exe`, `data/`, `data_jp/`) and code that runs the result.
 
 ## Status
 
-Phase 0 (recon) done. Phase 1 spike in progress: see `docs/P1_STATUS.md` for the
-x64 → C lift and the differential test, and `docs/RECON.md` for the dump itself.
-Raw reports go to `docs/recon/*.json` (gitignored).
+Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 in
+progress: see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md` and
+`docs/P3_LUA_HOST.md`. Raw reports go to `docs/recon/*.json` (gitignored).
 
 ## Tools
 
@@ -31,6 +31,8 @@ Raw reports go to `docs/recon/*.json` (gitignored).
     python tools/x64/func_disasm.py f_8555   # annotated disassembly
     python tools/x64/difftest.py --seeds 30  # original bytes vs lifted IR (Unicorn)
     python tools/x64/emit_c.py f_8555     # C output from the same IR
+    python tools/lua/lua_probe.py --dump D:\Games\W6W-05  # load data scripts
+    python tools/lua/lua_probe.py --scripts PATH --query GetTirePos NAME 0 --vec3
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 
