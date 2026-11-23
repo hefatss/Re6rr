@@ -38,17 +38,24 @@ Examples recovered from the callers: `GetTirePos`, `GetCenterPos`,
 
 ## Globals the native side must provide
 
-Loading all 4,885 scripts under `data/` with a nil-global hook found only 31
-names that no script defines:
+Loading all 4,885 scripts under `data/` with a nil-global hook found one name
+that no script defines: `SettingConst`, a table with `Locale`, `Language`,
+`Difficult`, `NetworkMode`, `NetworkID`, `ForceFeedBackLevel`, `State`.
+`data/setting/setting_default.lua` says it is defined by the program. Its
+values come from `FUN_140c4db10`, which registers the `sys::setting` enums
+through luabind: `Locale` Japan/Usa/China/Korea/Euro = 0..4, `Language`
+Japanese/English = 0/1, `Difficult` VeryEasy..VeryHard = 0..4, `NetworkID_0..7`
+= 0..7, `NetworkMode` 0/1 (plus `Disable`/`Enable` aliases),
+`ForceFeedBackLevel` Disable/TorqueLevel2/TorqueLevel3 = 0..2, and
+`State` Disable/Enable = 0/1.
 
-- `SettingConst` — a table with `Locale`, `Language`, `Difficult`,
-  `NetworkMode`, `NetworkID`, `ForceFeedBackLevel`, `State`.
-  `data/setting/setting_default.lua` states it is defined by the program.
-- `WHEEL_SCALE_INC_13` … `WHEEL_SCALE_INC_22`
-- `TIRE_WIDTH_SCALE_155` … `TIRE_WIDTH_SCALE_355`
-
-`tools/lua/lua_probe.py` installs all of them (numeric values are placeholders
-for now) and all 4,885 scripts load without errors.
+The other nil reads are an order effect, not missing bindings:
+`data/car/tire/script/TireDefine.lua` defines `WHEEL_SCALE_INC_13` …
+`WHEEL_SCALE_INC_22` and `TIRE_WIDTH_SCALE_155` … `TIRE_WIDTH_SCALE_355` with
+the game's real values, but sorted path order reaches its readers first.
+`tools/lua/lua_probe.py` preloads that file (`--no-bootstrap` disables it).
+With the preload, all 4,885 scripts load without errors and no global is
+missing.
 
 ## Script context matters
 
@@ -78,9 +85,7 @@ protocol.
 
 ## Next
 
-1. Recover real values for `SettingConst` and the wheel/tire scale constants
-   from `wmn6r.exe` (code that pushes them, not just the names).
-2. Determine script load sets and their order from the engine's script loader
+1. Determine script load sets and their order from the engine's script loader
    (`luaL_loadfile` callers), instead of loading the whole `data/` tree.
 3. Port the `Vec3`/scalar helpers and the error-flag convention to the engine
    side, then wire the first subsystem (car position/colour) to the asset
