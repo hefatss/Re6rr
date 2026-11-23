@@ -23,6 +23,8 @@ Raw reports go to `docs/recon/*.json` (gitignored).
     python tools/recon/lua_report.py     # Lua inventory + candidate native API
     python tools/recon/assets_report.py  # extensions, gzip containers, shader samples
     python tools/assets/dump_asset.py FILE [--limit N]   # hexdump a container payload
+    python tools/assets/xmd_streams.py FILE              # cluster XMD.001 streams by tag
+    python tools/assets/ndwd_mesh.py FILE --stream 0 --out out.obj  # NDWD -> OBJ
     python tools/x64/string_xref.py      # name strings -> containing functions
     python tools/x64/name_table.py       # name pointer tables / luaL_Reg records
     python tools/x64/bindings.py         # merged BINDINGS.md (all 219 Lua API names)

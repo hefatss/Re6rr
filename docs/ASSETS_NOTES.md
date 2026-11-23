@@ -46,14 +46,50 @@ Raw float32, no header: `KKS_Sect1.bin` starts with `d2 a6 fe 46` (≈ 32627.4).
 These are the per-section vertex/height streams referenced from
 `course/stage/<stage>/<CITY>/clip/*.lua` tables.
 
+## XMD stream table (decoded)
+
+`python tools/assets/xmd_streams.py FILE` walks the offset table and clusters
+streams by their first four bytes:
+
+- `PLC_BNR34.mdl`: 129 streams, **all** start with `NDWD`.
+- `PLC_BNR34.tex`: 4 streams, **all** start with `NTWD`.
+
+So `XMD.001` is only a wrapper; `NDWD`/`NTWD` is the real container. The offset
+table starts at payload `0x10` (`u32 version`, `u32 count`, then `u32 offsets`).
+The first stream is not at `0x10 + 4*count`: there is another table between the
+offsets and the payload, whose meaning is still unknown.
+
+## NDWD mesh layout (decoded)
+
+`python tools/assets/ndwd_mesh.py FILE --stream 0 --out out.obj` reconstructs a
+Wavefront OBJ. Layout measured on `PLC_BNR34.mdl` streams 0 and 1:
+
+| offset | field |
+|---|---|
+| `0x00` | `NDWD` / `NTWD` |
+| `0x04` | `u32` id/hash (`0xb5f1`, `0x5164`, …) |
+| `0x08` | `u16` version = 2 |
+| `0x0a` | `u16` kind = 1 |
+| `0x10` | three `u32` section byte sizes; sections start at `0x50` |
+| section 0 | material / bone records (ends with a `12 06 …` marker) |
+| section 1 | `u16` indices, `0xffff` ends a triangle strip |
+| section 2 | 28-byte vertices: `f32 x,y,z`, `f32 param`, `u32 0xffffffff`, `f32 u,v` |
+
+Section 2 is a run of vertices with the `0xffffffff` marker at word 4 of every
+28-byte record. Gaps exist where another layout starts; the tool finds the runs
+by their markers instead of assuming one stride over the whole section. Section
+1 has ~12 trailing words that are not index data (values like `0xc0e1`), also
+skipped. Stream 0 yields 920 vertices and 1,438 triangles as a sanity check.
+
+The decoded z values are near zero for many vertices, so this stream may be a
+decal/sprite mesh rather than the car body. No claim about mesh semantics yet.
+
 ## Next decode steps
 
-1. Walk the XMD offset table for `PLC_BNR34.mdl` and tag each stream (dump the
-   first 32 bytes of every entry, cluster identical patterns).
-2. Locate vertex declarations (float triplets with plausible ranges, an index
-   buffer with `u16`/`u32` monotonic runs) and reconstruct one mesh.
-3. For textures: parse the `NTWD` header inside `.tex` for width/height/format,
+1. Decode section 0 records (material/bone ids) and align them with the vertex
+   runs; explain the gaps in section 2.
+2. For textures: parse the `NTWD` header inside `.tex` for width/height/format,
    then the `GIDX` entries; identify DXT/BCn blocks by size (`w*h/2` for DXT1,
    `w*h` for DXT5).
-4. Confirm the `GIDX` hash is a name hash (compare with the car id strings in
+3. Confirm the `GIDX` hash is a name hash (compare with the car id strings in
    `data/car/**/*.lua`).
