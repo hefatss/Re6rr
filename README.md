@@ -1,4 +1,4 @@
-# super6rr
+# Re6rr
 
 A native port of *Wangan Midnight Maximum Tune 6RR* (Namco System ES3, x86-64,
 Windows Embedded) for Android, in the spirit of
