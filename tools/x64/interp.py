@@ -86,16 +86,35 @@ def cond(cpu, cc):
     raise AssertionError("unknown condition %r" % cc)
 
 
-def run(items, cpu, limit=100000, trace=None):
-    """Execute until ret (or the program counter leaves the lifted body)."""
-    labels = {}
-    for i, it in enumerate(items):
-        labels.setdefault(it["a"], i)
+def run(items, cpu, funcs=None, limit=100000, trace=None):
+    """Execute until the outermost ret.
 
-    pc = 0
+    `funcs` maps a function start address to its lifted IR; without it, a direct
+    call is an error. Both caller and callee use the same CPU/Mem state, and the
+    return address is pushed on the emulated stack just as the real `call` does.
+    """
+    def labels_of(body):
+        out = {}
+        for i, it in enumerate(body):
+            out.setdefault(it["a"], i)
+        return out
+
+    stack = [(items, 0, labels_of(items))]
+
+    def leave():
+        """Pop the current body; a call site's frame resumes after its call."""
+        stack.pop()
+        if stack:
+            body, pc, labels = stack[-1]
+            stack[-1] = (body, pc + 1, labels)
+
     steps = 0
-    while pc < len(items):
-        it = items[pc]
+    while stack:
+        body, pc, labels = stack[-1]
+        if pc >= len(body):
+            stack.pop()
+            continue
+        it = body[pc]
         if trace is not None:
             trace.append(it)
         op, args = it["op"], it["args"]
@@ -103,6 +122,8 @@ def run(items, cpu, limit=100000, trace=None):
         steps += 1
         if steps > limit:
             raise RuntimeError("instruction limit in IR interpreter")
+        if len(stack) > 64:
+            raise RuntimeError("call depth limit in IR interpreter")
 
         if op == "mov":
             bits = size_of(args[0])
@@ -194,15 +215,17 @@ def run(items, cpu, limit=100000, trace=None):
         elif op == "jmp":
             tgt = args[0]
             if tgt not in labels:
-                return cpu  # leaving the function
-            pc = labels[tgt]
+                leave()  # leaving this body
+                continue
+            stack[-1] = (body, labels[tgt], labels)
             continue
         elif op == "jcc":
             cc, tgt = args
             if cond(cpu, cc):
                 if tgt not in labels:
-                    return cpu
-                pc = labels[tgt]
+                    leave()
+                    continue
+                stack[-1] = (body, labels[tgt], labels)
                 continue
         elif op == "push":
             bits = size_of(args[0]) or 8
@@ -216,11 +239,20 @@ def run(items, cpu, limit=100000, trace=None):
             write(cpu, args[0], val, bits)
         elif op == "ret":
             cpu.r["rsp"] = (cpu.r["rsp"] + 8 + args[0]) & MASK[64]
-            return cpu
+            leave()
+            if not stack:
+                return cpu
+            continue
         elif op == "call":
+            target = args[0]
+            callee = (funcs or {}).get(target)
+            if callee is None:
+                raise AssertionError("call to 0x%x not lifted" % target)
+            next_addr = body[pc + 1]["a"] if pc + 1 < len(body) else it["a"] + 1
             cpu.r["rsp"] = (cpu.r["rsp"] - 8) & MASK[64]
-            cpu.mem.write(cpu.r["rsp"], 8, args[0] & MASK[64])
-            raise AssertionError("call in the interpreter spike")
+            cpu.mem.write(cpu.r["rsp"], 8, next_addr)
+            stack.append((callee, 0, labels_of(callee)))
+            continue
         elif op == "xchg":
             a, b = args
             bits = size_of(a)
@@ -233,5 +265,5 @@ def run(items, cpu, limit=100000, trace=None):
             pass
         else:
             raise AssertionError("unknown IR op %r" % op)
-        pc += 1
+        stack[-1] = (body, pc + 1, labels)
     return cpu

@@ -18,6 +18,9 @@ bytes, without a symbol table or a decompiler.
 | `tools/x64/emit_c.py` | same IR → C |
 | `tools/x64/difftest.py` | runs the real bytes under Unicorn and the IR under `interp.py`, compares all 16 GPRs and scratch/stack bytes |
 | `tools/x64/x86model.py` | shared register/flag/memory model |
+| `tools/ghidra/DisableHeavyAnalyzers.java` | preScript that turns off the two analyzers that OOM on this binary |
+| `tools/ghidra/ExportDecomp.java` | decompiles a list of `.pdata` ranges from the analysed project into `docs/recon/ghidra_c/` |
+| `tools/ghidra/PrintOptions.java`, `Probe*.java` | option dump and diagnostics used while getting headless Ghidra to work |
 
 ## Bindings recovered
 
@@ -38,15 +41,23 @@ See `docs/recon/BINDINGS.md`, `XREFS.md` and `NAME_TABLE.md`.
 
 ## Differential test
 
-    13 functions × 30 random contexts = 390 comparisons, all matching
+    16 functions × 20 random contexts = 320 comparisons, all matching
+    2 more functions skipped: loops whose exit depends on unrelated random pointers
 
 The set includes straight-line code, conditionals (`je`, `jne`, `jbe`, `jb`,
-`setne`, `cmovl`) and read-modify-write of memory. A failure means either a lift
-bug or a setup bug; this loop already caught two:
+`setne`, `cmovl`), read-modify-write of memory and direct calls to lifted leaf
+helpers (`f_c566f0`, `f_6eef20`, `f_c58590`). A failure means either a lift bug
+or a setup bug; this loop already caught four:
 
 1. `dec` was lifted as `a - 0xffffffff` instead of `a - 1` (found via `f_bf00`).
 2. Unicorn and the interpreter disagreed about the initial stack slot (found via
    `f_5844`).
+3. The IR interpreter's `ret` popped the callee frame but did not advance the
+   caller past its `call`, so direct calls looped forever (found via
+   `f_c566f0`).
+4. Unicorn's sentinel hook overwrote the return address of *every* `ret`,
+   including a callee's, so the caller never resumed. The hook now tracks call
+   depth.
 
 Run it with:
 
@@ -55,20 +66,29 @@ Run it with:
 
 C output goes to `docs/recon/c/` (gitignored).
 
+## Ghidra decompiler
+
+Headless Ghidra 12.2 now works on the full 33 MB exe. Three earlier runs OOM'd
+in `AddressTableAnalyzer` even at `-Xmx12G` and flooded the log with
+`DemangledVariable` errors. `DisableHeavyAnalyzers.java` disables those two
+analyzers; the successful run finished auto-analysis in ~14 minutes and created
+138,720 functions. `ExportDecomp.java` then decompiled 12 of 19 sample ranges;
+the other 7 are `.pdata` entries where Ghidra refuses to disassemble, so their
+output is `halt_baddata()` and is reported as a failure. Decompiled C lands in
+`docs/recon/ghidra_c/` (gitignored).
+
+REA still reports the Ghidra provider as `not_configured`: the `opencode`
+process was launched before `GHIDRA_INSTALL_DIR` was set. A full restart of both
+opencode processes is needed for that path. None of this blocks the lift spike.
+
 ## Gaps, in order
 
-1. **Calls.** `call` is lifted but not executed by the spike interpreter; a
-   call-graph walk and Windows-x64 argument/register clobber modelling are next.
+1. **Indirect calls / host stubs.** Direct calls to lifted functions work;
+   calls through the IAT or a vtable still need a host-call model.
 2. **Fragments.** Some `.pdata` entries are chunks of a larger function: their
    branch target is another `.pdata` start. `difftest.py` reports them as
    fragments instead of comparing.
-3. **Floating point and SIMD.** D3D/math code uses XMM (`movaps`, `cvtps2pd`,
+3. **Bounded contexts.** Wrappers around `memcpy`-style loops need register
+   ranges, not random pointers, before they can be compared.
+4. **Floating point and SIMD.** D3D/math code uses XMM (`movaps`, `cvtps2pd`,
    `andpd`, …) which the IR does not cover yet.
-4. **Decompiler.** Ghidra headless 12.2 was tried three times on the 33 MB exe.
-   All three died with `OutOfMemoryError` inside `AddressTableAnalyzer` (even
-   with `-Xmx12G`), alongside a flood of `DemangledVariable` errors. A
-   `preScript` (`tools/ghidra/DisableHeavyAnalyzers.java`) now disables the
-   address-table and Microsoft demangler analyzers; the re-run was started
-   separately. REA still reports the Ghidra provider as `not_configured`
-   because the `opencode` process was launched before `GHIDRA_INSTALL_DIR` was
-   set; a full restart is needed. None of this blocks the lift spike above.

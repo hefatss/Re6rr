@@ -30,6 +30,13 @@ Raw reports go to `docs/recon/*.json` (gitignored).
     python tools/x64/difftest.py --seeds 30  # original bytes vs lifted IR (Unicorn)
     python tools/x64/emit_c.py f_8555     # C output from the same IR
 
+Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
+
+    analyzeHeadless <proj> wmn6r -import <exe> \
+      -scriptPath tools/ghidra -preScript DisableHeavyAnalyzers.java
+    analyzeHeadless <proj> wmn6r -process wmn6r.exe -noanalysis \
+      -scriptPath tools/ghidra -postScript ExportDecomp.java <out> <list>
+
 Recon tools take `--game PATH` (default `D:\Games\W6W-05`). x64 tools take
 `--exe PATH` (default `D:\Games\W6W-05\wmn6r.exe`). Most write into
 `docs/recon/`, which is gitignored.

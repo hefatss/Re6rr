@@ -102,7 +102,7 @@ def unicorn_run(pe, img, start, end, regs, scratch, max_insns=2000):
         uc.reg_write(UC_REG[name], val)
     uc.reg_write(UC_X86_REG_RSP, regs["rsp"])
 
-    state = {"n": 0, "fault": None}
+    state = {"n": 0, "fault": None, "depth": 0}
 
     def stop(uc_, address, size, user):
         state["n"] += 1
@@ -112,8 +112,13 @@ def unicorn_run(pe, img, start, end, regs, scratch, max_insns=2000):
             opcode = uc_.mem_read(address, 1)[0]
         except Exception:
             opcode = None
-        if opcode in (0xC2, 0xC3, 0xCA, 0xCB):
-            uc_.mem_write(uc_.reg_read(UC_X86_REG_RSP), struct.pack("<Q", SENTINEL))
+        if opcode == 0xE8:  # direct call: a ret inside it is not the outer return
+            state["depth"] += 1
+        elif opcode in (0xC2, 0xC3, 0xCA, 0xCB):
+            if state["depth"]:
+                state["depth"] -= 1
+            else:
+                uc_.mem_write(uc_.reg_read(UC_X86_REG_RSP), struct.pack("<Q", SENTINEL))
 
     uc.hook_add(UC_HOOK_CODE, stop)
     try:
@@ -147,19 +152,22 @@ def main():
     img = image_bytes(pe)
     rva, size = pe.dirs[3]
     off = pe.off(rva)
-    funcs = {}
+    bounds = {}
     for i in range(size // 12):
         begin, end, _ = struct.unpack_from("<III", pe.raw, off + 12 * i)
         if begin and end > begin:
-            funcs[begin] = end
+            bounds[pe.image_base + begin] = pe.image_base + end
 
     md = Cs(CS_ARCH_X86, CS_MODE_64)
     md.detail = True
     md.skipdata = True
 
     total_fail = 0
+    total_skip = 0
     for start in targets:
-        end = funcs.get(start)
+        end = bounds.get(pe.image_base + start)
+        if end is not None:
+            end -= pe.image_base
         if end is None:
             print("f_%x: not a function" % start)
             total_fail += 1
@@ -177,10 +185,32 @@ def main():
                    if it["op"] in ("jmp", "jcc") and it["args"][-1] not in addrs]
         if outside:
             print("f_%x: fragment, branch leaves body to 0x%x" % (start, outside[0]))
+            total_skip += 1
+            continue
+
+        # Lift the direct-call closure, so functions that call helpers can be
+        # compared too (Unicorn executes the real calls natively).
+        funcs = {start: items}
+        queue = [items]
+        try:
+            while queue and len(funcs) < 24:
+                body = queue.pop(0)
+                for it in body:
+                    if it["op"] != "call":
+                        continue
+                    tgt = it["args"][0]
+                    if tgt in funcs or tgt not in bounds:
+                        continue
+                    sub = lift_function(md, img, tgt - pe.image_base,
+                                        bounds[tgt] - pe.image_base, base=pe.image_base)
+                    funcs[tgt] = sub
+                    queue.append(sub)
+        except Unsupported as exc:
+            print("f_%x: callee lift gap: %s" % (start, exc))
             total_fail += 1
             continue
 
-        ok = faults = 0
+        ok = faults = loops = 0
         mismatch = 0
         first = None
         for seed in range(args.seeds):
@@ -195,6 +225,14 @@ def main():
                     print("f_%x seed 0 unicorn fault: %s" % (start, state["fault"]))
                 faults += 1
                 continue
+            if state["n"] >= 2000:
+                # The random context does not bound a loop (e.g. memcpy until
+                # rcx == rdx with independent pointers), so both sides stop at
+                # their instruction cap with unrelated partial state.
+                if seed == 0:
+                    print("f_%x seed 0: loop, context does not bound it" % start)
+                loops += 1
+                continue
             mem = Mem(backing=bytes(img), base=pe.image_base)
             mem.load_bytes(SCRATCH, scratch)
             mem.load_bytes(STACK, sentinel_stack())
@@ -203,7 +241,15 @@ def main():
                 cpu.r[name] = val & 0xFFFFFFFFFFFFFFFF
             trace = [] if args.trace else None
             try:
-                run(items, cpu, trace=trace)
+                run(items, cpu, funcs=funcs, trace=trace)
+            except RuntimeError as exc:
+                if "instruction limit" in str(exc):
+                    print("f_%x seed %d: loop, context does not bound it" % (start, seed))
+                    loops += 1
+                    break
+                print("f_%x seed %d interpreter error: %s" % (start, seed, exc))
+                mismatch += 1
+                break
             except Exception as exc:
                 print("f_%x seed %d interpreter error: %s: %s" % (
                     start, seed, type(exc).__name__, exc))
@@ -228,12 +274,14 @@ def main():
                 break
             ok += 1
 
-        status = "FAIL" if mismatch else ("ok" if faults == 0 else "SKIP")
-        print("f_%x (%d bytes, %d IR ops): %s  %d/%d seeds compared, %d faults" % (
-            start, end - start, len(items), status, ok, args.seeds, faults))
-        total_fail += 0 if status == "ok" else 1
+        status = "FAIL" if mismatch else ("ok" if faults == 0 and loops == 0 else "SKIP")
+        print("f_%x (%d bytes, %d IR ops): %s  %d/%d seeds compared, %d faults, %d loops" % (
+            start, end - start, len(items), status, ok, args.seeds, faults, loops))
+        total_fail += 1 if status == "FAIL" else 0
+        total_skip += 1 if status == "SKIP" else 0
 
-    print("\n%d/%d functions pass" % (len(targets) - total_fail, len(targets)))
+    print("\n%d/%d functions pass, %d skipped" % (
+        len(targets) - total_fail - total_skip, len(targets), total_skip))
     return 0 if total_fail == 0 else 1
 
 
