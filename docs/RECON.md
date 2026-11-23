@@ -74,13 +74,27 @@ Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
 prose, `Event.xmlt` still has Japanese romaji ids). `data_msgdb` remains an `.xlsm`
 spreadsheet in both roots. `data_en/` is empty in this dump.
 
+## Function map (`.pdata` → `pdata.json`)
+
+- 70,377 functions, 14.7 MB of code inside a 16.5 MB `.text` (the rest is padding
+  and data-free alignment).
+- 11,796 functions carry a chained unwind record (the compiler shared unwind data);
+  only 3 are declared leaf, since MSVC omits `.pdata` for real leaves.
+- Size: min 2, median 88, max 60,258 bytes. Histogram: `<16` 2,564; `16-31`
+  10,902; `32-63` 16,380; `64-127` 14,499; `128-255` 13,639; `256-1023` 10,422;
+  `>=1024` 1,971. Biggest: `0xA73E10` (60,258), `0x1019BB0` and `0x1026520`
+  (51,563 each).
+
 ## Tooling reached
 
 - Python 3.14 available; `pefile` not installed — `pe_report.py` parses PE itself.
 - LLVM binutils at `C:\Program Files\LLVM\bin` (`llvm-readobj`, works on the PE).
 - REA: static PE helpers work (`inspect_pe_imports` recorded), but no deep-analysis
-  provider is configured — Ghidra needs `GHIDRA_INSTALL_DIR` (12.1+), Hopper is
+  provider was configured — Ghidra needs `GHIDRA_INSTALL_DIR` (12.1+), Hopper is
   macOS-only, IDA/Kuna absent, and Kuna does not admit PE yet.
+- Ghidra 12.2 PUBLIC installed at `C:\Tools\ghidra_12.2_PUBLIC` (win_x86_64
+  decompiler present, `analyzeHeadless.bat` runs with JDK 21/25). User env
+  `GHIDRA_INSTALL_DIR` set. REA has to be restarted before it offers the provider.
 
 ## Phase 1 plan (recompiler spike), now concrete
 
