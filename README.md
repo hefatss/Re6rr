@@ -18,8 +18,12 @@ Phase 0 (recon). See `docs/RECON.md` for what the dump contains and
 ## Tools
 
     python tools/recon/pe_report.py      # PE headers, imports, .pdata function count, PDB
+    python tools/recon/pdata_map.py      # every .pdata function: start/end/size/unwind
     python tools/recon/lua_report.py     # Lua inventory + candidate native API
     python tools/recon/assets_report.py  # extensions, gzip containers, shader samples
+
+Results of phase 0: `docs/RECON.md` (summary) and `docs/recon/LUA_API.md` (binding
+candidates called from the game's Lua).
 
 All take `--game PATH` (default `D:\Games\W6W-05`) and write into `docs/recon/`.
 
