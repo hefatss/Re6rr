@@ -33,6 +33,7 @@ progress: see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md` and
     python tools/x64/emit_c.py f_8555     # C output from the same IR
     python tools/lua/lua_probe.py --dump D:\Games\W6W-05  # load data scripts
     python tools/lua/lua_probe.py --scripts PATH --query GetTirePos NAME 0 --vec3
+    python tools/lua/script_sets.py --name GetTirePos  # which script defines a global
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 

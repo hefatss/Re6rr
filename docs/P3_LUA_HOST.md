@@ -55,7 +55,10 @@ The other nil reads are an order effect, not missing bindings:
 the game's real values, but sorted path order reaches its readers first.
 `tools/lua/lua_probe.py` preloads that file (`--no-bootstrap` disables it).
 With the preload, all 4,885 scripts load without errors and no global is
-missing.
+missing. `--no-stubs` shows the difference: only `setting_default.lua` fails,
+on `SettingConst`, and `missing_globals=1 ['SettingConst']`. All 219 names
+from `BINDINGS.md` resolve to Lua functions defined by the data scripts; the
+port does not need to implement any of them natively.
 
 ## Script context matters
 
@@ -70,6 +73,9 @@ car's `CarDataPosList` and last colour library's `ColorMax` win. For example:
 
 The engine must load one context at a time (one car position file, one colour
 library, one course section set). `tools/lua/lua_probe.py --scripts` does that.
+`tools/lua/script_sets.py` indexes which script defines each global: 200 of the
+219 names have exactly one defining script, 19 are ambiguous (per-car, per-colour
+or per-course variants) and need an explicit context choice.
 
 ## Validation
 
