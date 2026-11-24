@@ -90,7 +90,10 @@ string bytes, 386,681 bytes total.
   are not in the dump.
 - `ACTOR_*` and `STAGE` are plain `int32` scene values read and written verbatim
   by `EventScene2Analyzer.cpp` / `EventSceneEditor.cpp`; see
-  `docs/recon/STORY_NATIVE.md`. Actor values sit inside the `0..253` domain of
+  `docs/recon/STORY_NATIVE.md`. Ghidra full analysis recovered the exact editor
+  slots: stage/root/day come from struct offsets `0x10/0x14/0x18` and actors
+  1..4 from `0x00/0x04/0x08/0x0c`, with native `GetStageId` / `GetActId_1..4`
+  error labels. Actor values sit inside the `0..253` domain of
   native `getCarIdName(int)`, which indexes the `CRC_*`/`PLC_*` name table;
   stage values fit Enma `EStage`. Native callers of that function are car-list
   UI and honor debug code, not the `Environment.Lua` reader, and no shipped
