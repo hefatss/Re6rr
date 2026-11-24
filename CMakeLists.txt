@@ -19,6 +19,7 @@ set(R6_CORE
     engine/src/physics/race.c
     engine/src/game/game.c
     engine/src/game/car.c
+    engine/src/game/custom.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

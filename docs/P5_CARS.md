@@ -86,6 +86,7 @@ size, a bad mapping count, an empty blob and short capacity. Result: 151 cars,
 ## Gaps
 
 - Mappings are inferred, not shipped; `CRC_DC2_Tomoya` has tire-only evidence.
-- No colour list, aero parts or wheel catalog.
+- Colour, wheel, aero/parts and per-car customization data are in the separate
+  `.r6custom` catalog documented in `docs/P5_CUSTOM.md`.
 - `DriveSystem` values above 3 appear in the dump; the catalog preserves them
   but the vehicle model still only defines FR/RR/MR/4WD.
