@@ -53,7 +53,10 @@ Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
 `.nub` is now decoded: 32-byte header, tone-record offsets, 208-byte records with
 PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse
 (781 tones); `tools/engine/nub_audio.py` inventories them and extracts original
-PCM to standard WAV. Format details and unresolved mixer fields are in
+PCM to standard WAV. Native callers show `sys::Sound::Impl::playSe` selecting a
+bank number and tone index before calling `nuSound2KeyOnHandle(handle, tone,
+attr)`, while `registerBank` stores the nuSound2 handle in a 32-byte bank-table
+entry. Format details, call sites and unresolved mixer fields are in
 `recon/AUDIO_NUB.md`.
 
 Shader folder holds compiled blobs (`NSXR`), not HLSL source, so a port translates
