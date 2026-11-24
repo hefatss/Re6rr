@@ -21,6 +21,15 @@ typedef struct r6_stream {
     uint32_t size;
 } r6_stream;
 
+/* Parse a gzip header and return the expected inflated size (ISIZE). */
+R6_API int r6_gzip_expected_size(const void *data, size_t size,
+                                 size_t *out_size);
+
+/* Inflate a gzip stream into caller memory. On R6_ERR_BUFFER, out_size holds
+ * the required capacity. On success out_size holds the number of bytes. */
+R6_API int r6_gzip_inflate(const void *data, size_t size, void *out,
+                           size_t capacity, size_t *out_size);
+
 /* XMD.001: "XMD\0001", u32 version, u32 count, u32 offsets[count]. */
 R6_API int r6_xmd_parse(const void *data, size_t size, r6_stream *out,
                         size_t capacity, uint32_t *version, uint32_t *count);

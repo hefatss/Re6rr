@@ -35,9 +35,9 @@ working C engine core with Lua host, script contexts and asset parsers: see
     python tools/lua/lua_probe.py --dump D:\Games\W6W-05  # load data scripts
     python tools/lua/lua_probe.py --scripts PATH --query GetTirePos NAME 0 --vec3
     python tools/lua/script_sets.py --name GetTirePos  # which script defines a global
-    python tools/engine/build_host.py --test           # build C core + run tests
-    python tools/engine/test_engine.py --corpus        # all data scripts via C
     python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
+    python tools/engine/build_host.py --test           # build C core + JNI checks
+    python tools/engine/test_engine.py --corpus        # all data scripts via C
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 

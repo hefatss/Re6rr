@@ -29,7 +29,13 @@ SOURCES = [
     "engine/src/assets/xmd.c",
     "engine/src/assets/ndwd.c",
     "engine/src/assets/ntwd.c",
+    "engine/src/assets/inflate.c",
     "engine/src/host/dllmain.c",
+]
+MINIZ = [
+    "third_party/miniz-2.2.0/miniz.c",
+    "third_party/miniz-2.2.0/miniz_tinfl.c",
+    "third_party/miniz-2.2.0/miniz_tdef.c",
 ]
 
 
@@ -57,6 +63,20 @@ def lua_import_library(dump, out_dir):
 def build(dump, out_dir):
     lib = lua_import_library(dump, out_dir)
     out = os.path.join(out_dir, "r6_engine.dll")
+    miniz_objs = []
+    for index, source in enumerate(MINIZ):
+        miniz_obj = os.path.join(out_dir, "miniz%d.obj" % index)
+        miniz_cmd = [
+            CLANG, "-std=c11", "-O2", "-c", "-fno-builtin", "-ffreestanding",
+            "-mstack-probe-size=16777216",
+            "-include", os.path.join(ROOT, "engine", "compat", "miniz_config.h"),
+            "-I", os.path.join(ROOT, "third_party", "miniz-2.2.0", "compat"),
+            "-I", os.path.join(ROOT, "third_party", "miniz-2.2.0"),
+            "-I", os.path.join(ROOT, "engine", "compat"),
+            os.path.join(ROOT, source), "-o", miniz_obj,
+        ]
+        subprocess.run(miniz_cmd, check=True)
+        miniz_objs.append(miniz_obj)
     cmd = [
         CLANG, "-std=c11", "-O2", "-g", "-shared", "-nostdlib",
         "-fno-stack-protector", "-fno-builtin", "-ffreestanding",
@@ -65,13 +85,43 @@ def build(dump, out_dir):
         "-I", os.path.join(ROOT, "engine", "src"),
         "-I", os.path.join(ROOT, "engine", "compat"),
         "-I", os.path.join(ROOT, "third_party", "lua-5.1.5", "src"),
+        "-I", os.path.join(ROOT, "third_party", "miniz-2.2.0"),
+        "-I", os.path.join(ROOT, "third_party", "miniz-2.2.0", "compat"),
+        "-DMINIZ_NO_STDIO=1", "-DMINIZ_NO_TIME=1",
+        "-DMINIZ_NO_DEFLATE_APIS=1", "-DMINIZ_NO_ARCHIVE_APIS=1",
+        "-DMINIZ_NO_MALLOC=1",
         "-Wl,/nodefaultlib", "-Wl,/entry:DllMain",
         "-o", out,
-    ] + [os.path.join(ROOT, src) for src in SOURCES] + [lib]
+    ] + [os.path.join(ROOT, src) for src in SOURCES] + miniz_objs + [lib]
     print(" ".join(cmd))
     subprocess.run(cmd, check=True)
     print("built %s" % out)
     return out
+
+
+def check_jni():
+    java_home = os.environ.get("JAVA_HOME")
+    if not java_home:
+        return
+    command = [
+        CLANG, "-std=c11", "-fsyntax-only",
+        "-I", os.path.join(ROOT, "engine", "compat"),
+        "-I", os.path.join(ROOT, "engine", "include"),
+        "-I", os.path.join(java_home, "include"),
+        "-I", os.path.join(java_home, "include", "win32"),
+        os.path.join(ROOT, "engine", "src", "host", "jni.c"),
+    ]
+    subprocess.run(command, check=True)
+    print("JNI layer syntax OK")
+    javac = os.path.join(java_home, "bin", "javac.exe" if os.name == "nt"
+                         else "javac")
+    source = os.path.join(ROOT, "platform", "android", "java", "com",
+                          "hefatss", "re6rr", "Re6Engine.java")
+    if os.path.exists(javac) and os.path.exists(source):
+        classes = os.path.join(ROOT, "build", "tmp", "jni-classes")
+        os.makedirs(classes, exist_ok=True)
+        subprocess.run([javac, "-d", classes, source], check=True)
+        print("Java bridge compiles OK")
 
 
 def main():
@@ -82,6 +132,7 @@ def main():
     ap.add_argument("--test", action="store_true")
     args = ap.parse_args()
     dll = build(args.dump, args.out)
+    check_jni()
     if args.test:
         test = os.path.join(ROOT, "tools", "engine", "test_engine.py")
         subprocess.run([sys.executable, test, "--dump", args.dump,

@@ -297,6 +297,66 @@ def test_lua(dll, dump, failures):
         os.remove(bad_path)
 
 
+def test_gzip(dll, dump, failures):
+    lib = ctypes.CDLL(dll)
+    lib.r6_gzip_expected_size.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                          ctypes.POINTER(ctypes.c_size_t)]
+    lib.r6_gzip_inflate.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                    ctypes.c_void_p, ctypes.c_size_t,
+                                    ctypes.POINTER(ctypes.c_size_t)]
+    samples = []
+    for base, _dirs, files in os.walk(os.path.join(dump, "data")):
+        for name in files:
+            low = name.lower()
+            if low.endswith((".tex", ".mdl")):
+                samples.append(os.path.join(base, name))
+    samples.sort()
+    checked = 0
+    for path in samples:
+        raw = open(path, "rb").read()
+        if raw[:3] != b"\x1f\x8b\x08":
+            continue
+        want = gzip.decompress(raw)
+        src = ctypes.create_string_buffer(raw, len(raw))
+        size = ctypes.c_size_t()
+        rc = lib.r6_gzip_expected_size(src, len(raw), ctypes.byref(size))
+        if rc != R6_OK or size.value != len(want):
+            failures.append("gzip: %s expected rc=%d size=%d py=%d" % (
+                path, rc, size.value, len(want)))
+            break
+
+        small = ctypes.create_string_buffer(16)
+        need = ctypes.c_size_t()
+        rc = lib.r6_gzip_inflate(src, len(raw), small, 16, ctypes.byref(need))
+        if rc != R6_ERR_BUFFER or need.value != len(want):
+            failures.append("gzip: %s small buffer rc=%d need=%d" % (
+                path, rc, need.value))
+            break
+
+        dst = ctypes.create_string_buffer(len(want))
+        got_size = ctypes.c_size_t()
+        rc = lib.r6_gzip_inflate(src, len(raw), dst, len(want),
+                                 ctypes.byref(got_size))
+        got = dst.raw[:got_size.value]
+        if rc != R6_OK or got != want:
+            failures.append("gzip: %s inflate rc=%d size=%d py=%d" % (
+                path, rc, got_size.value, len(want)))
+            break
+        checked += 1
+        if checked >= 20:
+            break
+    print("  gzip: %d streams byte-identical to Python gzip" % checked)
+    if checked == 0:
+        failures.append("gzip: no compressed samples found")
+
+    corrupted = b"\x1f\x8b\x08\x00" + samples[0].encode()[:4]
+    src = ctypes.create_string_buffer(corrupted, len(corrupted))
+    size = ctypes.c_size_t()
+    rc = lib.r6_gzip_expected_size(src, len(corrupted), ctypes.byref(size))
+    if rc == R6_OK:
+        failures.append("gzip: malformed header accepted")
+
+
 def decompress(path):
     data = open(path, "rb").read()
     if data[:3] == b"\x1f\x8b\x08":
@@ -488,6 +548,7 @@ def main():
     ap.add_argument("--skip-assets", action="store_true")
     ap.add_argument("--corpus", action="store_true",
                     help="also load every data script through the C host")
+    ap.add_argument("--skip-gzip", action="store_true")
     args = ap.parse_args()
 
     failures = []
@@ -497,6 +558,9 @@ def main():
     if args.corpus:
         print("script corpus")
         test_corpus(args.dll, args.dump, failures)
+    if not args.skip_gzip:
+        print("gzip")
+        test_gzip(args.dll, args.dump, failures)
     if not args.skip_assets:
         print("assets")
         test_assets(args.dll, args.dump, failures, args.limit)

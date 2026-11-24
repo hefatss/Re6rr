@@ -10,10 +10,12 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
 engine/src/core/              Lua host, engine lifecycle, context bundling
-engine/src/assets/            bounds-checked asset parsers
-engine/src/host/dllmain.c     Windows host-test entry point only
-engine/compat/stdio.h         minimal stdio for freestanding host build
+engine/src/assets/            bounds-checked asset parsers + gzip inflate
+engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
+engine/compat/                freestanding stdio/stdlib/assert/miniz shims
 third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
+third_party/miniz-2.2.0/      miniz 2.2.0 (MIT) for gzip/deflate without a CRT
+platform/android/java/        Java side of the JNI bridge
 ```
 
 ## API
@@ -32,6 +34,21 @@ third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
   is zeroed, matching `FUN_1400d20d0`'s error convention.
 - `r6_engine_call_number(name, out)` — single scalar result; zero on failure.
 - `r6_engine_last_error()` — last message, copied into caller's buffer.
+- `r6_gzip_expected_size()` / `r6_gzip_inflate()` — RFC 1952 gzip members via
+  vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
+  capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
+  sequential.
+
+## Android bridge
+
+`engine/src/host/jni.c` exposes `com.hefatss.re6rr.Re6Engine` to Java:
+`nativeCreate`/`nativeDestroy`, `nativeLoadScript`, `nativeLoadContext`,
+`nativeCallVec3`, `nativeCallNumber`, `nativeHasFunction`, `nativeLastError`
+and `nativeInflateGzip`. Java owns assets and gzip reads and passes plain
+bytes; the core never touches `AssetManager`. JNI C is syntax-checked against
+`JAVA_HOME/include`, and the Java class is compiled with `javac` by
+`build_host.py`. `CMakeLists.txt` links `r6core` into `libr6engine.so` for
+`ANDROID`.
 
 ## Host build and tests
 
@@ -55,20 +72,24 @@ Verified on this dump:
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
 | 400 `.tex` files, 1,057 NTWD streams, 3,475 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
 | 400 `.mdl` files, 21,799 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
+| 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.
 
 ## Android build
 
-`CMakeLists.txt` builds `lua51` from the vendored sources plus `r6core`. There
-is no Android NDK/SDK on this machine, so the CMake path is authored but not
-yet compiled. The platform layer still to be written must:
+`CMakeLists.txt` builds `lua51`, `miniz` and `r6core`, and links them into
+`libr6engine.so` for Android. There is no Android NDK/SDK on this machine, so
+the CMake/NDK path is authored but not yet compiled. The platform layer still
+to be written must:
 
-1. map `sim:data/...` to asset-manager/dump paths and inflate gzip containers;
-2. feed bytes to `r6_engine_load_context` in the order from
-   `tools/engine/contexts.py`;
-3. implement the JNI surface and rendering (Vulkan) outside the core.
+1. map `sim:data/...` to asset-manager/dump paths and feed gzip bytes through
+   `nativeInflateGzip`;
+2. build the ordered script lists from `tools/engine/contexts.py` and pass them
+   to `nativeLoadContext`;
+3. implement the Android UI and Vulkan renderer outside the core.
 
 ## Gaps
 

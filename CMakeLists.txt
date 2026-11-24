@@ -12,6 +12,14 @@ set(R6_CORE
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
+    engine/src/assets/inflate.c
+)
+
+set(MINIZ_SRC third_party/miniz-2.2.0)
+set(MINIZ_SOURCES
+    ${MINIZ_SRC}/miniz.c
+    ${MINIZ_SRC}/miniz_tinfl.c
+    ${MINIZ_SRC}/miniz_tdef.c
 )
 
 set(LUA_SRC third_party/lua-5.1.5/src)
@@ -39,14 +47,25 @@ target_include_directories(r6core
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/engine/src
             ${CMAKE_CURRENT_SOURCE_DIR}/engine/compat
-            ${LUA_SRC})
+            ${LUA_SRC} ${MINIZ_SRC} ${MINIZ_SRC}/compat)
+target_compile_definitions(r6core PRIVATE
+    MINIZ_NO_STDIO=1 MINIZ_NO_TIME=1 MINIZ_NO_DEFLATE_APIS=1
+    MINIZ_NO_ARCHIVE_APIS=1 MINIZ_NO_MALLOC=1)
 target_link_libraries(r6core PUBLIC lua51)
 
+add_library(miniz STATIC ${MINIZ_SOURCES})
+set_target_properties(miniz PROPERTIES C_STANDARD 11)
+target_include_directories(miniz
+    PRIVATE ${MINIZ_SRC} ${MINIZ_SRC}/compat ${CMAKE_CURRENT_SOURCE_DIR}/engine/compat)
+target_compile_options(miniz PRIVATE
+    -include ${CMAKE_CURRENT_SOURCE_DIR}/engine/compat/miniz_config.h)
+target_link_libraries(r6core PUBLIC miniz)
+
 if(ANDROID)
-    # JNI platform layer is added here once the Android UI exists. The core
-    # itself has no Android dependencies: callers pass already-inflated bytes.
-    add_library(r6engine SHARED ${R6_CORE})
-    target_link_libraries(r6engine PRIVATE lua51)
+    # JNI platform layer: Java owns asset lookup and gzip reads, the core only
+    # sees plain bytes. The core has no Android dependencies.
+    add_library(r6engine SHARED engine/src/host/jni.c)
+    target_link_libraries(r6engine PRIVATE r6core)
     find_library(ANDROID_LOG log)
     target_link_libraries(r6engine PRIVATE ${ANDROID_LOG})
 endif()
