@@ -386,6 +386,90 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Wraps the packed .r6story catalog produced by
+     *  tools/engine/story_catalog.py. */
+    public static class StoryCatalog {
+        private final byte[] blob;
+        private final int[] counts;
+
+        public StoryCatalog(byte[] blob) {
+            this.blob = blob;
+            this.counts = nativeStoryCatalogCounts(blob);
+            if (counts == null || counts.length != 5) {
+                throw new IllegalArgumentException("bad .r6story blob");
+            }
+        }
+
+        /** Section indexes: 0 episode, 1 message, 2 event, 3 key, 4 string. */
+        public int count(int section) {
+            if (section < 0 || section >= counts.length) {
+                throw new IllegalArgumentException("bad section");
+            }
+            return counts[section];
+        }
+
+        /** enumIndex flags messageCount eventCount actor0..3 stage root day
+         *  camera. Numeric actors and stage stay raw; no shipped mapping. */
+        public int[] episode(int index) {
+            return nativeStoryCatalogEpisode(blob, index);
+        }
+
+        public String episodeName(int index) {
+            byte[] raw = nativeStoryCatalogEpisodeName(blob, index);
+            return raw == null ? null : new String(raw,
+                   java.nio.charset.StandardCharsets.US_ASCII);
+        }
+
+        /** textOffset episode localId textLen phase. */
+        public int[] message(int index) {
+            return nativeStoryCatalogMessage(blob, index);
+        }
+
+        /** episode phase kind start end range mesId actor pos textOffset len. */
+        public int[] event(int index) {
+            return nativeStoryCatalogEvent(blob, index);
+        }
+
+        /** idOffset valueOffset idLen valueLen. */
+        public int[] key(int index) {
+            return nativeStoryCatalogKey(blob, index);
+        }
+
+        public String messageText(int index) {
+            return utf8(0, index);
+        }
+
+        public String eventText(int index) {
+            return utf8(1, index);
+        }
+
+        public String keyId(int index) {
+            return utf8(2, index);
+        }
+
+        public String keyValue(int index) {
+            return utf8(3, index);
+        }
+
+        public String text(int section, int index) {
+            return utf8(section, index);
+        }
+
+        public int findEpisode(String name) {
+            return nativeStoryCatalogFindEpisode(blob, name);
+        }
+
+        public int findKey(String key) {
+            return nativeStoryCatalogFindKey(blob, key);
+        }
+
+        private String utf8(int section, int index) {
+            byte[] raw = nativeStoryCatalogText(blob, section, index);
+            return raw == null ? null : new String(raw,
+                   java.nio.charset.StandardCharsets.UTF_8);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -441,6 +525,15 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeCustomCatalogFlags(byte[] blob, int section, int index);
     private static native int[] nativeCustomCatalogTune(byte[] blob, int index);
     private static native float[] nativeCustomCatalogTire(byte[] blob, int index);
+    private static native int[] nativeStoryCatalogCounts(byte[] blob);
+    private static native int[] nativeStoryCatalogEpisode(byte[] blob, int index);
+    private static native byte[] nativeStoryCatalogEpisodeName(byte[] blob, int index);
+    private static native int[] nativeStoryCatalogMessage(byte[] blob, int index);
+    private static native int[] nativeStoryCatalogEvent(byte[] blob, int index);
+    private static native int[] nativeStoryCatalogKey(byte[] blob, int index);
+    private static native byte[] nativeStoryCatalogText(byte[] blob, int section, int index);
+    private static native int nativeStoryCatalogFindEpisode(byte[] blob, String name);
+    private static native int nativeStoryCatalogFindKey(byte[] blob, String key);
     private static native int nativeCarCatalogCharacterIndex(byte[] blob, String character);
 
     static {

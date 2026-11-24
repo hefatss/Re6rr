@@ -66,6 +66,15 @@ accessors copy into caller storage; string accessors copy NUL-terminated text
 into caller buffers and reject too-small buffers. Lookups exist for episode
 name and `drive_story_*` key.
 
+## JNI
+
+`Re6Engine.StoryCatalog` wraps the blob on Android. `count(section)` uses
+episode/message/event/key/string order. `episode()` and `episodeName()` expose
+the episode tree; `message()`, `event()` and `key()` expose fixed records.
+`messageText()`, `eventText()`, `keyId()` and `keyValue()` decode UTF-8 text
+from the shared string section. `findEpisode()` and `findKey()` return `-1` for
+unknown names. Java owns the byte array; native code only validates and copies.
+
 ## Validation
 
 `python tools/engine/test_story_catalog.py` checks section counts, ctypes record

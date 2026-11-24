@@ -15,6 +15,7 @@
 #include "r6/r6_game.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
+#include "r6/r6_story.h"
 
 static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
@@ -1295,6 +1296,288 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogTire(JNIEnv *env, jclass cls,
     result = (*env)->NewFloatArray(env, 3);
     if (result) {
         (*env)->SetFloatArrayRegion(env, result, 0, 3, values);
+    }
+    free(bytes);
+    return result;
+}
+
+/* Story catalog: Java owns the blob, this layer validates then copies. */
+static int story_from_blob(JNIEnv *env, jbyteArray blob,
+                           unsigned char **bytes, jsize *length,
+                           r6_story_catalog *catalog) {
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    *length = (*env)->GetArrayLength(env, blob);
+    *bytes = (unsigned char *)malloc((size_t)*length ? (size_t)*length : 1);
+    if (!*bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, *length, (jbyte *)*bytes);
+    if ((*env)->ExceptionCheck(env) ||
+            r6_story_catalog_parse(*bytes, (size_t)*length, catalog) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+static jintArray story_ints(JNIEnv *env, const jint *values, jsize count) {
+    jintArray result = (*env)->NewIntArray(env, count);
+    if (result) {
+        (*env)->SetIntArrayRegion(env, result, 0, count, values);
+    }
+    return result;
+}
+
+static size_t story_cstr_length(const char *text) {
+    size_t length = 0;
+    while (text[length]) {
+        length++;
+    }
+    return length;
+}
+
+static jbyteArray story_byte_array(JNIEnv *env, const char *text,
+                                   size_t length) {
+    jbyteArray result = (*env)->NewByteArray(env, (jsize)length);
+    if (result && length) {
+        (*env)->SetByteArrayRegion(env, result, 0, (jsize)length,
+                                   (const jbyte *)text);
+    }
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogCounts(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    jint values[5];
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jint)catalog.episode_count;
+    values[1] = (jint)catalog.message_count;
+    values[2] = (jint)catalog.event_count;
+    values[3] = (jint)catalog.key_count;
+    values[4] = (jint)catalog.string_count;
+    free(bytes);
+    return story_ints(env, values, 5);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogEpisode(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_episode episode;
+    jint values[12];
+    size_t i;
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_story_catalog_episode(&catalog, (size_t)index, &episode) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jint)episode.enum_index;
+    values[1] = (jint)episode.flags;
+    values[2] = episode.message_count;
+    values[3] = episode.event_count;
+    for (i = 0; i < 4; i++) {
+        values[4 + i] = episode.actors[i];
+    }
+    values[8] = episode.stage;
+    values[9] = episode.stage_root;
+    values[10] = episode.stage_day;
+    values[11] = episode.cam_id;
+    free(bytes);
+    return story_ints(env, values, 12);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogEpisodeName(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_episode episode;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_story_catalog_episode(&catalog, (size_t)index, &episode) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    result = custom_name(env, episode.name, sizeof(episode.name));
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogMessage(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_message message;
+    jint values[5];
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_story_catalog_message(&catalog, (size_t)index, &message) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jint)message.text_offset;
+    values[1] = message.episode;
+    values[2] = message.local_id;
+    values[3] = message.text_len;
+    values[4] = message.phase;
+    free(bytes);
+    return story_ints(env, values, 5);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogEvent(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_event event;
+    jint values[11];
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_story_catalog_event(&catalog, (size_t)index, &event) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = event.episode;
+    values[1] = event.phase;
+    values[2] = event.kind;
+    values[3] = event.start_frame;
+    values[4] = event.end_frame;
+    values[5] = (jint)event.range;
+    values[6] = event.mes_id;
+    values[7] = event.actor;
+    values[8] = event.pos;
+    values[9] = (jint)event.text_offset;
+    values[10] = event.text_len;
+    free(bytes);
+    return story_ints(env, values, 11);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogKey(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_key key;
+    jint values[4];
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_story_catalog_key(&catalog, (size_t)index, &key) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jint)key.id_offset;
+    values[1] = (jint)key.value_offset;
+    values[2] = key.id_len;
+    values[3] = key.value_len;
+    free(bytes);
+    return story_ints(env, values, 4);
+}
+
+/* Sections: 0 message text, 1 event label, 2 key ID, 3 key value. */
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogText(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint section, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    char *text = NULL;
+    jbyteArray result = NULL;
+    jint rc;
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return NULL;
+    }
+    text = (char *)malloc((size_t)length + 1);
+    if (!text) {
+        free(bytes);
+        return NULL;
+    }
+    if (section == 0) {
+        rc = r6_story_catalog_message_text(&catalog, (size_t)index, text,
+                                           (size_t)length + 1);
+    } else if (section == 1) {
+        rc = r6_story_catalog_event_text(&catalog, (size_t)index, text,
+                                         (size_t)length + 1);
+    } else if (section == 2) {
+        rc = r6_story_catalog_key_id(&catalog, (size_t)index, text,
+                                     (size_t)length + 1);
+    } else if (section == 3) {
+        rc = r6_story_catalog_key_value(&catalog, (size_t)index, text,
+                                        (size_t)length + 1);
+    } else {
+        rc = R6_ERR_ARG;
+    }
+    if (rc == R6_OK) {
+        result = story_byte_array(env, text, story_cstr_length(text));
+    }
+    free(text);
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogFindEpisode(
+        JNIEnv *env, jclass cls, jbyteArray blob, jstring name) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    const char *value;
+    jint result = -1;
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return -1;
+    }
+    value = name ? (*env)->GetStringUTFChars(env, name, NULL) : NULL;
+    if (value) {
+        result = (jint)r6_story_catalog_find_episode(&catalog, value);
+        (*env)->ReleaseStringUTFChars(env, name, value);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogFindKey(
+        JNIEnv *env, jclass cls, jbyteArray blob, jstring key) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    const char *value;
+    jint result = -1;
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return -1;
+    }
+    value = key ? (*env)->GetStringUTFChars(env, key, NULL) : NULL;
+    if (value) {
+        result = (jint)r6_story_catalog_find_key(&catalog, value);
+        (*env)->ReleaseStringUTFChars(env, key, value);
     }
     free(bytes);
     return result;

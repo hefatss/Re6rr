@@ -20,21 +20,23 @@ tree to app external files:
         --out <dump>/cars.r6car
     python tools/engine/custom_catalog.py --dump D:\Games\W6W-05 \
         --out <dump>/custom.r6custom
+    python tools/engine/story_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/story.r6story
     python tools/engine/course_descriptor.py --dump D:\Games\W6W-05 \
         --route FUKUOKA --out <dump>/FUKUOKA.r6course
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
-CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and every
-`*.r6course` in that directory.
+CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
+`story.r6story`, and every `*.r6course` in that directory.
 `AssetProvider` uses the native gzip inflater; the core still sees only bytes.
 
 ## UI
 
 - `character car` overrides the model spinner through
   `CarCatalog.carIndexForCharacter()` — e.g. `CRC_928GT_Masaki`;
-- load status shows customization colour and wheel counts when
-  `custom.r6custom` is present.
+- load status shows customization colour/wheel counts and episode count when
+  `custom.r6custom` / `story.r6story` are present.
 - `course descriptor` selects the `.r6course` file.
 - `throttle` toggles throttle/brake; `steer` is -1..1.
 - Status shows game phase, race return code, odo, speed, gear, surface,
@@ -42,7 +44,8 @@ CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and every
 
 `Game.selectCourse()` uses the descriptor list index as `course`, area `0`,
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
-3 s countdown. No renderer, audio, story progression or All.Net code exists.
+3 s countdown. The story catalog is data-only; no unlock progression, renderer,
+audio or All.Net code exists.
 
 ## Validation
 
