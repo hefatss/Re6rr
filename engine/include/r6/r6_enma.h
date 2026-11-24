@@ -18,12 +18,34 @@ extern "C" {
 #define R6_ENMA_INPUT_STEER     0x08
 #define R6_ENMA_INPUT_GEAR      0x14
 
-/* SConfigPlay: offsets from Ghidra FUN_1407a9c80 decompilation. */
-#define R6_ENMA_CFG_MODE        0x070
-#define R6_ENMA_CFG_STAGE       0x450
-#define R6_ENMA_CFG_AREA        0x454
-#define R6_ENMA_CFG_START_AZ    0x458
-#define R6_ENMA_CFG_GOAL_ODO    0x45c
+/* SConfigPlay source layout. FUN_1407a9c80 copies param_2 into a compact
+ * 0x464-byte CSeq scratch struct; the old 0x070/0x450/... values are offsets
+ * in that scratch copy, not in SConfigPlay. The constants below are the
+ * original param_2 offsets read by the named log lines. */
+#define R6_ENMA_CFG_OPERATION_JCT  0x008
+#define R6_ENMA_CFG_RANDOM_SEED    0x060
+#define R6_ENMA_CFG_SYSTEM_SEC     0x068
+#define R6_ENMA_CFG_MODE           0x098
+#define R6_ENMA_CFG_STORY_SERIES   0x0b0
+#define R6_ENMA_CFG_STORY_LAPS     0x0b8
+#define R6_ENMA_CFG_STORY_CHARS    0x0c4
+#define R6_ENMA_CFG_BATTLE_RAMP    0x164
+#define R6_ENMA_CFG_BATTLE_RUN_DIST 0x168
+#define R6_ENMA_CFG_BATTLE_RIVALS  0x178
+#define R6_ENMA_CFG_TARGET_STAGE   0x25c
+#define R6_ENMA_CFG_TARGET_TUTORIAL 0x260
+#define R6_ENMA_CFG_SAMPLING       0x620
+#define R6_ENMA_CFG_STAGE          0x630
+#define R6_ENMA_CFG_AREA           0x634
+#define R6_ENMA_CFG_START_AZ       0x638
+#define R6_ENMA_CFG_GOAL_ODO       0x63c
+
+/* Compact CSeq scratch copy, kept only for comparison with older reports. */
+#define R6_ENMA_CSEQ_MODE          0x070
+#define R6_ENMA_CSEQ_STAGE         0x450
+#define R6_ENMA_CSEQ_AREA          0x454
+#define R6_ENMA_CSEQ_START_AZ      0x458
+#define R6_ENMA_CSEQ_GOAL_ODO      0x45c
 
 /* EPlayState, recovered with ?GetEPlayStateName@@YAPEBDW4EPlayState@@@Z. */
 enum r6_enma_play_state {

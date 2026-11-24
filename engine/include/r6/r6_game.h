@@ -18,8 +18,10 @@
 extern "C" {
 #endif
 
-/* Minimum SConfigPlay size observed by SetDefault buffer poisoning. */
-#define R6_ENMA_CFG_SIZE 1124u
+/* SetDefault poisons only the first 0x464 bytes, but SConfigPlay also holds
+ * the RaceField/Phantom fields up to 0x640 read by FUN_1407a9c80. */
+#define R6_ENMA_CFG_SETDEFAULT_SIZE 1124u
+#define R6_ENMA_CFG_SIZE 1604u
 
 enum r6_game_phase {
     R6_GAME_TITLE = 0,
@@ -41,6 +43,15 @@ typedef struct r6_game_config {
     float time_limit;
     float countdown;
     int laps;
+    int series;
+    int character_count;
+    int battle_ramp;
+    float battle_run_dist;
+    int target_stage;
+    int target_tutorial;
+    int sampling;
+    int random_seed;
+    int operation_jct;
 } r6_game_config;
 
 typedef struct r6_game r6_game;

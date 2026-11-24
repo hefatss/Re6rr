@@ -6,8 +6,9 @@
 `EPlayState` (`NONE`, `CountDown`, `Run`, `Retire`, `SlowDown`, `StopWait`,
 `TimeUp`, `GoalWait`, `Goal`, `Defeat`, `Suspend`) through `GetPlayState`.
 The values are recovered from the DLL's `GetEPlayStateName` export and recorded
-in `engine/include/r6/r6_enma.h`. `SConfigPlay.fGoalOdo` defaults to `1e8`, as
-measured by `SetDefault` at byte `0x45c`.
+in `engine/include/r6/r6_enma.h`. `SConfigPlay.fGoalOdo` defaults to `1e8`; the
+named log line in `FUN_1407a9c80` places the field at byte `0x63c` of the
+`SConfigPlay` source struct (the compact CSeq copy uses `0x45c`).
 
 The shipped DLL still cannot be initialised without the executable's host
 state, so the freestanding core implements its own deterministic race rules

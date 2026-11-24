@@ -27,8 +27,9 @@ Useful recovered API:
 
 Ghidra decompilation of `FUN_1407a9c80` (`RacelibEnma.cpp`, in gitignored
 `docs/recon/ghidra_init/enma_build_config.c`) gives the `SConfigPlay` offsets:
-`eMode` `0x070`, `RaceField.eStage` `0x450`, `eStartAreaId` `0x454`,
-`fStartAZ` `0x458`, `fGoalOdo` `0x45c`. `r6_enma.h` records this contract.
+`eMode` `0x098`, `RaceField.eStage` `0x630`, `eStartAreaId` `0x634`,
+`fStartAZ` `0x638`, `fGoalOdo` `0x63c`. Older 0x070/0x450/... values belong
+to the compact CSeq scratch copy. `r6_enma.h` records both layouts.
 
 `yt::CSeq::Init()` called from a standalone process faults on a null host
 pointer even after `ForEnmaReleaseBuild()` and with a valid stage/car; the DLL

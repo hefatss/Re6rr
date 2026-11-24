@@ -26,12 +26,24 @@ MODE = 4                  # R6_ENMA_MODE_BATTLE
 STAGE = 3
 AREA = 1
 COURSE = 1
-MODE_OFFSET = 0x070
-STAGE_OFFSET = 0x450
-AREA_OFFSET = 0x454
-AZ_OFFSET = 0x458
-GOAL_OFFSET = 0x45c
-CFG_SIZE = 1124
+OP_JCT_OFFSET = 0x008
+SEED_OFFSET = 0x060
+MODE_OFFSET = 0x098
+SERIES_OFFSET = 0x0b0
+LAPS_OFFSET = 0x0b8
+CHARS_OFFSET = 0x0c4
+RAMP_OFFSET = 0x164
+RUN_DIST_OFFSET = 0x168
+RIVALS_OFFSET = 0x178
+TARGET_STAGE_OFFSET = 0x25c
+TUTORIAL_OFFSET = 0x260
+SAMPLING_OFFSET = 0x620
+STAGE_OFFSET = 0x630
+AREA_OFFSET = 0x634
+AZ_OFFSET = 0x638
+GOAL_OFFSET = 0x63c
+CFG_SIZE = 1604
+SETDEFAULT_SIZE = 1124
 
 
 class GameConfig(ctypes.Structure):
@@ -41,7 +53,11 @@ class GameConfig(ctypes.Structure):
         ("car_index", ctypes.c_int), ("rival_count", ctypes.c_int),
         ("start_az", ctypes.c_float), ("goal_odo", ctypes.c_float),
         ("time_limit", ctypes.c_float), ("countdown", ctypes.c_float),
-        ("laps", ctypes.c_int),
+        ("laps", ctypes.c_int), ("series", ctypes.c_int),
+        ("character_count", ctypes.c_int), ("battle_ramp", ctypes.c_int),
+        ("battle_run_dist", ctypes.c_float), ("target_stage", ctypes.c_int),
+        ("target_tutorial", ctypes.c_int), ("sampling", ctypes.c_int),
+        ("random_seed", ctypes.c_int), ("operation_jct", ctypes.c_int),
     ]
 
 
@@ -153,13 +169,15 @@ def main():
     stage = struct.unpack_from("<i", blob, STAGE_OFFSET)[0]
     area = struct.unpack_from("<i", blob, AREA_OFFSET)[0]
     az, goal = struct.unpack_from("<ff", blob, AZ_OFFSET)
+    laps = struct.unpack_from("<i", blob, LAPS_OFFSET)[0]
     if (rc != R6_OK or mode != MODE or stage != STAGE or area != AREA or
-            az != game.config.start_az or goal != game.config.goal_odo):
-        failures.append("write config: mode=%d stage=%d area=%d az=%f goal=%f" %
-                        (mode, stage, area, az, goal))
+            az != game.config.start_az or goal != game.config.goal_odo or
+            laps != game.config.laps):
+        failures.append("write config: mode=%d stage=%d area=%d az=%f goal=%f laps=%d" %
+                        (mode, stage, area, az, goal, laps))
     else:
-        print("  SConfigPlay bytes: mode@0x70=%d stage@0x450=%d area@0x454=%d"
-              % (mode, stage, area))
+        print("  SConfigPlay bytes: mode@0x98=%d stage@0x630=%d area@0x634=%d laps@0xb8=%d"
+              % (mode, stage, area, laps))
     if game.write(CFG_SIZE - 1)[0] != R6_ERR_BUFFER:
         failures.append("short config buffer accepted")
 
@@ -175,17 +193,36 @@ def main():
     changed.time_limit = 120.0
     changed.countdown = 0.0
     changed.laps = 3
+    changed.series = 2
+    changed.character_count = 4
+    changed.battle_ramp = 1
+    changed.battle_run_dist = 1234.5
+    changed.rival_count = 7
+    changed.target_stage = 6
+    changed.target_tutorial = 1
+    changed.sampling = 1
+    changed.random_seed = 99
+    changed.operation_jct = 8
     if lib.r6_game_set_config(game.handle, ctypes.byref(changed)) != R6_OK:
         failures.append("set_config rejected")
     rc, blob = game.write()
-    if (struct.unpack_from("<i", blob, MODE_OFFSET)[0] != 5 or
-            struct.unpack_from("<i", blob, STAGE_OFFSET)[0] != 9 or
-            struct.unpack_from("<i", blob, AREA_OFFSET)[0] != 4 or
-            abs(struct.unpack_from("<f", blob, AZ_OFFSET)[0] - 12.5) > 1e-4 or
-            abs(struct.unpack_from("<f", blob, GOAL_OFFSET)[0] - 40000.0) > 1e-3):
-        failures.append("config changes not serialized")
+    checks = (
+        (MODE_OFFSET, "i", 5), (STAGE_OFFSET, "i", 9),
+        (AREA_OFFSET, "i", 4), (AZ_OFFSET, "f", 12.5),
+        (GOAL_OFFSET, "f", 40000.0), (LAPS_OFFSET, "i", 3),
+        (SERIES_OFFSET, "i", 2), (CHARS_OFFSET, "i", 4),
+        (RAMP_OFFSET, "i", 1), (RUN_DIST_OFFSET, "f", 1234.5),
+        (RIVALS_OFFSET, "i", 7), (TARGET_STAGE_OFFSET, "i", 6),
+        (TUTORIAL_OFFSET, "B", 1), (SAMPLING_OFFSET, "B", 1),
+        (SEED_OFFSET, "i", 99), (OP_JCT_OFFSET, "i", 8),
+    )
+    bad = [name for at, kind, expected in checks
+           if abs(struct.unpack_from("<" + kind, blob, at)[0] - expected) >
+           (1e-3 if kind == "f" else 0)]
+    if rc != R6_OK or bad:
+        failures.append("config changes not serialized: %s" % bad)
     else:
-        print("  round-trip: mode 5, stage 9, area 4, start 12.5 m, goal 40000 m")
+        print("  round-trip: 16 named offsets, mode 5 stage 9 area 4 goal 40000")
 
     if game.read(ctypes.create_string_buffer(blob)) != R6_OK:
         failures.append("read_config rejected")
@@ -193,7 +230,13 @@ def main():
     if (restored.mode != 5 or restored.stage != 9 or restored.area != 4 or
             restored.car_index != 7 or abs(restored.start_az - 12.5) > 1e-4 or
             abs(restored.goal_odo - 40000.0) > 1e-3 or
-            restored.countdown != 0.0 or restored.laps != 3):
+            restored.countdown != 0.0 or restored.laps != 3 or
+            restored.series != 2 or restored.character_count != 4 or
+            restored.battle_ramp != 1 or
+            abs(restored.battle_run_dist - 1234.5) > 1e-3 or
+            restored.rival_count != 7 or restored.target_stage != 6 or
+            restored.target_tutorial != 1 or restored.sampling != 1 or
+            restored.random_seed != 99 or restored.operation_jct != 8):
         failures.append("config read-back mismatch: %r" % (restored,))
     else:
         print("  read-back preserves non-serialized fields too")

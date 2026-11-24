@@ -30,6 +30,15 @@ void r6_game_config_default(r6_game_config *config) {
     config->time_limit = 0.0f;
     config->countdown = 3.0f;
     config->laps = 1;
+    config->series = 0;
+    config->character_count = 0;
+    config->battle_ramp = 0;
+    config->battle_run_dist = 0.0f;
+    config->target_stage = 0;
+    config->target_tutorial = 0;
+    config->sampling = 0;
+    config->random_seed = 0;
+    config->operation_jct = 0;
 }
 
 r6_game *r6_game_init(void *storage, size_t size,
@@ -59,7 +68,11 @@ int r6_game_get_config(const r6_game *game, r6_game_config *out) {
 
 int r6_game_set_config(r6_game *game, const r6_game_config *config) {
     if (!game || !config || config->mode < 0 || config->mode > 8 ||
-        config->laps < 0 || config->rival_count < 0) {
+        config->laps < 0 || config->rival_count < 0 ||
+        config->series < 0 || config->character_count < 0 ||
+        config->battle_ramp < 0 || config->target_stage < 0 ||
+        config->target_tutorial < 0 || config->target_tutorial > 1 ||
+        config->sampling < 0 || config->sampling > 1) {
         return R6_ERR_ARG;
     }
     game->config = *config;
@@ -152,13 +165,41 @@ static uint32_t read_u32(const unsigned char *bytes, size_t at) {
            ((uint32_t)bytes[at + 3] << 24);
 }
 
+static void write_u8(unsigned char *bytes, size_t at, uint32_t value) {
+    bytes[at] = (unsigned char)value;
+}
+
+static uint32_t read_u8(const unsigned char *bytes, size_t at) {
+    return bytes[at];
+}
+
 int r6_game_write_config(const r6_game *game, void *buffer, size_t size) {
     unsigned char *bytes = (unsigned char *)buffer;
     uint32_t value;
     if (!game || !buffer || size < R6_ENMA_CFG_SIZE) {
         return R6_ERR_BUFFER;
     }
+    write_u32(bytes, R6_ENMA_CFG_OPERATION_JCT,
+              (uint32_t)game->config.operation_jct);
+    write_u32(bytes, R6_ENMA_CFG_RANDOM_SEED,
+              (uint32_t)game->config.random_seed);
     write_u32(bytes, R6_ENMA_CFG_MODE, (uint32_t)game->config.mode);
+    write_u32(bytes, R6_ENMA_CFG_STORY_SERIES,
+              (uint32_t)game->config.series);
+    write_u32(bytes, R6_ENMA_CFG_STORY_LAPS, (uint32_t)game->config.laps);
+    write_u32(bytes, R6_ENMA_CFG_STORY_CHARS,
+              (uint32_t)game->config.character_count);
+    write_u32(bytes, R6_ENMA_CFG_BATTLE_RAMP,
+              (uint32_t)game->config.battle_ramp);
+    r6_memcpy(&value, &game->config.battle_run_dist, sizeof(value));
+    write_u32(bytes, R6_ENMA_CFG_BATTLE_RUN_DIST, value);
+    write_u32(bytes, R6_ENMA_CFG_BATTLE_RIVALS,
+              (uint32_t)game->config.rival_count);
+    write_u32(bytes, R6_ENMA_CFG_TARGET_STAGE,
+              (uint32_t)game->config.target_stage);
+    write_u8(bytes, R6_ENMA_CFG_TARGET_TUTORIAL,
+             (uint32_t)game->config.target_tutorial);
+    write_u8(bytes, R6_ENMA_CFG_SAMPLING, (uint32_t)game->config.sampling);
     write_u32(bytes, R6_ENMA_CFG_STAGE, (uint32_t)game->config.stage);
     write_u32(bytes, R6_ENMA_CFG_AREA, (uint32_t)game->config.area);
     r6_memcpy(&value, &game->config.start_az, sizeof(value));
@@ -174,7 +215,25 @@ int r6_game_read_config(r6_game *game, const void *buffer, size_t size) {
     if (!game || !buffer || size < R6_ENMA_CFG_SIZE) {
         return R6_ERR_BUFFER;
     }
+    game->config.operation_jct =
+        (int)read_u32(bytes, R6_ENMA_CFG_OPERATION_JCT);
+    game->config.random_seed = (int)read_u32(bytes, R6_ENMA_CFG_RANDOM_SEED);
     game->config.mode = (int)read_u32(bytes, R6_ENMA_CFG_MODE);
+    game->config.series = (int)read_u32(bytes, R6_ENMA_CFG_STORY_SERIES);
+    game->config.laps = (int)read_u32(bytes, R6_ENMA_CFG_STORY_LAPS);
+    game->config.character_count =
+        (int)read_u32(bytes, R6_ENMA_CFG_STORY_CHARS);
+    game->config.battle_ramp =
+        (int)read_u32(bytes, R6_ENMA_CFG_BATTLE_RAMP);
+    value = read_u32(bytes, R6_ENMA_CFG_BATTLE_RUN_DIST);
+    r6_memcpy(&game->config.battle_run_dist, &value, sizeof(value));
+    game->config.rival_count =
+        (int)read_u32(bytes, R6_ENMA_CFG_BATTLE_RIVALS);
+    game->config.target_stage =
+        (int)read_u32(bytes, R6_ENMA_CFG_TARGET_STAGE);
+    game->config.target_tutorial =
+        (int)read_u8(bytes, R6_ENMA_CFG_TARGET_TUTORIAL);
+    game->config.sampling = (int)read_u8(bytes, R6_ENMA_CFG_SAMPLING);
     game->config.stage = (int)read_u32(bytes, R6_ENMA_CFG_STAGE);
     game->config.area = (int)read_u32(bytes, R6_ENMA_CFG_AREA);
     value = read_u32(bytes, R6_ENMA_CFG_START_AZ);

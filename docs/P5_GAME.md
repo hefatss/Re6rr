@@ -21,23 +21,40 @@ allocation; the host owns the storage returned by `r6_game_size()`.
 
 ## Enma byte contract
 
-SetDefault buffer poisoning from `Wg6Enma_Release_IDL0.dll` writes up to 1,124
-bytes (`0x464`) of `SConfigPlay`. `R6_ENMA_CFG_SIZE` records that size. The
-Ghidra decompile of `FUN_1407a9c80` fixed these field offsets:
+Two layouts exist. `Wg6Enma_Release_IDL0.dll!SConfigPlay::SetDefault` poisons
+only the first 1,124 bytes (`0x464`) of `SConfigPlay`. `FUN_1407a9c80` then
+copies `SConfigPlay` (`param_2`) into a compact 0x464-byte CSeq scratch struct.
+The older 0x070/0x450/0x454/0x458/0x45c values are offsets in that scratch
+copy, not in `SConfigPlay`. Named log lines in `FUN_1407a9c80` fix these
+`SConfigPlay` offsets:
 
 | Offset | Type | Field |
 | --- | --- | --- |
-| `0x070` | int32 | `eMode` (`EGameMode`) |
-| `0x450` | int32 | `RaceField.eStage` |
-| `0x454` | int32 | `RaceField.eStartAreaId` |
-| `0x458` | float | `fStartAZ` |
-| `0x45c` | float | `fGoalOdo` |
+| `0x008` | int32 | `OperationVer.eJCT` (derived from source `param_2 + 8`) |
+| `0x060` | int32 | `nRandomSeed` |
+| `0x068` | int64 | `nSystemSec` (offset recorded, not serialized) |
+| `0x098` | int32 | `eMode` (`EGameMode`) |
+| `0x0b0` | int32 | `Story.eSeries` (via `FUN_1407b1cb0`) |
+| `0x0b8` | int32 | `Story.nLap` |
+| `0x0c4` | int32 | `Story.nCharacterNum` |
+| `0x164` | int32 | `Battle.eRamp` |
+| `0x168` | float | `Battle.fRunDist` |
+| `0x178` | int32 | `Battle.nRivalNum` |
+| `0x25c` | int32 | `Target.eStage` |
+| `0x260` | uint8 | `Target.bIsTutorial` |
+| `0x620` | uint8 | `Sampling.bEnable` |
+| `0x630` | int32 | `RaceField.eStage` |
+| `0x634` | int32 | `RaceField.eStartAreaId` |
+| `0x638` | float | `RaceField.fStartAZ` |
+| `0x63c` | float | `RaceField.fGoalOdo` |
 
-`r6_game_write_config()` writes only those five fields; all other bytes in
-the caller buffer are left as-is. `r6_game_read_config()` reads them back into
-the game config without touching time limit, countdown, laps, car index or
-rival count, since their offsets are not recovered. Buffers shorter than
-`R6_ENMA_CFG_SIZE` give `R6_ERR_BUFFER`.
+The largest read is `param_2 + 0x640`, so `R6_ENMA_CFG_SIZE` is 1,604 bytes
+(`0x644`); `R6_ENMA_CFG_SETDEFAULT_SIZE` keeps the 1,124-byte poisoned prefix.
+`r6_game_write_config()` writes the 16 named scalar fields above; all other
+bytes in the caller buffer are left as-is. `r6_game_read_config()` reads them
+back. Time limit, countdown, car index, course enum and the 8-byte system
+seconds have no recovered `SConfigPlay` offsets and remain native-only.
+Buffers shorter than `R6_ENMA_CFG_SIZE` give `R6_ERR_BUFFER`.
 
 ## JNI
 
@@ -51,14 +68,14 @@ The Java side owns the native handle and closes it in `AutoCloseable.close()`.
 
 - phase transitions, including rejected transitions in the wrong phase;
 - GOAL moves a running race to result phase;
-- config bytes land at the exact recovered offsets;
-- a 1,123-byte buffer is rejected;
+- config bytes land at all 16 recovered `SConfigPlay` offsets;
+- a 1,603-byte buffer is rejected;
 - config changes round-trip through write/read, while non-serialized fields
   survive in the native game object.
 
 ## Gaps
 
-- Only five `SConfigPlay` fields have known offsets; the remaining config is
-  native-only and never enters the Enma struct.
-- No menu rendering, input mapping, car catalog, rival AI or story progression.
+- `nSystemSec`, time limit, countdown, car index and course enum still have no
+  recovered `SConfigPlay` offsets.
+- Race AI, explicit goal/checkpoint tables and story progression are native-only.
 - No Android NDK/SDK here, so the JNI/CMake path is still compile-checked only.
