@@ -57,6 +57,25 @@ class State(ctypes.Structure):
     ]
 
 
+class CourseVertex(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.c_float), ("y", ctypes.c_float), ("z", ctypes.c_float),
+        ("half_width", ctypes.c_float),
+        ("surface", ctypes.c_uint8), ("flags", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint16),
+    ]
+
+
+class Projection(ctypes.Structure):
+    _fields_ = [
+        ("distance", ctypes.c_float), ("lateral", ctypes.c_float),
+        ("tangent_x", ctypes.c_float), ("tangent_z", ctypes.c_float),
+        ("height", ctypes.c_float), ("half_width", ctypes.c_float),
+        ("surface", ctypes.c_uint8), ("flags", ctypes.c_uint8),
+        ("segment", ctypes.c_size_t),
+    ]
+
+
 class Physics:
     def __init__(self, dll, dump):
         lib = load_core(dll, dump)
@@ -73,6 +92,12 @@ class Physics:
                                         ctypes.c_int, ctypes.c_float]
         lib.r6_vehicle_get_state.argtypes = [ctypes.c_void_p,
                                              ctypes.POINTER(State)]
+        lib.r6_course_project.argtypes = [
+            ctypes.POINTER(CourseVertex), ctypes.c_size_t, ctypes.c_int,
+            ctypes.c_float, ctypes.c_float, ctypes.POINTER(Projection)]
+        lib.r6_vehicle_clamp_to_course.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(CourseVertex), ctypes.c_size_t,
+            ctypes.c_int]
         lib.r6_vehicle_config_from_lua.argtypes = [ctypes.c_void_p,
                                                    ctypes.c_char_p,
                                                    ctypes.c_char_p,
@@ -152,6 +177,29 @@ def main():
     else:
         print("  steering: yaw %.3f rad, yaw_rate %.3f rad/s" %
               (state.yaw, state.yaw_rate))
+
+    physics.reset()
+    road = (CourseVertex * 2)(
+        CourseVertex(-100.0, 0.0, 0.0, 2.0, 0, 0, 0),
+        CourseVertex(100.0, 0.0, 0.0, 2.0, 0, 0, 0))
+    for _ in range(240):
+        if physics.step(1.0, 0.0, 0.9) != R6_OK:
+            failures.append("clamp drive step failed")
+            break
+        if physics.lib.r6_vehicle_clamp_to_course(
+                physics.handle, road, 2, 0) != R6_OK:
+            failures.append("clamp_to_course failed")
+            break
+    state = physics.state()
+    projection = Projection()
+    physics.lib.r6_course_project(road, 2, 0, state.x, state.z,
+                                  ctypes.byref(projection))
+    if abs(projection.lateral) > 2.01 or not math.isfinite(state.x):
+        failures.append("car left road: lateral=%f x=%f" %
+                        (projection.lateral, state.x))
+    else:
+        print("  road wall: lateral %.3f m in 2 m half-width road" %
+              projection.lateral)
 
     physics.reset()
     for frame in range(600):

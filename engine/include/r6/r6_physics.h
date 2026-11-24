@@ -12,6 +12,7 @@
 #include <stddef.h>
 
 #include "r6/r6.h"
+#include "r6/r6_course.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,6 +80,12 @@ R6_API int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
                            float steer, int gear_command, float dt);
 R6_API int r6_vehicle_get_state(const r6_vehicle *vehicle,
                                 r6_vehicle_state *out);
+
+/* Keep the car inside a course polyline. Positions are corrected in world
+ * space; body-frame lateral velocity, speed and yaw rate are damped. */
+R6_API int r6_vehicle_clamp_to_course(r6_vehicle *vehicle,
+                                      const r6_course_vertex *vertices,
+                                      size_t count, int closed);
 
 /* Fill a config from the loaded car context. GetTirePos uses decimetres in
  * the dump. tire_car is the CRC_* name, spec_model the PLC_* model code. */

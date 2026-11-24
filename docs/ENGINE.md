@@ -43,9 +43,10 @@ platform/android/java/        Java side of the JNI bridge
   vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
   capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
   sequential.
-- `r6_vehicle_init/reset/step/get_state()` and `r6_vehicle_config_from_lua()` —
-  deterministic car dynamics driven by the loaded spec/tire context. No CRT,
-  no libm and no host calls; see `docs/P4_PHYSICS.md`.
+- `r6_vehicle_init/reset/step/get_state()`, `r6_vehicle_clamp_to_course()` and
+  `r6_vehicle_config_from_lua()` — deterministic car dynamics driven by the
+  loaded spec/tire context, with road-wall correction. No CRT, no libm and no
+  host calls; see `docs/P4_PHYSICS.md`.
 - `r6_course_length/project/at()` — arc length and nearest-point projection on
   a host-supplied road polyline.
 - `r6_course_descriptor_parse()` — validate and unpack a packed `.r6course`
@@ -100,7 +101,7 @@ Verified on this dump:
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
-| vehicle model | idle stable, throttle/brake/steer respond, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
+| vehicle model | idle stable, throttle/brake/steer respond, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way, rival gap/place/contact and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104; C parser matches the Python generator |
 

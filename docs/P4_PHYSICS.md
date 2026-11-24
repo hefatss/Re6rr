@@ -66,7 +66,9 @@ WinAPI, no libm. It provides:
   speed-sensitive steering reduction;
 - local sin/cos and sqrt implementations (Taylor series and Newton), so no
   `libm` dependency is introduced;
-- automatic reset to a finite state if any variable diverges.
+- automatic reset to a finite state if any variable diverges;
+- `r6_vehicle_clamp_to_course()` keeps the car centre within a course polyline,
+  damping lateral velocity, speed and yaw rate at contact.
 
 Public API is in `engine/include/r6/r6_physics.h`; the Enma byte contract is in
 `r6_enma.h`. JNI exposes `Vehicle` creation from the loaded Lua context,
@@ -81,6 +83,8 @@ stepping and state reads through `com.wmmt.re6rr.Re6Engine`.
 - 8 s full throttle reaches 36.5 m/s in gear 3 with the default config;
 - 2 s braking drops 36.5 → 15.6 m/s;
 - steering produces yaw and yaw rate;
+- 240 hard-steer frames on a 2 m half-width road stay at lateral 1.050 m
+  after clamping;
 - 600 mixed throttle/brake/steer frames remain finite;
 - real 928GT context yields 242,715 W, 2.508 m wheelbase, 1.546 m track,
   0.314 m wheel radius, 5 gears, and accelerates to 37.0 m/s in 8 s.

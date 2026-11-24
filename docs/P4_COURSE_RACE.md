@@ -157,8 +157,9 @@ physics tests and JNI/Java syntax checks still pass.
   and checkpoint flags follow piece boundaries.
 - Section polygons are used only for section IDs; NDWD stage model bins, layer
   names (`ROAD`, `ONRD`, `LONG`, …) and clip tables are not parsed for geometry.
-- Rival collision is a state event only: no vehicle impulse, damage or
-  speed penalty is applied yet.
+- Rival collision is a state event only: no rival impulse, damage or speed
+  penalty is applied yet. Road-wall correction is separate, in
+  `r6_vehicle_clamp_to_course()`.
 - No surface-dependent grip feedback, road bank or slope, weather, aero parts
   or ghost/phantom data.
 - Race rules are calibrated to the recovered enum/state names, not to Enma

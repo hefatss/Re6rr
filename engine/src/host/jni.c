@@ -17,6 +17,46 @@ static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
 }
 
+/* Parse a packed descriptor from Java into caller-owned vertex storage. */
+static int course_from_descriptor(JNIEnv *env, jbyteArray descriptor,
+                                  uint32_t *flags,
+                                  r6_course_vertex **out, size_t *count) {
+    unsigned char *blob = NULL;
+    jsize length;
+    size_t needed = 0;
+    jint rc;
+    *out = NULL;
+    *count = 0;
+    if (!descriptor) {
+        return R6_ERR_ARG;
+    }
+    length = (*env)->GetArrayLength(env, descriptor);
+    blob = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!blob) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, descriptor, 0, length, (jbyte *)blob);
+    if ((*env)->ExceptionCheck(env) ||
+        r6_course_descriptor_parse(blob, (size_t)length, flags, NULL, 0,
+                                   &needed) != R6_ERR_BUFFER || needed == 0) {
+        free(blob);
+        return R6_ERR_FORMAT;
+    }
+    *out = (r6_course_vertex *)malloc(needed * sizeof(**out));
+    if (!*out) {
+        free(blob);
+        return R6_ERR_MEMORY;
+    }
+    rc = (jint)r6_course_descriptor_parse(blob, (size_t)length, flags, *out,
+                                          needed, count);
+    free(blob);
+    if (rc != R6_OK) {
+        free(*out);
+        *out = NULL;
+    }
+    return rc;
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCreate(JNIEnv *env, jclass cls) {
     void *storage;
@@ -350,6 +390,27 @@ Java_com_wmmt_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
     return result;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleClampToCourseDescriptor(
+        JNIEnv *env, jclass cls, jlong handle, jbyteArray descriptor) {
+    r6_course_vertex *path = NULL;
+    uint32_t flags = 0;
+    size_t count = 0;
+    jint rc;
+    (void)cls;
+    if (!handle) {
+        return R6_ERR_ARG;
+    }
+    rc = course_from_descriptor(env, descriptor, &flags, &path, &count);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    rc = (jint)r6_vehicle_clamp_to_course((r6_vehicle *)(size_t)handle,
+                                          path, count, (flags & 1u) != 0);
+    free(path);
+    return rc;
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeRaceCreate(JNIEnv *env, jclass cls,
                                                jint mode, jint stage,
@@ -534,37 +595,15 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceStepDescriptor(
     r6_course_vertex *path = NULL;
     r6_vehicle_state vstate;
     jfloat *vehicle_data = NULL;
-    unsigned char *blob = NULL;
     uint32_t flags = 0;
     size_t count = 0;
-    jsize length;
     jint rc;
     (void)cls;
     if (!handle || !descriptor || !vehicle) {
         return R6_ERR_ARG;
     }
-    length = (*env)->GetArrayLength(env, descriptor);
-    blob = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
-    if (!blob) {
-        return R6_ERR_MEMORY;
-    }
-    (*env)->GetByteArrayRegion(env, descriptor, 0, length, (jbyte *)blob);
-    if ((*env)->ExceptionCheck(env) ||
-        r6_course_descriptor_parse(blob, (size_t)length, &flags, NULL, 0,
-                                   &count) != R6_ERR_BUFFER || count == 0) {
-        free(blob);
-        return R6_ERR_FORMAT;
-    }
-    path = (r6_course_vertex *)malloc(count * sizeof(*path));
-    if (!path) {
-        free(blob);
-        return R6_ERR_MEMORY;
-    }
-    rc = (jint)r6_course_descriptor_parse(blob, (size_t)length, &flags, path,
-                                           count, &count);
-    free(blob);
+    rc = course_from_descriptor(env, descriptor, &flags, &path, &count);
     if (rc != R6_OK) {
-        free(path);
         return rc;
     }
     vehicle_data = (*env)->GetFloatArrayElements(env, vehicle, NULL);

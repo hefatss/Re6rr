@@ -105,6 +105,14 @@ public final class Re6Engine implements AutoCloseable {
             }
             return nativeVehicleState(handle);
         }
+
+        /** Clamp the car inside a packed .r6course descriptor. */
+        public int clampToCourse(byte[] descriptor) {
+            if (handle == 0) {
+                throw new IllegalStateException("vehicle closed");
+            }
+            return nativeVehicleClampToCourseDescriptor(handle, descriptor);
+        }
     }
 
     /** Race with default rules: battle, Series01, 3 s countdown, one lap. */
@@ -212,6 +220,7 @@ public final class Re6Engine implements AutoCloseable {
     private static native void nativeVehicleDestroy(long handle);
     private static native int nativeVehicleStep(long handle, float throttle, float brake, float steer, int gear, float dt);
     private static native float[] nativeVehicleState(long handle);
+    private static native int nativeVehicleClampToCourseDescriptor(long handle, byte[] descriptor);
     private static native long nativeRaceCreate(int mode, int stage, int course, int area, float goalOdo, float timeLimit, float countdown, int laps, float wrongWayLimit, float offroadFactor);
     private static native void nativeRaceDestroy(long handle);
     private static native int nativeRaceSetRivals(long handle, float[] rivals);

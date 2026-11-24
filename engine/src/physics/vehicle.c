@@ -1,5 +1,6 @@
 /* Deterministic freestanding vehicle model. No CRT and no host calls. */
 
+#include "r6/r6_course.h"
 #include "r6/r6_enma.h"
 #include "r6/r6_physics.h"
 
@@ -333,5 +334,52 @@ int r6_vehicle_get_state(const r6_vehicle *vehicle,
         return R6_ERR_ARG;
     }
     *out = vehicle->state;
+    return R6_OK;
+}
+
+int r6_vehicle_clamp_to_course(r6_vehicle *vehicle,
+                               const r6_course_vertex *vertices,
+                               size_t count, int closed) {
+    r6_course_projection projection;
+    r6_vehicle_state *state;
+    float limit;
+    float shift = 0.0f;
+    int rc;
+
+    if (!vehicle) {
+        return R6_ERR_ARG;
+    }
+    if (!vertices || count < 2) {
+        return R6_OK;
+    }
+    state = &vehicle->state;
+    rc = r6_course_project(vertices, count, closed, state->x, state->z,
+                           &projection);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    /* Vehicle half-width; keeps the centreline inside the drivable strip. */
+    limit = projection.half_width - 0.95f;
+    if (limit < 0.05f) {
+        limit = 0.05f;
+    }
+    if (projection.lateral > limit) {
+        shift = projection.lateral - limit;
+    } else if (projection.lateral < -limit) {
+        shift = projection.lateral + limit;
+    }
+    if (shift != 0.0f) {
+        state->x -= shift * -projection.tangent_z;
+        state->z -= shift * projection.tangent_x;
+        state->vy *= 0.25f;
+        state->vx *= 0.85f;
+        state->yaw_rate *= 0.5f;
+        state->speed = r6_sqrtf(state->vx * state->vx +
+                                state->vy * state->vy);
+    }
+    if (!finitef(state->x) || !finitef(state->z) ||
+        !finitef(state->vx) || !finitef(state->vy)) {
+        return R6_ERR_FORMAT;
+    }
     return R6_OK;
 }
