@@ -257,6 +257,31 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Wraps the packed .r6car catalog produced by
+     *  tools/engine/car_catalog.py. */
+    public static class CarCatalog {
+        private final byte[] blob;
+
+        public CarCatalog(byte[] blob) {
+            this.blob = blob;
+        }
+
+        public int count() {
+            return nativeCarCatalogCount(blob);
+        }
+
+        /** Raw model code bytes, normally ASCII such as PLC_928GT. */
+        public byte[] model(int index) {
+            return nativeCarCatalogModel(blob, index);
+        }
+
+        /** modelId visualModelId horsepower engineCc drive mission flags
+         *  tireFront tireRear tireWidthFront tireWidthRear. */
+        public float[] info(int index) {
+            return nativeCarCatalogInfo(blob, index);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -300,6 +325,9 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeGameReset(long handle);
     private static native byte[] nativeGameWriteConfig(long handle);
     private static native int nativeGameReadConfig(long handle, byte[] blob);
+    private static native int nativeCarCatalogCount(byte[] blob);
+    private static native byte[] nativeCarCatalogModel(byte[] blob, int index);
+    private static native float[] nativeCarCatalogInfo(byte[] blob, int index);
 
     static {
         System.loadLibrary("r6engine");

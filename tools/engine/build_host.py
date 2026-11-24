@@ -35,6 +35,7 @@ SOURCES = [
     "engine/src/physics/course.c",
     "engine/src/physics/race.c",
     "engine/src/game/game.c",
+    "engine/src/game/car.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

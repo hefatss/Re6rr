@@ -9,6 +9,7 @@
 
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
+#include "r6/r6_car.h"
 #include "r6/r6_course.h"
 #include "r6/r6_game.h"
 #include "r6/r6_physics.h"
@@ -852,4 +853,133 @@ Java_com_wmmt_re6rr_Re6Engine_nativeGameReadConfig(JNIEnv *env, jclass cls,
                                (jbyte *)bytes);
     return (jint)r6_game_read_config((r6_game *)(size_t)handle, bytes,
                                      sizeof(bytes));
+}
+
+/* ---- Car catalog ----------------------------------------------------- */
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogCount(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    jsize length;
+    unsigned char *bytes;
+    size_t count = 0;
+    jint rc;
+    (void)cls;
+    if (!blob) {
+        return 0;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return 0;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    rc = (jint)r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &count);
+    free(bytes);
+    return rc == R6_ERR_BUFFER ? (jint)count : 0;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogModel(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_car_info *cars = NULL;
+    unsigned char *bytes = NULL;
+    jsize length;
+    size_t count = 0;
+    size_t needed = 0;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!blob || index < 0) {
+        return NULL;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    if (r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &needed) !=
+        R6_ERR_BUFFER || (size_t)index >= needed) {
+        free(bytes);
+        return NULL;
+    }
+    cars = (r6_car_info *)malloc(needed * sizeof(*cars));
+    if (!cars) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_car_catalog_parse(bytes, (size_t)length, cars, needed, &count) !=
+        R6_OK) {
+        free(cars);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    {
+        size_t size = 0;
+        while (size < R6_CAR_MODEL_SIZE && cars[index].model[size]) {
+            size++;
+        }
+        result = (*env)->NewByteArray(env, (jsize)size);
+        if (result && size) {
+            (*env)->SetByteArrayRegion(env, result, 0, (jsize)size,
+                                       (jbyte *)cars[index].model);
+        }
+    }
+    free(cars);
+    return result;
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogInfo(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    r6_car_info *cars = NULL;
+    unsigned char *bytes = NULL;
+    jsize length;
+    size_t needed = 0;
+    size_t count = 0;
+    jfloatArray result = NULL;
+    (void)cls;
+    if (!blob || index < 0) {
+        return NULL;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    if (r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &needed) !=
+        R6_ERR_BUFFER || (size_t)index >= needed) {
+        free(bytes);
+        return NULL;
+    }
+    cars = (r6_car_info *)malloc(needed * sizeof(*cars));
+    if (!cars) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_car_catalog_parse(bytes, (size_t)length, cars, needed, &count) !=
+        R6_OK) {
+        free(cars);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewFloatArray(env, 11);
+    if (result) {
+        const r6_car_info *car = &cars[index];
+        jfloat values[11] = {
+            (jfloat)car->model_id, (jfloat)car->visual_model_id,
+            (jfloat)car->horsepower, (jfloat)car->engine_cc,
+            (jfloat)car->drive, (jfloat)car->mission, (jfloat)car->flags,
+            car->tire_front, car->tire_rear,
+            car->tire_width_front, car->tire_width_rear
+        };
+        (*env)->SetFloatArrayRegion(env, result, 0, 11, values);
+    }
+    free(cars);
+    return result;
 }
