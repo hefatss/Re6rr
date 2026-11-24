@@ -280,6 +280,22 @@ public final class Re6Engine implements AutoCloseable {
         public float[] info(int index) {
             return nativeCarCatalogInfo(blob, index);
         }
+
+        /** Derived CRC_* -> PLC_* mappings packed in the catalog. */
+        public int characterCount() {
+            return nativeCarCatalogCharacterCount(blob);
+        }
+
+        /** Catalog car index for a character car, or -1 when unmapped. */
+        public int carIndexForCharacter(String character) {
+            return nativeCarCatalogCharacterIndex(blob, character);
+        }
+
+        /** Model bytes for a character car, or null when unmapped. */
+        public byte[] modelForCharacter(String character) {
+            int index = carIndexForCharacter(character);
+            return index < 0 ? null : model(index);
+        }
     }
 
     public String lastError() {
@@ -328,6 +344,8 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeCarCatalogCount(byte[] blob);
     private static native byte[] nativeCarCatalogModel(byte[] blob, int index);
     private static native float[] nativeCarCatalogInfo(byte[] blob, int index);
+    private static native int nativeCarCatalogCharacterCount(byte[] blob);
+    private static native int nativeCarCatalogCharacterIndex(byte[] blob, String character);
 
     static {
         System.loadLibrary("r6engine");

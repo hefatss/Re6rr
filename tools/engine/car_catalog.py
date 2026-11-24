@@ -6,8 +6,9 @@
 Every `data/car/specification/PLC_*_Specification.lua` file defines a
 `CarDataList` table. This tool reads the fields the engine needs for car
 selection and physics setup and writes fixed-size records consumed by
-r6_car_catalog_parse() in the freestanding core. No game data is stored in
-this repository.
+r6_car_catalog_parse() in the freestanding core. Derived character-car
+mappings from `car_mapping.py` are appended as 48-byte records. No game data
+is stored in this repository.
 """
 
 import argparse
@@ -17,9 +18,12 @@ import re
 import struct
 import sys
 
+import car_mapping
+
 MAGIC = b"R6CAR\0\1\0"
-VERSION = 1
+VERSION = 2
 RECORD_SIZE = 144
+MAP_SIZE = 48
 HEADER_SIZE = 24
 
 MODEL_SIZE = 24
@@ -158,9 +162,11 @@ def text_field(value, size, encoding="cp932"):
     return raw + b"\0" * (size - len(raw))
 
 
-def pack(entries):
+def pack(entries, mappings=None):
+    mappings = [row for row in (mappings or []) if row.get("model")]
     blob = bytearray(MAGIC)
-    blob += struct.pack("<IIII", VERSION, len(entries), RECORD_SIZE, 0)
+    blob += struct.pack("<IIII", VERSION, len(entries), RECORD_SIZE,
+                        len(mappings))
     for entry in entries:
         blob += text_field(entry["model"], MODEL_SIZE)
         blob += text_field(entry["name"], NAME_SIZE)
@@ -173,7 +179,11 @@ def pack(entries):
                             float(entry["tire_width_front"]),
                             float(entry["tire_width_rear"]))
         blob += struct.pack("<I", entry["maker_id"])
-    if len(blob) != HEADER_SIZE + RECORD_SIZE * len(entries):
+    for row in mappings:
+        blob += text_field(row["car"], MODEL_SIZE)
+        blob += text_field(row["model"], MODEL_SIZE)
+    if len(blob) != HEADER_SIZE + RECORD_SIZE * len(entries) + \
+            MAP_SIZE * len(mappings):
         raise ValueError("record layout does not match RECORD_SIZE")
     return bytes(blob)
 
@@ -191,7 +201,8 @@ def main():
     if not entries:
         print("no PLC_*_Specification.lua files found")
         return 1
-    blob = pack(entries)
+    mappings = car_mapping.map_characters(args.dump)
+    blob = pack(entries, mappings)
     if args.list:
         for index, entry in enumerate(entries):
             print("%3d %-14s %-28s %4d hp %5d cc drive=%d mt=%d" %
@@ -210,14 +221,16 @@ def main():
                 "bytes": len(blob),
                 "record_size": RECORD_SIZE,
                 "characters": character_cars(args.dump),
+                "mappings": mappings,
                 "cars": entries,
             }, stream, indent=2, ensure_ascii=False)
     makers = {}
     for entry in entries:
         makers[entry["maker"]] = makers.get(entry["maker"], 0) + 1
-    print("cars: %d, %d bytes, %d makers, %d character cars" %
+    print("cars: %d, %d bytes, %d makers, %d character cars (%d mapped)" %
           (len(entries), len(blob), len(makers),
-           len(character_cars(args.dump))))
+           len(character_cars(args.dump)),
+           sum(1 for row in mappings if row["model"])))
     return 0
 
 

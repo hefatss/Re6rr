@@ -3,6 +3,7 @@
 import argparse
 import ctypes
 import os
+import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -11,6 +12,7 @@ sys.path.insert(0, HERE)
 
 from test_engine import R6_OK, load_core  # noqa: E402
 import car_catalog  # noqa: E402
+import car_mapping  # noqa: E402
 
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
@@ -66,9 +68,17 @@ def main():
     lib = load_core(args.dll, args.dump)
     failures = []
     entries = car_catalog.catalog(args.dump)
-    blob = car_catalog.pack(entries)
+    mappings = car_mapping.map_characters(args.dump)
+    mapped = [row for row in mappings if row["model"]]
+    blob = car_catalog.pack(entries, mappings)
+    expected_size = (car_catalog.HEADER_SIZE +
+                     car_catalog.RECORD_SIZE * len(entries) +
+                     car_catalog.MAP_SIZE * len(mapped))
     if len(entries) < 100:
         failures.append("only %d cars discovered" % len(entries))
+    if len(blob) != expected_size:
+        failures.append("blob size %d, expected %d" %
+                        (len(blob), expected_size))
 
     lib.r6_car_catalog_parse.argtypes = [
         ctypes.c_char_p, ctypes.c_size_t, ctypes.POINTER(CarInfo),
@@ -79,6 +89,13 @@ def main():
     lib.r6_car_catalog_find_id.argtypes = [ctypes.POINTER(CarInfo),
                                            ctypes.c_size_t, ctypes.c_uint16]
     lib.r6_car_catalog_find_id.restype = ctypes.c_int
+    lib.r6_car_catalog_character_count.argtypes = [ctypes.c_char_p,
+                                                   ctypes.c_size_t]
+    lib.r6_car_catalog_character_count.restype = ctypes.c_int
+    lib.r6_car_catalog_find_character.argtypes = [ctypes.c_char_p,
+                                                  ctypes.c_size_t,
+                                                  ctypes.c_char_p]
+    lib.r6_car_catalog_find_character.restype = ctypes.c_int
 
     needed = ctypes.c_size_t()
     rc = lib.r6_car_catalog_parse(blob, len(blob), None, 0,
@@ -130,6 +147,42 @@ def main():
                         (cars[index].horsepower, text(cars[index].maker)))
     else:
         print("  PLC_928GT: index %d, model id 120, 330 hp, PORSCHE" % index)
+
+    mapped_count = lib.r6_car_catalog_character_count(blob, len(blob))
+    if mapped_count != len(mapped):
+        failures.append("character count %d, expected %d" %
+                        (mapped_count, len(mapped)))
+    for car, model in (("CRC_928GT_Masaki", "PLC_928GT"),
+                       ("CRC_AP2_Yuji1st", "PLC_AP2"),
+                       ("CRC_R997_Ishida", "PLC_R997")):
+        found = lib.r6_car_catalog_find_character(blob, len(blob),
+                                                  car.encode("ascii"))
+        expected = lib.r6_car_catalog_find_model(cars, len(entries),
+                                                 model.encode("ascii"))
+        if found < 0 or found != expected:
+            failures.append("%s mapped to %d, expected %d" %
+                            (car, found, expected))
+    if lib.r6_car_catalog_find_character(blob, len(blob),
+                                         b"CRC_NOPE") != -1:
+        failures.append("unknown character matched")
+    if lib.r6_car_catalog_find_character(blob, len(blob),
+                                         b"CRC_DUMMY01") != -1:
+        failures.append("dummy character matched")
+    if mapped_count == len(mapped):
+        print("  characters: %d mappings, CRC_928GT_Masaki -> PLC_928GT" %
+              mapped_count)
+
+    legacy = bytearray(car_catalog.pack(entries, []))
+    legacy[8:12] = struct.pack("<I", 1)
+    legacy = bytes(legacy)
+    if lib.r6_car_catalog_character_count(legacy, len(legacy)) != 0:
+        failures.append("version-1 catalog has mappings")
+    maps_bad = bytearray(blob)
+    maps_bad[20:24] = struct.pack("<I", 0xffff)
+    if lib.r6_car_catalog_character_count(bytes(maps_bad),
+                                          len(maps_bad)) != -1:
+        failures.append("bad mapping count accepted")
+
     if lib.r6_car_catalog_find_model(cars, len(entries), b"PLC_NOPE") != -1:
         failures.append("unknown model matched")
     if lib.r6_car_catalog_find_id(cars, len(entries), 60000) != -1:

@@ -669,9 +669,9 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
         r6_race_get_state((const r6_race *)(size_t)handle, &state) != R6_OK) {
         return NULL;
     }
-    result = (*env)->NewFloatArray(env, 23);
+    result = (*env)->NewFloatArray(env, 24);
     if (result) {
-        jfloat values[23] = {
+        jfloat values[24] = {
             (jfloat)state.play_state, (jfloat)state.outcome,
             state.elapsed, state.countdown, (jfloat)state.lap,
             state.lap_time, state.last_lap, state.best_lap,
@@ -683,7 +683,7 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
             state.rival_gap, state.rival_side,
             (jfloat)state.rival_position, (jfloat)state.collision_count
         };
-        (*env)->SetFloatArrayRegion(env, result, 0, 23, values);
+        (*env)->SetFloatArrayRegion(env, result, 0, 24, values);
     }
     return result;
 }
@@ -981,5 +981,56 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogInfo(JNIEnv *env, jclass cls,
         (*env)->SetFloatArrayRegion(env, result, 0, 11, values);
     }
     free(cars);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogCharacterCount(JNIEnv *env,
+                                                             jclass cls,
+                                                             jbyteArray blob) {
+    jsize length;
+    unsigned char *bytes;
+    jint result = -1;
+    (void)cls;
+    if (!blob) {
+        return -1;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return -1;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    result = (jint)r6_car_catalog_character_count(bytes, (size_t)length);
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogCharacterIndex(JNIEnv *env,
+                                                             jclass cls,
+                                                             jbyteArray blob,
+                                                             jstring character) {
+    jsize length;
+    unsigned char *bytes;
+    const char *name;
+    jint result = -1;
+    (void)cls;
+    if (!blob || !character) {
+        return -1;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return -1;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    name = (*env)->GetStringUTFChars(env, character, NULL);
+    if (name) {
+        result = (jint)r6_car_catalog_find_character(bytes, (size_t)length,
+                                                     name);
+        (*env)->ReleaseStringUTFChars(env, character, name);
+    }
+    free(bytes);
     return result;
 }
