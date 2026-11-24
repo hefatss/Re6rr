@@ -92,9 +92,10 @@ string bytes, 386,681 bytes total.
   by `EventScene2Analyzer.cpp` / `EventSceneEditor.cpp`; see
   `docs/recon/STORY_NATIVE.md`. Actor values sit inside the `0..253` domain of
   native `getCarIdName(int)`, which indexes the `CRC_*`/`PLC_*` name table;
-  stage values fit Enma `EStage`. No shipped scene-side conversion table exists
-  in the dump, so these remain proven domains, not applied mappings. `CAR_ID` is
-  a cut-in actor slot, not a `CRC_*` ID.
+  stage values fit Enma `EStage`. Native callers of that function are car-list
+  UI and honor debug code, not the `Environment.Lua` reader, and no shipped
+  scene-side conversion table exists. These remain proven domains, not applied
+  mappings. `CAR_ID` is a cut-in actor slot, not a `CRC_*` ID.
 - 3.10 GB of `.EES` cutscene camera/model data is not parsed.
 - gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
 - `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
