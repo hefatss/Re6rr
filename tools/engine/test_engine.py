@@ -251,6 +251,37 @@ def test_lua(dll, dump, failures):
         else:
             print("  ColorMax() = %.0f" % color)
 
+        rc, spec_value = engine.number("GetHorsepower1st")
+        if rc != R6_ERR_NOT_FOUND or spec_value != 0.0:
+            failures.append("lua: missing scalar did not zero the result")
+        else:
+            print("  missing scalar reports: %s" % engine.error())
+
+        spec = os.path.join(dump, "data", "car", "specification",
+                            "PLC_928GT_Specification.lua")
+        engine.load(spec)
+        rc, horsepower = engine.number("GetHorsepower1st")
+        if rc != R6_OK or abs(horsepower - 330.0) > 1e-9:
+            failures.append("lua: GetHorsepower1st rc=%d value=%s"
+                            % (rc, horsepower))
+        else:
+            print("  GetHorsepower1st() = %.0f" % horsepower)
+
+        lib = engine.lib
+        set_number = lib.r6_engine_set_number
+        set_number.argtypes = [ctypes.c_void_p, ctypes.c_char_p,
+                               ctypes.c_double]
+        rc = set_number(engine.handle, b"TestValue", 42.0)
+        tiny = b"function GetTestValue() return TestValue end"
+        rc2 = lib.r6_engine_load_script(engine.handle, b"test_value.lua",
+                                        tiny, len(tiny))
+        rc3, value = engine.number("GetTestValue")
+        if rc != R6_OK or rc2 != R6_OK or rc3 != R6_OK or value != 42.0:
+            failures.append("lua: set_number rc=%d/%d/%d value=%s"
+                            % (rc, rc2, rc3, value))
+        else:
+            print("  set_number: GetTestValue() = %.0f" % value)
+
         rc, zeros = engine.vec3_key("NoSuchFunction", car, 0)
         if rc != R6_ERR_NOT_FOUND or "NoSuchFunction" not in engine.error():
             failures.append("lua: missing function did not report properly")

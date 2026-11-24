@@ -68,6 +68,8 @@ Verified on this dump:
 | 4,885 data scripts loaded through the C host | 0 errors |
 | `GetTirePos("CRC_928GT_Masaki", 0)` vs Python Lua host | (-7.73, 0.016652, 12.400767), identical |
 | `ColorMax()` with `LibraryColor.lua` | 250 |
+| `GetHorsepower1st()` with `PLC_928GT_Specification.lua` | 330 |
+| `set_number` + scripted getter | 42, round-trips through Lua global |
 | ordered context bundle | reproduces the same `GetTirePos` |
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
 | 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
