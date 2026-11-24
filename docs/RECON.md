@@ -50,6 +50,12 @@ must come from imports, string references, RTTI and pattern matching.
 Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
 (`NTWD`, `XMD`, `NDWD`, `NSXR`) still need per-format parsers.
 
+`.nub` is now decoded: 32-byte header, tone-record offsets, 208-byte records with
+PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse
+(781 tones); `tools/engine/nub_audio.py` inventories them and extracts original
+PCM to standard WAV. Format details and unresolved mixer fields are in
+`recon/AUDIO_NUB.md`.
+
 Shader folder holds compiled blobs (`NSXR`), not HLSL source, so a port translates
 behaviour rather than recompiling shaders.
 
