@@ -24,8 +24,11 @@ enum r6_race_outcome {
     R6_RACE_GOAL = 2,
     R6_RACE_TIME_UP = 3,
     R6_RACE_RETIRE = 4,
-    R6_RACE_WRONG_WAY = 5
+    R6_RACE_WRONG_WAY = 5,
+    R6_RACE_COLLISION = 6
 };
+
+#define R6_RACE_MAX_RIVALS 8
 
 typedef struct r6_race_config {
     int mode;             /* EGameMode */
@@ -39,6 +42,16 @@ typedef struct r6_race_config {
     float wrong_way_limit; /* seconds of sustained reverse travel */
     float offroad_factor;  /* lateral/half_width before off-road starts */
 } r6_race_config;
+
+/* One rival car. `s` is optional; when zero the course projection is used. */
+typedef struct r6_rival_state {
+    float x, y, z;
+    float yaw;
+    float speed;
+    float s;
+    float lateral;
+    uint32_t id;
+} r6_rival_state;
 
 typedef struct r6_race_state {
     int play_state;       /* r6_enma_play_state */
@@ -62,6 +75,10 @@ typedef struct r6_race_state {
     uint8_t offroad;
     uint8_t checkpoint_flags;
     uint8_t reserved;
+    float rival_gap;      /* nearest rival ahead, metres */
+    float rival_side;     /* signed lateral offset to that rival */
+    int rival_position;   /* 1-based place among rivals, 0 when none */
+    int collision_count;  /* distinct contact events */
 } r6_race_state;
 
 typedef struct r6_race r6_race;
@@ -71,6 +88,8 @@ R6_API void r6_race_config_default(r6_race_config *config);
 R6_API r6_race *r6_race_init(void *storage, size_t size,
                              const r6_race_config *config);
 R6_API int r6_race_reset(r6_race *race, const r6_race_config *config);
+R6_API int r6_race_set_rivals(r6_race *race, const r6_rival_state *rivals,
+                              size_t count);
 R6_API int r6_race_step(r6_race *race,
                         const r6_course_vertex *vertices, size_t count,
                         int closed, const r6_vehicle_state *vehicle, float dt);

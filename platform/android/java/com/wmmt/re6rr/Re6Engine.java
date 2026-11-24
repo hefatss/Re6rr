@@ -154,6 +154,17 @@ public final class Re6Engine implements AutoCloseable {
             return nativeRaceStep(handle, vertices, closed, vehicle, dt);
         }
 
+        /** Each rival is x y z yaw speed s lateral id. At most 8 rivals. */
+        public int setRivals(float[] rivals) {
+            if (handle == 0) {
+                throw new IllegalStateException("race closed");
+            }
+            if (rivals != null && rivals.length % 8 != 0) {
+                throw new IllegalArgumentException("rival stride must be 8");
+            }
+            return nativeRaceSetRivals(handle, rivals);
+        }
+
         /** Step from a packed .r6course descriptor produced by
          *  tools/engine/course_descriptor.py. The closed flag comes from the
          *  descriptor header. */
@@ -166,7 +177,8 @@ public final class Re6Engine implements AutoCloseable {
 
         /** State indices: playState outcome elapsed countdown lap lapTime
          *  lastLap bestLap s progress odo lateral height halfWidth speed
-         *  offroadTime wrongWayTime surface offroad checkpointFlags. */
+         *  offroadTime wrongWayTime surface offroad checkpointFlags
+         *  rivalGap rivalSide rivalPosition collisionCount. */
         public float[] state() {
             if (handle == 0) {
                 throw new IllegalStateException("race closed");
@@ -202,6 +214,7 @@ public final class Re6Engine implements AutoCloseable {
     private static native float[] nativeVehicleState(long handle);
     private static native long nativeRaceCreate(int mode, int stage, int course, int area, float goalOdo, float timeLimit, float countdown, int laps, float wrongWayLimit, float offroadFactor);
     private static native void nativeRaceDestroy(long handle);
+    private static native int nativeRaceSetRivals(long handle, float[] rivals);
     private static native int nativeRaceStep(long handle, float[] vertices, boolean closed, float[] vehicle, float dt);
     private static native int nativeRaceStepDescriptor(long handle, byte[] descriptor, float[] vehicle, float dt);
     private static native float[] nativeRaceState(long handle);

@@ -483,6 +483,51 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceStep(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeRaceSetRivals(JNIEnv *env, jclass cls,
+                                                  jlong handle,
+                                                  jfloatArray rivals) {
+    r6_rival_state list[R6_RACE_MAX_RIVALS];
+    jsize floats = 0;
+    jsize count = 0;
+    jfloat *data = NULL;
+    jsize i;
+    jint rc;
+    (void)cls;
+    if (!handle) {
+        return R6_ERR_ARG;
+    }
+    if (rivals) {
+        floats = (*env)->GetArrayLength(env, rivals);
+        if (floats % 8 != 0) {
+            return R6_ERR_ARG;
+        }
+        count = floats / 8;
+        if (count > R6_RACE_MAX_RIVALS) {
+            return R6_ERR_ARG;
+        }
+        data = (*env)->GetFloatArrayElements(env, rivals, NULL);
+        if (!data) {
+            return R6_ERR_MEMORY;
+        }
+        for (i = 0; i < count; i++) {
+            const jfloat *p = data + (size_t)i * 8;
+            list[i].x = p[0];
+            list[i].y = p[1];
+            list[i].z = p[2];
+            list[i].yaw = p[3];
+            list[i].speed = p[4];
+            list[i].s = p[5];
+            list[i].lateral = p[6];
+            list[i].id = (uint32_t)p[7];
+        }
+        (*env)->ReleaseFloatArrayElements(env, rivals, data, JNI_ABORT);
+    }
+    rc = (jint)r6_race_set_rivals((r6_race *)(size_t)handle,
+                                  rivals ? list : NULL, (size_t)count);
+    return rc;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeRaceStepDescriptor(
         JNIEnv *env, jclass cls, jlong handle, jbyteArray descriptor,
         jfloatArray vehicle, jfloat dt) {
@@ -570,9 +615,9 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
         r6_race_get_state((const r6_race *)(size_t)handle, &state) != R6_OK) {
         return NULL;
     }
-    result = (*env)->NewFloatArray(env, 20);
+    result = (*env)->NewFloatArray(env, 23);
     if (result) {
-        jfloat values[20] = {
+        jfloat values[23] = {
             (jfloat)state.play_state, (jfloat)state.outcome,
             state.elapsed, state.countdown, (jfloat)state.lap,
             state.lap_time, state.last_lap, state.best_lap,
@@ -580,9 +625,11 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
             state.height, state.half_width, state.speed,
             state.offroad_time, state.wrong_way_time,
             (jfloat)state.surface, (jfloat)state.offroad,
-            (jfloat)state.checkpoint_flags
+            (jfloat)state.checkpoint_flags,
+            state.rival_gap, state.rival_side,
+            (jfloat)state.rival_position, (jfloat)state.collision_count
         };
-        (*env)->SetFloatArrayRegion(env, result, 0, 20, values);
+        (*env)->SetFloatArrayRegion(env, result, 0, 23, values);
     }
     return result;
 }

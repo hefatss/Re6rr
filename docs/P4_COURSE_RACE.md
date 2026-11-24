@@ -86,6 +86,8 @@ to 6 m; all shipped samples are currently marked as road surface.
 - off-road detection when `|lateral| > half_width * offroad_factor`, with the
   vertex surface carried into the state;
 - finite-state guard that resets the race on divergence.
+- rival tracking: nearest gap, side offset, place, and contact events using
+  approximate car footprints (4.5 m × 1.9 m).
 
 When no course vertices are supplied, progress falls back to the vehicle's
 odometer, matching the `fGoalOdo` field in `SConfigPlay`.
@@ -93,6 +95,20 @@ odometer, matching the `fGoalOdo` field in `SConfigPlay`.
 `r6_race_config_default()` uses mode `Battle`, stage `Series01`, course
 `Hakone`, a 3-second countdown, one lap, a 2-second wrong-way limit and a
 `1e8` goal distance.
+
+### Rival rules
+
+`r6_race_set_rivals()` accepts up to eight `r6_rival_state` records: world
+position, yaw, speed, optional course arc length, lateral offset and an ID.
+Each step transforms rival offsets into the player's course-tangent frame, so
+no trig is needed when a course is present. `rival_gap` is the nearest rival
+ahead, `rival_position` is `1 +` the number of rivals ahead, and `rival_side`
+is the lateral offset to that rival.
+
+Overlap of the two approximate car footprints increments `collision_count`,
+sets `EPlayState.SlowDown` and outcome `R6_RACE_COLLISION` for one frame. A
+0.5-second cooldown prevents repeated counts while cars stay overlapped; the
+next step returns to `Run`. Collisions are events, not a terminal race state.
 
 ## JNI
 
@@ -102,10 +118,12 @@ odometer, matching the `fGoalOdo` field in `SConfigPlay`.
 - `Race.step(float[] vertices, boolean closed, float[] vehicle, float dt)`;
 - `Race.step(byte[] descriptor, float[] vehicle, float dt)` — parse a packed
   `.r6course` blob natively and take the closed flag from its header;
-- `Race.state()` — 20 floats: play state, outcome, elapsed, countdown, lap,
+- `Race.setRivals(float[] rivals)` — each rival is eight floats
+  `x y z yaw speed s lateral id`, at most eight rivals;
+- `Race.state()` — 23 floats: play state, outcome, elapsed, countdown, lap,
   lap time, last lap, best lap, `s`, progress, odo, lateral, height, half width,
-  speed, off-road time, wrong-way time, surface, off-road flag and checkpoint
-  flags.
+  speed, off-road time, wrong-way time, surface, off-road flag, checkpoint
+  flags, rival gap, rival side, rival place and collision count.
 
 Each course vertex passed over JNI is eight floats: `x y z halfWidth surface
 flags reserved pad`. The JNI layer converts that array and the 15-float
@@ -123,6 +141,8 @@ flags reserved pad`. The JNI layer converts that array and the 15-float
 - countdown holds progress at zero, then goal at `progress >= goal_odo`;
 - off-road detection on the gravel segment;
 - sustained reverse travel → `Retire` / `R6_RACE_WRONG_WAY`;
+- two rivals produce gap 10 m and place 2; contact produces one collision,
+  `SlowDown`, then a return to `Run`; nine rivals are rejected;
 - negative `dt` and null vehicle rejected;
 - 180 frames of the real vehicle model driving the race stay finite and
   advance progress.
@@ -137,7 +157,9 @@ physics tests and JNI/Java syntax checks still pass.
   and checkpoint flags follow piece boundaries.
 - Section polygons are used only for section IDs; NDWD stage model bins, layer
   names (`ROAD`, `ONRD`, `LONG`, …) and clip tables are not parsed for geometry.
-- No rival cars, collisions, surface-dependent grip feedback, road bank or
-  slope, weather, aero parts, damage or ghost/phantom data.
+- Rival collision is a state event only: no vehicle impulse, damage or
+  speed penalty is applied yet.
+- No surface-dependent grip feedback, road bank or slope, weather, aero parts
+  or ghost/phantom data.
 - Race rules are calibrated to the recovered enum/state names, not to Enma
   traces.

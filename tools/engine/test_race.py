@@ -20,6 +20,7 @@ R6_RACE_NONE = 0
 R6_RACE_RUNNING = 1
 R6_RACE_GOAL = 2
 R6_RACE_WRONG_WAY = 5
+R6_RACE_COLLISION = 6
 R6_PLAY_COUNTDOWN = 1
 R6_PLAY_RUN = 2
 R6_PLAY_RETIRE = 3
@@ -74,6 +75,17 @@ class RaceState(ctypes.Structure):
         ("wrong_way_time", ctypes.c_float),
         ("surface", ctypes.c_uint8), ("offroad", ctypes.c_uint8),
         ("checkpoint_flags", ctypes.c_uint8), ("reserved", ctypes.c_uint8),
+        ("rival_gap", ctypes.c_float), ("rival_side", ctypes.c_float),
+        ("rival_position", ctypes.c_int), ("collision_count", ctypes.c_int),
+    ]
+
+
+class Rival(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.c_float), ("y", ctypes.c_float), ("z", ctypes.c_float),
+        ("yaw", ctypes.c_float), ("speed", ctypes.c_float),
+        ("s", ctypes.c_float), ("lateral", ctypes.c_float),
+        ("id", ctypes.c_uint32),
     ]
 
 
@@ -106,6 +118,9 @@ class Race:
                                      ctypes.POINTER(State), ctypes.c_float]
         lib.r6_race_get_state.argtypes = [ctypes.c_void_p,
                                           ctypes.POINTER(RaceState)]
+        lib.r6_race_set_rivals.argtypes = [ctypes.c_void_p,
+                                           ctypes.POINTER(Rival),
+                                           ctypes.c_size_t]
         self.lib = lib
         self.storage = ctypes.create_string_buffer(lib.r6_race_size())
         if config is None:
@@ -121,6 +136,10 @@ class Race:
         array = (Vertex * len(vertices))(*vertices) if vertices else None
         return self.lib.r6_race_step(self.handle, array, len(vertices),
                                      closed, ctypes.byref(state), dt)
+
+    def set_rivals(self, rivals):
+        array = (Rival * len(rivals))(*rivals) if rivals else None
+        return self.lib.r6_race_set_rivals(self.handle, array, len(rivals))
 
     def state(self):
         out = RaceState()
@@ -288,6 +307,37 @@ def main():
                          state.wrong_way_time))
     else:
         print("  sustained reverse travel -> RETIRE")
+
+    race.reset(config)
+    ahead = Rival(30.0, 0.0, 0.0, 0.0, 20.0, 30.0, 0.0, 1)
+    behind = Rival(-10.0, 0.0, 2.0, 0.0, 15.0, 0.0, 2.0, 2)
+    if race.set_rivals([ahead, behind]) != R6_OK:
+        failures.append("set_rivals failed")
+    race.step(straight, 0, vehicle(20.0, 0.0, 15.0), 1.0 / 60.0)
+    state = race.state()
+    if (abs(state.rival_gap - 10.0) > 1e-3 or
+            abs(state.rival_side) > 1e-3 or state.rival_position != 2):
+        failures.append("rival gap=%f side=%f place=%d" %
+                        (state.rival_gap, state.rival_side,
+                         state.rival_position))
+    else:
+        print("  rival: gap %.1f m, place %d" %
+              (state.rival_gap, state.rival_position))
+    contact = Rival(21.0, 0.0, 0.4, 0.0, 12.0, 21.0, 0.4, 3)
+    race.set_rivals([contact])
+    race.step(straight, 0, vehicle(20.0, 0.0, 15.0), 1.0 / 60.0)
+    state = race.state()
+    if state.collision_count != 1 or state.outcome != R6_RACE_COLLISION:
+        failures.append("collision count=%d outcome=%d" %
+                        (state.collision_count, state.outcome))
+    else:
+        print("  rival contact -> collision 1, SlowDown")
+    race.step(straight, 0, vehicle(20.0, 0.0, 15.0), 1.0 / 60.0)
+    if race.state().outcome != R6_RACE_RUNNING:
+        failures.append("collision did not recover to running")
+    if race.set_rivals([ahead] * 9) != R6_ERR_ARG:
+        failures.append("more than 8 rivals accepted")
+    race.set_rivals([])
 
     if race.step(straight, 0, vehicle(0, 0), -1.0) != R6_ERR_ARG:
         failures.append("negative dt accepted by race")

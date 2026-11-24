@@ -51,9 +51,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_course_descriptor_parse()` — validate and unpack a packed `.r6course`
   blob built from the dump's path and section data by
   `tools/engine/course_descriptor.py`.
-- `r6_race_init/reset/step/get_state()` — countdown, lap/goal/timer, wrong-way
-  and off-road state using the recovered `EPlayState` values; see
-  `docs/P4_COURSE_RACE.md`.
+- `r6_race_init/reset/step/get_state()` and `r6_race_set_rivals()` — countdown,
+  lap/goal/timer, wrong-way, off-road and rival contact events using the
+  recovered `EPlayState` values; see `docs/P4_COURSE_RACE.md`.
 
 ## Android bridge
 
@@ -101,7 +101,7 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
 | vehicle model | idle stable, throttle/brake/steer respond, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
-| course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way and 180 coupled vehicle frames pass |
+| course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way, rival gap/place/contact and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104; C parser matches the Python generator |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but

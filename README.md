@@ -16,7 +16,7 @@ Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 has a
 working C engine core with Lua host, script contexts and asset parsers. Phase 4
 has freestanding vehicle dynamics driven by the car's Lua spec and tire
 positions, plus road polyline projection from the dump's own path data and race
-rules using the recovered Enma `EPlayState` values; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
+rules and rival tracking using the recovered Enma `EPlayState` values; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
 `docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md` and
 `docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
 
