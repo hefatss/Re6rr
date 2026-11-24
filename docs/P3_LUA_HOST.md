@@ -89,10 +89,38 @@ First command: 4,885 scripts, 0 load errors, 0 missing globals. Second:
 wrapper; the Android engine will link Lua 5.1 directly but use the same call
 protocol.
 
+## Script load sets from the executable
+
+The `.rdata` path templates in `wmn6r.exe` (exported to gitignored
+`docs/recon/exe_paths.txt`) and the loaders that reference them give the real
+sets and their order. Ghidra decompilations are in
+`docs/recon/ghidra_c/carctx/`:
+
+| subsystem | loader | ordered files |
+|---|---|---|
+| tire | `FUN_140114b00` | `TireDefine.lua` → `TireModelType_<car>.lua` → `TireAccessor.lua` |
+| position | `FUN_1400ff3f0` | `getTirePos_<car>.lua` → `CarHightDown_<model>.lua` (conditional) |
+| shader | `FUN_14010b110` | `<model>_ShaderParameter.lua` → `ShaderAccessor.lua` |
+| colour | `FUN_1400c8330` | `LibraryColor.lua`, or `<dir>/<car>_DefaultColor.lua`, or `playerCar/<car>_CustomColor.lua` (file type selects one) |
+| spec | `FUN_140103a90`/`FUN_140103b90` | `<model>_Specification.lua` |
+
+The strings carry a `sim:` prefix: that is the game's virtual filesystem,
+mapped to `data/` on disk. Car name and model code are different namespaces:
+`CRC_928GT_Masaki` pairs with `PLC_928GT`. `tools/engine/contexts.py` builds
+these bundles in order and can load them through the C engine.
+
+LuabindPack::Load (`FUN_140aac140`) strips a UTF-8 BOM, calls
+`luaL_loadbuffer`, then runs the chunk with `FUN_140aad540(L, 0, -1, 0)` — a
+load is always execute-immediately, so no separate deferred chunk queue is
+needed.
+
 ## Next
 
-1. Determine script load sets and their order from the engine's script loader
-   (`luaL_loadfile` callers), instead of loading the whole `data/` tree.
-3. Port the `Vec3`/scalar helpers and the error-flag convention to the engine
-   side, then wire the first subsystem (car position/colour) to the asset
-   loaders from Phase 2.
+1. ~~Determine script load sets and order from the engine's script loader.~~
+   Recovered above; `tools/engine/contexts.py` applies them.
+2. ~~Port the `Vec3`/scalar helpers and error-flag convention to the engine
+   side.~~ Done in `engine/src/core/lua_host.c`; failed calls return zero.
+3. ~~Wire car position/colour to the Phase 2 loaders.~~ `r6_engine_load_context`
+   and the first asset parsers are in `engine/`; see `docs/ENGINE.md`.
+4. Extend recompiler gaps: indirect calls/host stubs, bounded loops, XMM/SIMD.
+5. Proceed to P4 physics/race and P5 game systems.
