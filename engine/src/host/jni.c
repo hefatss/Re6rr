@@ -11,6 +11,7 @@
 #include "r6/r6_asset.h"
 #include "r6/r6_car.h"
 #include "r6/r6_course.h"
+#include "r6/r6_custom.h"
 #include "r6/r6_game.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
@@ -1047,6 +1048,253 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogCharacterIndex(JNIEnv *env,
         result = (jint)r6_car_catalog_find_character(bytes, (size_t)length,
                                                      name);
         (*env)->ReleaseStringUTFChars(env, character, name);
+    }
+    free(bytes);
+    return result;
+}
+
+/* Customization catalog: Java keeps the blob, this layer only validates it and
+ * copies fixed-size records back to Java. */
+static int custom_from_blob(JNIEnv *env, jbyteArray blob,
+                            unsigned char **bytes, jsize *length,
+                            r6_custom_catalog *catalog) {
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    *length = (*env)->GetArrayLength(env, blob);
+    *bytes = (unsigned char *)malloc((size_t)*length ? (size_t)*length : 1);
+    if (!*bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, *length, (jbyte *)*bytes);
+    if ((*env)->ExceptionCheck(env) ||
+            r6_custom_catalog_parse(*bytes, (size_t)*length, catalog) !=
+            R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogCounts(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    jintArray result = NULL;
+    jint values[5];
+    jint rc = custom_from_blob(env, blob, &bytes, &length, &catalog);
+    (void)cls;
+    if (rc != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jint)catalog.color_count;
+    values[1] = (jint)catalog.wheel_count;
+    values[2] = (jint)catalog.aero_count;
+    values[3] = (jint)catalog.tune_count;
+    values[4] = (jint)catalog.tire_count;
+    result = (*env)->NewIntArray(env, 5);
+    if (result) {
+        (*env)->SetIntArrayRegion(env, result, 0, 5, values);
+    }
+    free(bytes);
+    return result;
+}
+
+static jbyteArray custom_name(JNIEnv *env, const char *text, size_t limit) {
+    size_t length = 0;
+    jbyteArray result;
+    while (length < limit && text[length]) {
+        length++;
+    }
+    result = (*env)->NewByteArray(env, (jsize)length);
+    if (result && length) {
+        (*env)->SetByteArrayRegion(env, result, 0, (jsize)length,
+                                   (const jbyte *)text);
+    }
+    return result;
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogColor(JNIEnv *env,
+                                                      jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    r6_custom_color color;
+    jfloatArray result = NULL;
+    jfloat values[19];
+    size_t i;
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_custom_catalog_color(&catalog, (size_t)index, &color) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jfloat)color.id;
+    values[1] = (jfloat)color.icon;
+    values[2] = (jfloat)color.feel;
+    for (i = 0; i < 4; i++) {
+        values[3 + i] = color.body0[i];
+        values[7 + i] = color.body1[i];
+        values[11 + i] = color.spec[i];
+        values[15 + i] = color.params[i];
+    }
+    result = (*env)->NewFloatArray(env, 19);
+    if (result) {
+        (*env)->SetFloatArrayRegion(env, result, 0, 19, values);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogColorName(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    r6_custom_color color;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_custom_catalog_color(&catalog, (size_t)index, &color) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    result = custom_name(env, color.name, sizeof(color.name));
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogName(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint section, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return NULL;
+    }
+    if (section == 1) {
+        r6_custom_wheel row;
+        if (r6_custom_catalog_wheel(&catalog, (size_t)index, &row) == R6_OK) {
+            result = custom_name(env, row.name, sizeof(row.name));
+        }
+    } else if (section == 2) {
+        r6_custom_aero row;
+        if (r6_custom_catalog_aero(&catalog, (size_t)index, &row) == R6_OK) {
+            result = custom_name(env, row.name, sizeof(row.name));
+        }
+    } else if (section == 3) {
+        r6_custom_tune row;
+        if (r6_custom_catalog_tune(&catalog, (size_t)index, &row) == R6_OK) {
+            result = custom_name(env, row.model, sizeof(row.model));
+        }
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogFlags(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint section, jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    jint result = -1;
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK) {
+        return -1;
+    }
+    if (section == 1) {
+        r6_custom_wheel row;
+        if (r6_custom_catalog_wheel(&catalog, (size_t)index, &row) == R6_OK) {
+            result = (jint)row.flags;
+        }
+    } else if (section == 2) {
+        r6_custom_aero row;
+        if (r6_custom_catalog_aero(&catalog, (size_t)index, &row) == R6_OK) {
+            result = (jint)row.flags;
+        }
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogTune(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    r6_custom_tune tune;
+    jintArray result = NULL;
+    jint values[10 + R6_CUSTOM_DEFAULT_COLORS + R6_CUSTOM_CUSTOM_COLORS];
+    size_t i;
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_custom_catalog_tune(&catalog, (size_t)index, &tune) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = tune.aero_category;
+    values[1] = tune.limited_parts;
+    values[2] = tune.pure_wheel_front;
+    values[3] = tune.pure_wheel_rear;
+    values[4] = tune.custom_wheel_front;
+    values[5] = tune.custom_wheel_rear;
+    values[6] = tune.change_tuning_disp;
+    values[7] = tune.custom_gt_wing;
+    values[8] = tune.wing_a_h;
+    values[9] = tune.wing_n;
+    for (i = 0; i < R6_CUSTOM_DEFAULT_COLORS; i++) {
+        values[10 + i] = tune.default_color_ids[i];
+    }
+    for (i = 0; i < R6_CUSTOM_CUSTOM_COLORS; i++) {
+        values[10 + R6_CUSTOM_DEFAULT_COLORS + i] =
+            tune.custom_color_ids[i];
+    }
+    result = (*env)->NewIntArray(env, (jsize)(sizeof(values) / sizeof(values[0])));
+    if (result) {
+        (*env)->SetIntArrayRegion(env, result, 0,
+                                  (jsize)(sizeof(values) / sizeof(values[0])),
+                                  values);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogTire(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    r6_custom_tire tire;
+    jfloatArray result = NULL;
+    jfloat values[3];
+    (void)cls;
+    if (custom_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+            r6_custom_catalog_tire(&catalog, (size_t)index, &tire) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jfloat)tire.kind;
+    values[1] = (jfloat)tire.index;
+    values[2] = tire.value;
+    result = (*env)->NewFloatArray(env, 3);
+    if (result) {
+        (*env)->SetFloatArrayRegion(env, result, 0, 3, values);
     }
     free(bytes);
     return result;

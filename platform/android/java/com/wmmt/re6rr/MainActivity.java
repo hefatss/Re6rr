@@ -44,6 +44,7 @@ public final class MainActivity extends Activity {
     private Re6Engine.Vehicle vehicle;
     private Re6Engine.Race race;
     private Re6Engine.CarCatalog catalog;
+    private Re6Engine.CustomCatalog custom;
     private byte[] descriptor;
     private List<String> models = new ArrayList<>();
     private List<String> courses = new ArrayList<>();
@@ -183,6 +184,16 @@ public final class MainActivity extends Activity {
             }
             carSpinner.setAdapter(adapter(models));
 
+            custom = null;
+            File customFile = new File(root, "custom.r6custom");
+            String customText = "";
+            if (customFile.isFile()) {
+                custom = new Re6Engine.CustomCatalog(
+                        Files.readAllBytes(customFile.toPath()));
+                customText = " colours=" + custom.count(0) +
+                             " wheels=" + custom.count(1);
+            }
+
             courses.clear();
             File[] files = root.listFiles((dir, name) -> name.endsWith(".r6course"));
             if (files != null) {
@@ -193,7 +204,7 @@ public final class MainActivity extends Activity {
             }
             courseSpinner.setAdapter(adapter(courses));
             status.setText("cars=" + models.size() + " courses=" + courses.size() +
-                           " characters=" + catalog.characterCount());
+                           " characters=" + catalog.characterCount() + customText);
         } catch (Exception error) {
             status.setText("load failed: " + error);
         }

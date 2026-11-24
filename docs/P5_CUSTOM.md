@@ -60,12 +60,24 @@ counts and exact size, then returns typed section pointers. Record accessors
 copy into caller storage, so unaligned host buffers stay safe. Lookups exist
 for colour ID, wheel name, aero name and car model. Unknown names return `-1`.
 
+## JNI
+
+`Re6Engine.CustomCatalog` wraps the blob on Android. `counts()` are section
+sizes in colour/wheel/aero/tune/tire order. `color(index)` returns
+`id icon feel body0[4] body1[4] spec[4] params[4]`; `colorName(index)` decodes
+the CP932 message-DB label. `wheelName`, `wheelFlags`, `aeroName`,
+`aeroFlags`, `tuneModel`, `tune` and `tire` expose the remaining sections.
+`tune()` returns 10 scalar fields followed by 11 default and 40 custom colour
+IDs. Java only owns the byte array; the native layer validates and copies
+fixed-size records.
+
 ## Validation
 
 `python tools/engine/test_custom_catalog.py` checks all five section counts,
 ctypes record sizes, sampled records from each section, name/lookups and
-malformed blobs. Result: 250 colours, 107 wheels, 261 aero/parts names,
-151 per-car tunes, 42 tire scales, 70,368 bytes.
+malformed blobs. `build_host.py --test` also syntax-checks the JNI layer and
+compiles the Java bridge. Result: 250 colours, 107 wheels, 261 aero/parts
+names, 151 per-car tunes, 42 tire scales, 70,368 bytes.
 
 ## Gaps
 

@@ -309,6 +309,83 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Wraps the packed .r6custom catalog produced by
+     *  tools/engine/custom_catalog.py. */
+    public static class CustomCatalog {
+        private final byte[] blob;
+        private final int[] counts;
+
+        public CustomCatalog(byte[] blob) {
+            this.blob = blob;
+            this.counts = nativeCustomCatalogCounts(blob);
+            if (counts == null || counts.length != 5) {
+                throw new IllegalArgumentException("bad .r6custom blob");
+            }
+        }
+
+        /** Section indexes: 0 colour, 1 wheel, 2 aero, 3 tune, 4 tire. */
+        public int count(int section) {
+            if (section < 0 || section >= counts.length) {
+                throw new IllegalArgumentException("bad section");
+            }
+            return counts[section];
+        }
+
+        /** id icon feel body0[4] body1[4] spec[4] params[4]. */
+        public float[] color(int index) {
+            return nativeCustomCatalogColor(blob, index);
+        }
+
+        /** CP932 colour label decoded to Unicode. */
+        public String colorName(int index) {
+            byte[] raw = nativeCustomCatalogColorName(blob, index);
+            return raw == null ? null :
+                   new String(raw, java.nio.charset.Charset.forName("Shift_JIS"));
+        }
+
+        public String wheelName(int index) {
+            return name(1, index);
+        }
+
+        public int wheelFlags(int index) {
+            return flags(1, index);
+        }
+
+        public String aeroName(int index) {
+            return name(2, index);
+        }
+
+        public int aeroFlags(int index) {
+            return flags(2, index);
+        }
+
+        public String tuneModel(int index) {
+            return name(3, index);
+        }
+
+        /** aeroCategory limitedParts pureFront pureRear customFront customRear
+         *  changeTuningDisp customGTWing wingAH wingN, then 11 default and
+         *  40 custom colour IDs. */
+        public int[] tune(int index) {
+            return nativeCustomCatalogTune(blob, index);
+        }
+
+        /** kind index value. */
+        public float[] tire(int index) {
+            return nativeCustomCatalogTire(blob, index);
+        }
+
+        private String name(int section, int index) {
+            byte[] raw = nativeCustomCatalogName(blob, section, index);
+            return raw == null ? null : new String(raw,
+                   java.nio.charset.Charset.forName("US-ASCII"));
+        }
+
+        private int flags(int section, int index) {
+            return nativeCustomCatalogFlags(blob, section, index);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -357,6 +434,13 @@ public final class Re6Engine implements AutoCloseable {
     private static native byte[] nativeCarCatalogModel(byte[] blob, int index);
     private static native float[] nativeCarCatalogInfo(byte[] blob, int index);
     private static native int nativeCarCatalogCharacterCount(byte[] blob);
+    private static native int[] nativeCustomCatalogCounts(byte[] blob);
+    private static native float[] nativeCustomCatalogColor(byte[] blob, int index);
+    private static native byte[] nativeCustomCatalogColorName(byte[] blob, int index);
+    private static native byte[] nativeCustomCatalogName(byte[] blob, int section, int index);
+    private static native int nativeCustomCatalogFlags(byte[] blob, int section, int index);
+    private static native int[] nativeCustomCatalogTune(byte[] blob, int index);
+    private static native float[] nativeCustomCatalogTire(byte[] blob, int index);
     private static native int nativeCarCatalogCharacterIndex(byte[] blob, String character);
 
     static {
