@@ -15,10 +15,12 @@ engine/include/r6/r6_physics.h  vehicle config, state and simulation API
 engine/include/r6/r6_race.h   race rules and EPlayState state machine
 engine/include/r6/r6_game.h   game flow and SConfigPlay byte bridge
 engine/include/r6/r6_car.h    packed car catalog parser
+engine/include/r6/r6_custom.h packed customization catalog parser
+engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
-engine/src/game/              freestanding game-flow state machine and car catalog
+engine/src/game/              freestanding flow, car/custom/story catalogs
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
 engine/compat/                freestanding stdio/stdlib/assert/miniz shims
 third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
@@ -124,6 +126,7 @@ Verified on this dump:
 | game flow | select car → course → race → result, invalid transitions rejected, 16 named SConfigPlay fields at 0x008–0x63c round-trip, short buffer rejected |
 | car catalog | 151 `PLC_*` specs packed to 21,768 bytes, all fields match Python; `PLC_928GT` found by model and id; malformed blobs rejected |
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |
+| story catalog | 122 episodes, 3,309 messages, 3,484 events and 647 `drive_story_*` keys packed to 386,681 bytes; sampled records and shared strings round-trip; malformed blobs rejected |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.

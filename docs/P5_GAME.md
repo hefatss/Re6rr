@@ -78,6 +78,7 @@ The Java side owns the native handle and closes it in `AutoCloseable.close()`.
 - `nSystemSec`, time limit, countdown, car index and course enum still have no
   recovered `SConfigPlay` offsets.
 - Shipped rival AI behaviour, explicit goal/checkpoint-order tables and story
-  progression are not recovered; the core uses derived course flags and
-  deterministic follow-course rivals.
+  unlock rules are not recovered; the core uses derived course flags and
+  deterministic follow-course rivals. Shipped episode dialogue and timing are
+  in the separate `.r6story` catalog documented in `docs/P5_STORY.md`.
 - No Android NDK/SDK here, so the JNI/CMake path is still compile-checked only.

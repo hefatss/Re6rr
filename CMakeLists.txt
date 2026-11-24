@@ -20,6 +20,7 @@ set(R6_CORE
     engine/src/game/game.c
     engine/src/game/car.c
     engine/src/game/custom.c
+    engine/src/game/story.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

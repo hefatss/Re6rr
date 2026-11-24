@@ -1,0 +1,87 @@
+# P5 — Story catalog
+
+`tools/engine/story_catalog.py` derives one packed `.r6story` blob from local
+scene data. No game data is committed; the tool reads the player's own dump.
+
+    python tools/engine/story_catalog.py --dump D:\Games\W6W-05 \
+        --out build/tmp/story.r6story --report build/tmp/story.json
+
+## Evidence
+
+- `data_jp/scene/ESeries_*` holds 121 numbered mission directories with phases
+  `FrontEvent`, `Race` and `RearEvent`, plus `ESeries_Ending`. 21 missions have
+  an A/B pair.
+- `docs/recon/name_tables.json` string table `0x1e39220` holds 993 executable
+  names including `ESeries_NONE` and 122 `ESeries_*` enum strings. Directory
+  names `ESeries_<nnn>` map to that table. `ESeries_<nnn>A` dirs share the base
+  enum because the enum has no `A` suffix; `B` dirs have their own enum.
+- `data_jp/scene/ESeries_*/**/*.xmlt` has 265 `Event.xmlt` and 326
+  `Message.xmlt` files (591 total, UTF-8). `Message.xmlt` holds ordered `<MES>`
+  text. `Event.xmlt` binds `MESSAGE`, `LETTERING`, `CUT_IN_HIT_*` and
+  `CUT_IN_RANGE_*` seeds to frames, actor slots, ranges and cut-in paths.
+- `data_jp/scene/ESeries_*/**/Environment.Lua` carries raw `ACTOR_0..3`,
+  `STAGE`, `STAGE_ROOT`, `STAGE_DAY` and `CAM_ID` numeric globals. The value is
+  packed as-is; no shipped file maps those numbers to `CRC_*`/`PLC_*` cars or
+  `EStage_*` courses.
+- `data_jp/msgdb/msgdb.lua` contains 647 `drive_story_*` runtime strings. The
+  shipped file is English-patched for some keys; the authoring
+  `data/msgdb/BN-W5_メッセージデータベース_VBA.xlsm` keeps JP/US/CNL columns but
+  is not loaded at runtime.
+
+## Packed layout
+
+Little endian. Header is 32 bytes:
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 8 | magic `R6STO\0\1\0` |
+| 8 | 4 | version `1` |
+| 12 | 4 | episode count |
+| 16 | 4 | message count |
+| 20 | 4 | event count |
+| 24 | 4 | story-key count |
+| 28 | 4 | shared string byte count |
+
+Sections follow in that order. All offsets point into the final string byte
+section and every string is NUL-terminated UTF-8.
+
+| Section | Record | Contents |
+| --- | --- | --- |
+| episode | 64 B | `enum_index`, `name[32]`, phase/branch flags, message and event counts, 4 raw actor numbers, raw stage/root/day/camera numbers |
+| message | 16 B | `text_offset`, episode, local ID, text length, phase |
+| event | 32 B | episode, phase, kind, start/end frames, range, `mes_id`, actor slot, position, cut-in/lettering text offset and length |
+| story key | 16 B | ID offset, value offset, ID length, value length |
+| strings | variable | NUL-terminated UTF-8 blob |
+
+Episode flags: front 1, race 2, rear 4, branch B 8, ending 16, environment 32.
+Event kinds: message 1, lettering 2, cut-in hit 3, cut-in range 4.
+`ESeries_Ending` uses enum index 0 because no `ESeries_*` enum string exists for
+it.
+
+## C API
+
+`engine/include/r6/r6_story.h` and `engine/src/game/story.c` validate magic,
+version, counts and exact size, then return typed section views. Record
+accessors copy into caller storage; string accessors copy NUL-terminated text
+into caller buffers and reject too-small buffers. Lookups exist for episode
+name and `drive_story_*` key.
+
+## Validation
+
+`python tools/engine/test_story_catalog.py` checks section counts, ctypes record
+sizes, sampled records, shared-string reads, lookups and malformed blobs.
+Result: 122 episodes, 3,309 messages, 3,484 events, 647 story keys, 204,057
+string bytes, 386,681 bytes total.
+
+## Gaps
+
+- No shipped mission-order, unlock, reward or condition table. Only the episode
+  tree and its local dialogue/timing are authoritative.
+- `ACTOR_*` and `STAGE` numbers are not mapped to cars/courses. `CAR_ID` is a
+  cut-in actor slot, not a `CRC_*` ID.
+- 3.10 GB of `.EES` cutscene camera/model data is not parsed.
+- gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
+- `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
+  not in `msgdb.lua`.
+- Unlock predicates, rival assignment and stage mapping stay explicit native
+  decisions until recovered from the executable, not invented here.
