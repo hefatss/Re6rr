@@ -85,9 +85,14 @@ string bytes, 386,681 bytes total.
 ## Gaps
 
 - No shipped mission-order, unlock, reward or condition table. Only the episode
-  tree and its local dialogue/timing are authoritative.
-- `ACTOR_*` and `STAGE` numbers are not mapped to cars/courses. `CAR_ID` is a
-  cut-in actor slot, not a `CRC_*` ID.
+  tree and its local dialogue/timing are authoritative. Native condition schema
+  is recovered in `docs/recon/STORY_NATIVE.md`, but the per-episode instances
+  are not in the dump.
+- `ACTOR_*` and `STAGE` are plain `int32` scene values read and written verbatim
+  by `EventScene2Analyzer.cpp` / `EventSceneEditor.cpp`; see
+  `docs/recon/STORY_NATIVE.md`. Value spaces align with the `CRC_*`/`PLC_*` name
+  table and Enma `EStage` indices, but no shipped conversion table exists in
+  the dump. `CAR_ID` is a cut-in actor slot, not a `CRC_*` ID.
 - 3.10 GB of `.EES` cutscene camera/model data is not parsed.
 - gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
 - `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
