@@ -179,8 +179,12 @@ int r6_course_project(const r6_course_vertex *vertices, size_t count,
         oz = z - (a->z + best_t * dz);
         out->lateral = ox * -out->tangent_z + oz * out->tangent_x;
         out->distance = travelled + best_t * len;
-        if (out->distance >= total) {
-            out->distance -= total;
+        if (closed) {
+            if (out->distance >= total) {
+                out->distance -= total;
+            }
+        } else if (out->distance > total) {
+            out->distance = total;
         }
         out->height = a->y + best_t * (b->y - a->y);
         out->half_width = a->half_width +

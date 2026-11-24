@@ -2,7 +2,8 @@
  *
  * The state names follow the EPlayState enum exported by the shipped Enma DLL.
  * Rules are intentionally simple and deterministic: countdown, progress along
- * the course, lap/timing, wrong-way detection and grass/gravel tracking.
+ * the course, lap/timing, wrong-way detection, course-flag checkpoints/goal and
+ * optional follow-the-course rival AI.
  */
 #ifndef R6_RACE_H
 #define R6_RACE_H
@@ -29,6 +30,7 @@ enum r6_race_outcome {
 };
 
 #define R6_RACE_MAX_RIVALS 8
+#define R6_RACE_MAX_CHECKPOINTS 16
 
 typedef struct r6_race_config {
     int mode;             /* EGameMode */
@@ -43,7 +45,8 @@ typedef struct r6_race_config {
     float offroad_factor;  /* lateral/half_width before off-road starts */
 } r6_race_config;
 
-/* One rival car. `s` is optional; when zero the course projection is used. */
+/* Up to eight rivals can be placed by the host or spawned as simple AI cars.
+ * `checkpoint_mask` is a visited ordinal mask, not raw vertex flags. */
 typedef struct r6_rival_state {
     float x, y, z;
     float yaw;
@@ -73,8 +76,11 @@ typedef struct r6_race_state {
     float wrong_way_time;
     uint8_t surface;
     uint8_t offroad;
-    uint8_t checkpoint_flags;
+    uint8_t checkpoint_flags; /* raw flags of the nearest vertex */
     uint8_t reserved;
+    uint8_t checkpoint_count; /* checkpoint vertices in this course */
+    uint8_t checkpoint_next;  /* expected 1-based checkpoint ordinal */
+    uint16_t checkpoint_mask; /* visited ordinals, bit n-1 */
     float rival_gap;      /* nearest rival ahead, metres */
     float rival_side;     /* signed lateral offset to that rival */
     int rival_position;   /* 1-based place among rivals, 0 when none */
@@ -90,6 +96,12 @@ R6_API r6_race *r6_race_init(void *storage, size_t size,
 R6_API int r6_race_reset(r6_race *race, const r6_race_config *config);
 R6_API int r6_race_set_rivals(r6_race *race, const r6_rival_state *rivals,
                               size_t count);
+/* Spawn count simple AI cars on the current course. The first is `spacing`
+ * metres ahead of the player; each later one is another `spacing` further
+ * ahead, and
+ * all advance at `speed` m/s with the given lateral offset. */
+R6_API int r6_race_spawn_rivals(r6_race *race, size_t count, float speed,
+                                float spacing, float lateral);
 R6_API int r6_race_step(r6_race *race,
                         const r6_course_vertex *vertices, size_t count,
                         int closed, const r6_vehicle_state *vehicle, float dt);

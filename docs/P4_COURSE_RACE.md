@@ -8,7 +8,11 @@
 The values are recovered from the DLL's `GetEPlayStateName` export and recorded
 in `engine/include/r6/r6_enma.h`. `SConfigPlay.fGoalOdo` defaults to `1e8`; the
 named log line in `FUN_1407a9c80` places the field at byte `0x63c` of the
-`SConfigPlay` source struct (the compact CSeq copy uses `0x45c`).
+`SConfigPlay` source struct (the compact CSeq copy uses `0x45c`). The DLL also
+exports `?GetInfoGoalLine@CSeq@yt@@SA_NPEAUcmnVECTOR3@@0@Z`, so goal is a
+world-space line queried from the race state. No checkpoint-order table is
+shipped in `data\course`; `tools/engine/course_descriptor.py` derives flags from
+route-piece boundaries (`START`, `GOAL`, `CHECKPOINT`, `JUNCTION`).
 
 The shipped DLL still cannot be initialised without the executable's host
 state, so the freestanding core implements its own deterministic race rules
@@ -112,7 +116,12 @@ mean 6.04 m. `course_descriptor.py --no-surface` disables extraction.
 - off-road detection when `|lateral| > half_width * offroad_factor`, with the
   vertex surface carried into the state; callers feed that surface back through
   `Vehicle.setSurface()` so grip and rolling drag follow the road;
-- finite-state guard that resets the race on divergence.
+- finite-state guard that resets the race on divergence;
+- ordered checkpoints from the course flags: visit ordinal 1, 2, ... before the
+  goal line counts, with `checkpoint_mask`, `checkpoint_next` and
+  `checkpoint_count` exposed in the state. A forward wrap on a closed course
+  clears the mask for the next lap. Open courses no longer wrap their arc length
+  at the final vertex.
 - rival tracking: nearest gap, side offset, place, and contact events using
   approximate car footprints (4.5 m × 1.9 m).
 
@@ -137,6 +146,19 @@ sets `EPlayState.SlowDown` and outcome `R6_RACE_COLLISION` for one frame. A
 0.5-second cooldown prevents repeated counts while cars stay overlapped; the
 next step returns to `Run`. Collisions are events, not a terminal race state.
 
+`r6_race_spawn_rivals()` replaces that list with up to eight deterministic AI
+cars. The first starts `spacing` metres ahead of the player, later cars are
+spaced further ahead, and each advances at `speed` m/s along the same course.
+`r6_course_at()` gives the centreline point and `r6_course_project()` its
+tangent; the AI lateral offset is applied along that tangent normal. Closed
+courses wrap `s`, open courses clamp it. Yaw is left zero because the core only
+uses world positions for gap, place and collision. This is an original
+follow-the-course model, not lifted rival behaviour: the DLL exposes
+`?GetInfoRivalCarDisp@CSeq@yt@@...`, `?GetRivalResult@CSeq@yt@@...` and
+`Battle.nRivalNum`/`Battle.nRivalTunePowerAry` named fields
+(`docs/recon/ghidra_cfg/str_1407ac290.c`), but no AI transition table was
+recovered.
+
 ## JNI
 
 `com.wmmt.re6rr.Re6Engine` now exposes `Race`:
@@ -145,12 +167,14 @@ next step returns to `Run`. Collisions are events, not a terminal race state.
 - `Race.step(float[] vertices, boolean closed, float[] vehicle, float dt)`;
 - `Race.step(byte[] descriptor, float[] vehicle, float dt)` — parse a packed
   `.r6course` blob natively and take the closed flag from its header;
+- `Race.spawnRivals(int count, float speed, float spacing, float lateral)`;
 - `Race.setRivals(float[] rivals)` — each rival is eight floats
   `x y z yaw speed s lateral id`, at most eight rivals;
-- `Race.state()` — 23 floats: play state, outcome, elapsed, countdown, lap,
+- `Race.state()` — 27 floats: play state, outcome, elapsed, countdown, lap,
   lap time, last lap, best lap, `s`, progress, odo, lateral, height, half width,
   speed, off-road time, wrong-way time, surface, off-road flag, checkpoint
-  flags, rival gap, rival side, rival place and collision count.
+  flags, rival gap, rival side, rival place, collision count, checkpoint
+  count, expected ordinal and visited mask.
 
 Each course vertex passed over JNI is eight floats: `x y z halfWidth surface
 flags reserved pad`. The JNI layer converts that array and the 15-float
@@ -172,6 +196,9 @@ flags reserved pad`. The JNI layer converts that array and the 15-float
 - sustained reverse travel → `Retire` / `R6_RACE_WRONG_WAY`;
 - two rivals produce gap 10 m and place 2; contact produces one collision,
   `SlowDown`, then a return to `Run`; nine rivals are rejected;
+- three flagged checkpoints produce goal with mask `0x07`; skipping ordinals 2
+  and 3 blocks goal until they are visited in order;
+- two AI rivals advance from a 15 m gap to a 20 m gap over one second;
 - negative `dt` and null vehicle rejected;
 - 180 frames of the real vehicle model driving the race stay finite and
   advance progress.

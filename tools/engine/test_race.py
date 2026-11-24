@@ -26,6 +26,7 @@ R6_PLAY_RUN = 2
 R6_PLAY_RETIRE = 3
 R6_PLAY_GOAL = 8
 
+CHECKPOINT = 1
 START = 2
 GOAL = 4
 GRAVEL = 2
@@ -75,6 +76,9 @@ class RaceState(ctypes.Structure):
         ("wrong_way_time", ctypes.c_float),
         ("surface", ctypes.c_uint8), ("offroad", ctypes.c_uint8),
         ("checkpoint_flags", ctypes.c_uint8), ("reserved", ctypes.c_uint8),
+        ("checkpoint_count", ctypes.c_uint8),
+        ("checkpoint_next", ctypes.c_uint8),
+        ("checkpoint_mask", ctypes.c_uint16),
         ("rival_gap", ctypes.c_float), ("rival_side", ctypes.c_float),
         ("rival_position", ctypes.c_int), ("collision_count", ctypes.c_int),
     ]
@@ -121,6 +125,9 @@ class Race:
         lib.r6_race_set_rivals.argtypes = [ctypes.c_void_p,
                                            ctypes.POINTER(Rival),
                                            ctypes.c_size_t]
+        lib.r6_race_spawn_rivals.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                             ctypes.c_float, ctypes.c_float,
+                                             ctypes.c_float]
         self.lib = lib
         self.storage = ctypes.create_string_buffer(lib.r6_race_size())
         if config is None:
@@ -140,6 +147,10 @@ class Race:
     def set_rivals(self, rivals):
         array = (Rival * len(rivals))(*rivals) if rivals else None
         return self.lib.r6_race_set_rivals(self.handle, array, len(rivals))
+
+    def spawn_rivals(self, count, speed, spacing, lateral):
+        return self.lib.r6_race_spawn_rivals(self.handle, count, speed,
+                                             spacing, lateral)
 
     def state(self):
         out = RaceState()
@@ -360,6 +371,60 @@ def main():
         failures.append("collision did not recover to running")
     if race.set_rivals([ahead] * 9) != R6_ERR_ARG:
         failures.append("more than 8 rivals accepted")
+    race.set_rivals([])
+
+    marked = (Vertex * 5)(vertex(0, 0, 5, 0, START),
+                          vertex(20, 0, 5, 0, CHECKPOINT),
+                          vertex(40, 0, 5, 0, CHECKPOINT),
+                          vertex(60, 0, 5, 0, CHECKPOINT),
+                          vertex(80, 0, 5, 0, GOAL))
+    config.goal_odo = 0.0
+    race.reset(config)
+    for x in (0, 20, 40, 60, 80):
+        rc = race.step(marked, 0, vehicle(x, 0), 0.1)
+    state = race.state()
+    if (rc != R6_OK or state.checkpoint_count != 3 or
+            state.checkpoint_mask != 0x07 or state.checkpoint_next != 4 or
+            state.outcome != R6_RACE_GOAL):
+        failures.append("checkpoint goal count=%d mask=%d next=%d outcome=%d" %
+                        (state.checkpoint_count, state.checkpoint_mask,
+                         state.checkpoint_next, state.outcome))
+    else:
+        print("  3 ordered checkpoints -> goal, mask 0x07")
+
+    race.reset(config)
+    for x in (0, 20, 80):
+        race.step(marked, 0, vehicle(x, 0), 0.1)
+    state = race.state()
+    if state.outcome == R6_RACE_GOAL:
+        failures.append("goal fired with checkpoints 2 and 3 missing")
+    for x in (40, 60, 80):
+        race.step(marked, 0, vehicle(x, 0), 0.1)
+    state = race.state()
+    if state.outcome != R6_RACE_GOAL or state.checkpoint_mask != 0x07:
+        failures.append("goal after skipped checkpoints mask=%d outcome=%d" %
+                        (state.checkpoint_mask, state.outcome))
+    else:
+        print("  skipped checkpoints block goal until visited in order")
+
+    race.reset(config)
+    if race.spawn_rivals(2, 10.0, 20.0, 1.5) != R6_OK:
+        failures.append("spawn_rivals failed")
+    race.step(straight, 0, vehicle(10.0, 0.0, 0.0), 0.5)
+    state = race.state()
+    if (abs(state.rival_gap - 15.0) > 0.1 or state.rival_position != 3 or
+            state.collision_count != 0):
+        failures.append("AI spawn gap=%f place=%d contacts=%d" %
+                        (state.rival_gap, state.rival_position,
+                         state.collision_count))
+    race.step(straight, 0, vehicle(10.0, 0.0, 0.0), 0.5)
+    state = race.state()
+    if abs(state.rival_gap - 20.0) > 0.1:
+        failures.append("AI did not advance: gap=%f" % state.rival_gap)
+    else:
+        print("  AI rivals advance: gap 15 m -> 20 m")
+    if race.spawn_rivals(9, 10.0, 20.0, 1.5) != R6_ERR_ARG:
+        failures.append("more than 8 AI rivals accepted")
     race.set_rivals([])
 
     if race.step(straight, 0, vehicle(0, 0), -1.0) != R6_ERR_ARG:

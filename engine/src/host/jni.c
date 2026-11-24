@@ -604,6 +604,21 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceSetRivals(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeRaceSpawnRivals(JNIEnv *env, jclass cls,
+                                                   jlong handle, jint count,
+                                                   jfloat speed, jfloat spacing,
+                                                   jfloat lateral) {
+    (void)env;
+    (void)cls;
+    if (!handle || count < 0 || count > R6_RACE_MAX_RIVALS) {
+        return R6_ERR_ARG;
+    }
+    return (jint)r6_race_spawn_rivals((r6_race *)(size_t)handle,
+                                      (size_t)count, (float)speed,
+                                      (float)spacing, (float)lateral);
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeRaceStepDescriptor(
         JNIEnv *env, jclass cls, jlong handle, jbyteArray descriptor,
         jfloatArray vehicle, jfloat dt) {
@@ -669,9 +684,9 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
         r6_race_get_state((const r6_race *)(size_t)handle, &state) != R6_OK) {
         return NULL;
     }
-    result = (*env)->NewFloatArray(env, 24);
+    result = (*env)->NewFloatArray(env, 27);
     if (result) {
-        jfloat values[24] = {
+        jfloat values[27] = {
             (jfloat)state.play_state, (jfloat)state.outcome,
             state.elapsed, state.countdown, (jfloat)state.lap,
             state.lap_time, state.last_lap, state.best_lap,
@@ -681,9 +696,11 @@ Java_com_wmmt_re6rr_Re6Engine_nativeRaceState(JNIEnv *env, jclass cls,
             (jfloat)state.surface, (jfloat)state.offroad,
             (jfloat)state.checkpoint_flags,
             state.rival_gap, state.rival_side,
-            (jfloat)state.rival_position, (jfloat)state.collision_count
+            (jfloat)state.rival_position, (jfloat)state.collision_count,
+            (jfloat)state.checkpoint_count, (jfloat)state.checkpoint_next,
+            (jfloat)state.checkpoint_mask
         };
-        (*env)->SetFloatArrayRegion(env, result, 0, 24, values);
+        (*env)->SetFloatArrayRegion(env, result, 0, 27, values);
     }
     return result;
 }

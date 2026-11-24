@@ -77,5 +77,7 @@ The Java side owns the native handle and closes it in `AutoCloseable.close()`.
 
 - `nSystemSec`, time limit, countdown, car index and course enum still have no
   recovered `SConfigPlay` offsets.
-- Race AI, explicit goal/checkpoint tables and story progression are native-only.
+- Shipped rival AI behaviour, explicit goal/checkpoint-order tables and story
+  progression are not recovered; the core uses derived course flags and
+  deterministic follow-course rivals.
 - No Android NDK/SDK here, so the JNI/CMake path is still compile-checked only.

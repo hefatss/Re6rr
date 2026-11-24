@@ -14,6 +14,8 @@ struct r6_race {
     r6_race_state state;
     r6_rival_state rivals[R6_RACE_MAX_RIVALS];
     size_t rival_count;
+    uint8_t rival_ai[R6_RACE_MAX_RIVALS];
+    int goal_vertex_count;
     float collision_cooldown;
     float last_s;
     int have_last;
@@ -25,6 +27,88 @@ static float race_abs(float value) {
 
 static int race_finite(float value) {
     return value == value && value > -1e12f && value < 1e12f;
+}
+
+static void race_reset_checkpoints(r6_race_state *state) {
+    state->checkpoint_mask = 0;
+    state->checkpoint_next = 1;
+}
+
+/* Ordinal of the checkpoint nearest (x,z), in course order. The generator in
+ * tools/engine/course_descriptor.py marks path-piece beginnings. */
+static void race_scan_course(const r6_course_vertex *vertices, size_t count,
+                            float x, float z, int *cp_count, int *goal_count,
+                            int *nearest_cp) {
+    size_t i;
+    int ordinal = 0;
+    float best_d2 = 0.0f;
+    int have_best = 0;
+    *cp_count = 0;
+    *goal_count = 0;
+    *nearest_cp = 0;
+    for (i = 0; i < count; i++) {
+        float dx;
+        float dz;
+        float d2;
+        if (vertices[i].flags & R6_COURSE_CHECKPOINT) {
+            ordinal++;
+            if (ordinal <= R6_RACE_MAX_CHECKPOINTS) {
+                (*cp_count)++;
+            }
+            dx = vertices[i].x - x;
+            dz = vertices[i].z - z;
+            d2 = dx * dx + dz * dz;
+            if (!have_best || d2 < best_d2) {
+                have_best = 1;
+                best_d2 = d2;
+                *nearest_cp = ordinal;
+            }
+        }
+        if (vertices[i].flags & R6_COURSE_GOAL) {
+            (*goal_count)++;
+        }
+    }
+    if (!have_best || *nearest_cp > R6_RACE_MAX_CHECKPOINTS) {
+        *nearest_cp = 0;
+    }
+}
+
+static void race_advance_ai(r6_race *race,
+                            const r6_course_vertex *vertices, size_t count,
+                            int closed, float total, float dt) {
+    size_t index;
+    for (index = 0; index < race->rival_count; index++) {
+        r6_rival_state *rival = &race->rivals[index];
+        r6_course_projection projection;
+        float point[3];
+        if (!race->rival_ai[index]) {
+            continue;
+        }
+        rival->s += rival->speed * dt;
+        if (closed && total > 0.0f) {
+            while (rival->s >= total) {
+                rival->s -= total;
+            }
+            while (rival->s < 0.0f) {
+                rival->s += total;
+            }
+        } else if (total > 0.0f) {
+            if (rival->s < 0.0f) {
+                rival->s = 0.0f;
+            } else if (rival->s > total) {
+                rival->s = total;
+            }
+        }
+        if (r6_course_at(vertices, count, closed, rival->s, point) != R6_OK ||
+            r6_course_project(vertices, count, closed, point[0], point[2],
+                              &projection) != R6_OK) {
+            continue;
+        }
+        rival->x = point[0] + rival->lateral * -projection.tangent_z;
+        rival->y = point[1];
+        rival->z = point[2] + rival->lateral * projection.tangent_x;
+        rival->yaw = 0.0f; /* heading is not used by the freestanding core */
+    }
 }
 
 static void race_sincos(float angle, float *out_sin, float *out_cos) {
@@ -105,6 +189,8 @@ int r6_race_reset(r6_race *race, const r6_race_config *config) {
     r6_memset(state, 0, sizeof(*state));
     race->last_s = 0.0f;
     race->have_last = 0;
+    race->goal_vertex_count = 0;
+    race_reset_checkpoints(state);
     state->lap = 1;
     state->countdown = race->config.countdown;
     if (state->countdown > 0.0f) {
@@ -122,11 +208,33 @@ int r6_race_set_rivals(r6_race *race, const r6_rival_state *rivals,
         return R6_ERR_ARG;
     }
     race->rival_count = count;
+    r6_memset(race->rival_ai, 0, sizeof(race->rival_ai));
     if (count) {
         r6_memcpy(race->rivals, rivals, count * sizeof(*rivals));
     } else {
         r6_memset(race->rivals, 0, sizeof(race->rivals));
     }
+    return R6_OK;
+}
+
+int r6_race_spawn_rivals(r6_race *race, size_t count, float speed,
+                         float spacing, float lateral) {
+    size_t index;
+    if (!race || count > R6_RACE_MAX_RIVALS || !race_finite(speed) ||
+        !race_finite(spacing) || !race_finite(lateral) || spacing < 0.0f) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(race->rivals, 0, sizeof(race->rivals));
+    r6_memset(race->rival_ai, 0, sizeof(race->rival_ai));
+    for (index = 0; index < count; index++) {
+        r6_rival_state *rival = &race->rivals[index];
+        rival->s = race->state.s + spacing * (float)(index + 1);
+        rival->speed = speed;
+        rival->lateral = lateral;
+        rival->id = (uint32_t)(index + 1);
+        race->rival_ai[index] = 1;
+    }
+    race->rival_count = count;
     return R6_OK;
 }
 
@@ -142,6 +250,9 @@ int r6_race_step(r6_race *race,
     float sin_yaw = 0.0f;
     float cos_yaw = 1.0f;
     int have_course = 0;
+    int cp_count = 0;
+    int goal_count = 0;
+    int nearest_cp = 0;
     int rc;
 
     if (!race || !vehicle || !race_finite(dt) || dt < 0.0f) {
@@ -167,6 +278,10 @@ int r6_race_step(r6_race *race,
         }
         s = projection.distance;
         have_course = 1;
+        race_scan_course(vertices, count, vehicle->x, vehicle->z,
+                         &cp_count, &goal_count, &nearest_cp);
+        state->checkpoint_count = (uint8_t)cp_count;
+        race->goal_vertex_count = goal_count;
         state->lateral = projection.lateral;
         state->height = projection.height;
         state->half_width = projection.half_width;
@@ -182,6 +297,8 @@ int r6_race_step(r6_race *race,
         state->half_width = 0.0f;
         state->surface = 0;
         state->checkpoint_flags = 0;
+        state->checkpoint_count = 0;
+        race->goal_vertex_count = 0;
     }
     state->s = s;
     state->odo = vehicle->odo;
@@ -216,7 +333,7 @@ int r6_race_step(r6_race *race,
 
     if (have_course && total > 0.0f) {
         delta = s - race->last_s;
-        if (delta < -total * 0.5f) {
+        if (closed && delta < -total * 0.5f) {
             delta += total;
             state->lap++;
             state->last_lap = state->lap_time;
@@ -224,13 +341,24 @@ int r6_race_step(r6_race *race,
                 state->best_lap = state->last_lap;
             }
             state->lap_time = 0.0f;
-        } else if (delta > total * 0.5f) {
+            race_reset_checkpoints(state);
+        } else if (closed && delta > total * 0.5f) {
             delta -= total;
             if (state->lap > 1) {
                 state->lap--;
             }
+            race_reset_checkpoints(state);
         }
         state->progress += delta;
+
+        if (nearest_cp > 0 &&
+            (projection.flags & R6_COURSE_CHECKPOINT) != 0u &&
+            nearest_cp == state->checkpoint_next) {
+            state->checkpoint_mask =
+                (uint16_t)(state->checkpoint_mask |
+                           (1u << (nearest_cp - 1)));
+            state->checkpoint_next++;
+        }
 
         if (vehicle->speed > 2.0f && delta < -0.02f) {
             state->wrong_way_time += dt;
@@ -265,6 +393,10 @@ int r6_race_step(r6_race *race,
         state->progress = vehicle->odo;
     }
     race->last_s = s;
+
+    if (have_course && total > 0.0f) {
+        race_advance_ai(race, vertices, count, closed, total, dt);
+    }
 
     if (race->collision_cooldown > 0.0f) {
         race->collision_cooldown -= dt;
@@ -311,11 +443,21 @@ int r6_race_step(r6_race *race,
     }
 
     if (state->outcome == R6_RACE_RUNNING) {
+        int checkpoints_done = state->checkpoint_count == 0 ||
+                               state->checkpoint_next > state->checkpoint_count;
         if (config->time_limit > 0.0f &&
             state->elapsed >= config->time_limit) {
             state->elapsed = config->time_limit;
             state->play_state = R6_ENMA_PLAY_TIME_UP;
             state->outcome = R6_RACE_TIME_UP;
+        } else if (have_course && race->goal_vertex_count > 0) {
+            if (checkpoints_done &&
+                ((projection.flags & R6_COURSE_GOAL) != 0u ||
+                 (config->goal_odo > 0.0f &&
+                  state->progress >= config->goal_odo))) {
+                state->play_state = R6_ENMA_PLAY_GOAL;
+                state->outcome = R6_RACE_GOAL;
+            }
         } else if ((config->goal_odo > 0.0f &&
                     state->progress >= config->goal_odo) ||
                    (config->laps > 0 && state->lap > config->laps)) {
@@ -335,6 +477,8 @@ int r6_race_step(r6_race *race,
                                      : R6_ENMA_PLAY_RUN;
         race->state.outcome = countdown > 0.0f ? R6_RACE_NONE
                                                : R6_RACE_RUNNING;
+        race_reset_checkpoints(&race->state);
+        race->goal_vertex_count = 0;
         race->have_last = 0;
         return R6_ERR_FORMAT;
     }
