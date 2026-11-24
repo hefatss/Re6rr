@@ -95,6 +95,16 @@ spreadsheet in both roots. `data_en/` is empty in this dump.
 - Ghidra 12.2 PUBLIC installed at `C:\Tools\ghidra_12.2_PUBLIC` (win_x86_64
   decompiler present, `analyzeHeadless.bat` runs with JDK 21/25). User env
   `GHIDRA_INSTALL_DIR` set. REA has to be restarted before it offers the provider.
+- Full auto-analysis on Windows OOMs in `AddressTableAnalyzer` with the default
+  2G heap. Durable route is WSL2 Debian: Node 24 + Temurin JDK 25 under
+  `/home/rap/.local/re6-tools`, Ghidra launched from the same
+  `/mnt/c/Tools/ghidra_12.2_PUBLIC`, project at `/home/rap/rea-ghidra/wmn6r.gpr`.
+  Import once with `-noanalysis`; REA 6.9.0 then opens that project with
+  `REA_GHIDRA_PROJECT_PATH=/home/rap/rea-ghidra/wmn6r.gpr`,
+  `REA_GHIDRA_PROGRAM_NAME=wmn6r.exe`, `GHIDRA_INSTALL_DIR=/mnt/c/Tools/ghidra_12.2_PUBLIC`
+  and decompiles individual addresses without repeat import. Full analysis uses
+  `GHIDRA_HEADLESS_MAXMEM=8G` plus `-preScript tools/ghidra/DisableHeavyAnalyzers.java`.
+  `MAXMEM` is not the knob `analyzeHeadless` reads.
 
 ## Phase 1 plan (recompiler spike), now concrete
 
