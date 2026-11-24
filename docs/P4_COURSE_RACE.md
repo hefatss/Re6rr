@@ -68,8 +68,33 @@ Descriptor layout (little endian):
 
 `r6_course_descriptor_parse()` validates the whole blob and fills a caller
 array. `R6_ERR_BUFFER` reports the required vertex capacity, matching the
-gzip-inflate convention. The dump has no road width, so `--half-width` defaults
-to 6 m; all shipped samples are currently marked as road surface.
+gzip-inflate convention.
+
+### Surface and width from stage models
+
+`tools/engine/course_surface.py` supplies the two fields the path bins do not
+carry. Ghidra decompile of `FUN_140127e10` (`course_load_manager.cpp`) confirms
+the loader walks area → stage → section, reading `StageNum` and `SectionNum`
+from Lua with section IDs starting at 101. Matching that order:
+
+- `data/course/stage/A_<AREA>_<TIME>_NML/<AREA>/model/LOADLIST_*.lua` pairs
+  `ROAD_ADDR {offset,size,...}` with `ROAD_NAME {"...",...}` per section.
+- The `BIN` entry resolves to `model/bin/*_SECT<id>.bin`, a gzip container whose
+  inflated payload holds NDWD streams at those offsets.
+- Course NDWD streams use 28-byte vertices:
+  `f32 y, f32 z, f32 u, f32 v, u32 color, u32 normal, f32 x`. The same 10-unit
+  scale as the path bins applies.
+- Suffix names classify surface: `broad*`, `nroad*`, `road_*`, `route*`, `conc*`
+  → road (0); `tpKusa*`, `green*`, `bush*`, `grass*` → grass (1);
+  `gravel*`, `grail*` → gravel (2). `ONRD` is a decal layer and is skipped.
+- Vertices are projected onto the shipped centreline with a 20 m spatial hash.
+  Per five-sample window, the vertex majority sets the surface and the dominant
+  lateral-distance bin inside 1–10 m sets the half-width. `--half-width` is only
+  a fallback when no model vertices land near a window.
+
+Measured results: Fukuoka 2,816 road vertices, half-width 2.0–10.0 m (mean
+6.71 m); Turnpike 1,210 vertices, 195 grass and 10 gravel samples, half-width
+mean 6.04 m. `course_descriptor.py --no-surface` disables extraction.
 
 ## Race module
 
@@ -138,6 +163,8 @@ flags reserved pad`. The JNI layer converts that array and the 15-float
 - 400 m closed square, forward wrap from `s=390` to `s=5` → lap 2;
 - Fukuoka descriptor parses to 2,816 closed vertices, first sample
   `(3259.54, -962.88)` m and sample 50 projects to `s=512.83` m;
+- Turnpike descriptor carries 195 grass and 10 gravel samples, matching the
+  Python surface counts through the C parser;
 - countdown holds progress at zero, then goal at `progress >= goal_odo`;
 - off-road detection on the gravel segment;
 - sustained reverse travel → `Retire` / `R6_RACE_WRONG_WAY`;
@@ -152,11 +179,11 @@ physics tests and JNI/Java syntax checks still pass.
 
 ## Gaps
 
-- The dump has no explicit road width, surface byte or checkpoint/goal-order
-  table in the path bins. Width is a caller setting, surface is road everywhere
-  and checkpoint flags follow piece boundaries.
-- Section polygons are used only for section IDs; NDWD stage model bins, layer
-  names (`ROAD`, `ONRD`, `LONG`, …) and clip tables are not parsed for geometry.
+- Path bins have no width, surface or checkpoint/goal-order fields. Width and
+  surface are estimated from `ROAD` mesh names and vertex distribution;
+  checkpoint flags follow piece boundaries.
+- Stage models contribute only surface class and half-width. Triangle strips,
+  `ONRD` markings, `LONG`/`NEAR` scenery and clip tables are not reconstructed.
 - Rival collision is a state event only: no rival impulse, damage or speed
   penalty is applied yet. Road-wall correction is separate, in
   `r6_vehicle_clamp_to_course()`.

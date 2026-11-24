@@ -17,6 +17,8 @@ import os
 import re
 import struct
 
+import course_surface
+
 MAGIC = b"R6CRS\0\1\0"
 HEADER_SIZE = 24
 VERTEX_SIZE = 20
@@ -143,13 +145,14 @@ def section_from_name(name):
     return 100 + int(match.group(1)) if match else 0
 
 
-def build(dump, route, max_points, half_width):
+def build(dump, route, max_points, half_width, surface=True):
     selected = [item for item in routes(dump) if item["name"] == route]
     if not selected:
         raise ValueError("route %r not found" % route)
     selected = selected[0]
     files = path_index(dump)
     polygons = []
+    area_name = route
     area_files = [name for name in selected["paths"] if name in files]
     if area_files:
         sample_dir = os.path.dirname(files[area_files[0]])
@@ -208,22 +211,47 @@ def build(dump, route, max_points, half_width):
         if not target["section"]:
             target["section"] = piece["section"]
 
+    if surface:
+        widths, surfaces = course_surface.measure(
+            dump, area_name, samples,
+            [sample["section"] for sample in samples], half_width)
+        for sample, width, kind in zip(samples, widths, surfaces):
+            sample["width"] = width
+            sample["surface"] = kind
+    else:
+        for sample in samples:
+            sample["width"] = half_width
+            sample["surface"] = course_surface.SURFACE_ROAD
+
     blob = bytearray(MAGIC)
     blob += struct.pack("<IIII", VERSION, 1 if selected["loop"] else 0,
                         len(samples), 0)
     for sample in samples:
         blob += struct.pack("<ffff", sample["x"], sample["y"], sample["z"],
-                            half_width)
-        blob += struct.pack("<BBH", 0, sample["flags"],
+                            sample["width"])
+        blob += struct.pack("<BBH", sample["surface"], sample["flags"],
                             min(0xffff, sample["section"]))
 
     header = {
         "route": route,
+        "area": area_name,
         "area_id": selected["area_id"],
         "loop": selected["loop"],
         "camera_direction": selected["camera_direction"],
         "source_units_per_m": 10,
         "half_width": half_width,
+        "half_width_actual": {
+            "min": round(min(s["width"] for s in samples), 2),
+            "max": round(max(s["width"] for s in samples), 2),
+            "mean": round(sum(s["width"] for s in samples) /
+                          len(samples), 2),
+        },
+        "surface_counts": {
+            str(key): sum(1 for s in samples if s["surface"] == key)
+            for key in (course_surface.SURFACE_ROAD,
+                        course_surface.SURFACE_GRASS,
+                        course_surface.SURFACE_GRAVEL)
+        },
         "vertices": len(samples),
         "bytes": len(blob),
         "pieces": pieces,
@@ -253,7 +281,9 @@ def main():
     parser.add_argument("--max-points", type=int, default=0,
                         help="downsample to at most N vertices (0 keeps all)")
     parser.add_argument("--half-width", type=float, default=6.0,
-                        help="road half-width in metres; not in the dump")
+                        help="fallback half-width in metres")
+    parser.add_argument("--no-surface", action="store_true",
+                        help="skip stage-model surface and width extraction")
     args = parser.parse_args()
 
     all_routes = routes(args.dump)
@@ -267,7 +297,7 @@ def main():
         parser.error("--route or --list-routes is required")
 
     blob, header = build(args.dump, args.route, args.max_points,
-                         args.half_width)
+                         args.half_width, surface=not args.no_surface)
     if args.out:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         open(args.out, "wb").write(blob)

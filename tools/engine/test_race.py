@@ -217,16 +217,39 @@ def main():
         descriptor, len(descriptor), ctypes.byref(desc_flags),
         desc_vertices, header["vertices"], ctypes.byref(desc_count))
     first = struct.unpack_from("<ffff", descriptor, 24)
+    surface = descriptor[40]
     if (rc != R6_OK or desc_count.value != header["vertices"] or
             not desc_flags.value & 1 or
             abs(desc_vertices[0].x - first[0]) > 1e-4 or
             abs(desc_vertices[0].z - first[2]) > 1e-4 or
-            abs(desc_vertices[0].half_width - 6.0) > 1e-4):
-        failures.append("descriptor rc=%d count=%d flags=%d first=%r" %
-                        (rc, desc_count.value, desc_flags.value, first))
+            abs(desc_vertices[0].half_width - first[3]) > 1e-4 or
+            desc_vertices[0].surface != surface or surface != 0):
+        failures.append("descriptor rc=%d count=%d flags=%d first=%r surf=%d" %
+                        (rc, desc_count.value, desc_flags.value, first,
+                         surface))
     else:
-        print("  Fukuoka descriptor: %d vertices, closed, first (%.2f, %.2f)" %
-              (header["vertices"], first[0], first[2]))
+        print("  Fukuoka descriptor: %d vertices, closed, width %.2f-%.2f m" %
+              (header["vertices"], header["half_width_actual"]["min"],
+               header["half_width_actual"]["max"]))
+
+    turnpike, tp_header = build_descriptor(args.dump, "TURNPIKE", 0, 6.0)
+    tp_count = ctypes.c_size_t(tp_header["vertices"])
+    tp_vertices = (Vertex * tp_header["vertices"])()
+    rc = lib.r6_course_descriptor_parse(
+        turnpike, len(turnpike), ctypes.byref(ctypes.c_uint32()),
+        tp_vertices, tp_header["vertices"], ctypes.byref(tp_count))
+    surfaces = [tp_vertices[i].surface
+                for i in range(tp_header["vertices"])]
+    classes = tp_header["surface_counts"]
+    if (rc != R6_OK or
+            surfaces.count(1) != classes["1"] or
+            surfaces.count(2) != classes["2"]):
+        failures.append("turnpike surface classes %r vs %r" %
+                        ({k: surfaces.count(int(k)) for k in (0, 1, 2)},
+                         classes))
+    else:
+        print("  Turnpike descriptor: %d grass, %d gravel samples" %
+              (classes["1"], classes["2"]))
     projected = Projection()
     sample = desc_vertices[50]
     rc = lib.r6_course_project(desc_vertices, desc_count.value, 1,

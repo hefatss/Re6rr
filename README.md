@@ -47,6 +47,7 @@ rules and rival tracking using the recovered Enma `EPlayState` values; see `docs
     python tools/engine/test_race.py                  # course projection + race rules
     python tools/engine/course_descriptor.py --list-routes
     python tools/engine/course_descriptor.py --route FUKUOKA --out out.r6course
+    python tools/engine/course_surface.py --area FUKUOKA --section 101
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 

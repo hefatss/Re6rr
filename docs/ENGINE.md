@@ -50,8 +50,8 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_course_length/project/at()` — arc length and nearest-point projection on
   a host-supplied road polyline.
 - `r6_course_descriptor_parse()` — validate and unpack a packed `.r6course`
-  blob built from the dump's path and section data by
-  `tools/engine/course_descriptor.py`.
+  blob built from the dump's path, section and stage-model data by
+  `tools/engine/course_descriptor.py` and `tools/engine/course_surface.py`.
 - `r6_race_init/reset/step/get_state()` and `r6_race_set_rivals()` — countdown,
   lap/goal/timer, wrong-way, off-road and rival contact events using the
   recovered `EPlayState` values; see `docs/P4_COURSE_RACE.md`.
@@ -84,6 +84,7 @@ python tools/engine/test_physics.py --dump D:\Games\W6W-05
 python tools/engine/test_race.py --dump D:\Games\W6W-05
 python tools/engine/course_descriptor.py --list-routes
 python tools/engine/course_descriptor.py --route FUKUOKA --out build\tmp\fukuoka.r6course
+python tools/engine/course_surface.py --area FUKUOKA --section 101
 ```
 
 Verified on this dump:
@@ -103,7 +104,7 @@ Verified on this dump:
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
 | vehicle model | idle stable, throttle/brake/steer respond, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way, rival gap/place/contact and 180 coupled vehicle frames pass |
-| shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104; C parser matches the Python generator |
+| shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.
