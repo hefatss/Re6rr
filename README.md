@@ -14,10 +14,11 @@ dump you own (`wmn6r.exe`, `data/`, `data_jp/`) and code that runs the result.
 
 Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 has a
 working C engine core with Lua host, script contexts and asset parsers. Phase 4
-has a freestanding vehicle dynamics model driven by the car's Lua spec and tire
-positions; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
-`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md` and `docs/ENGINE.md`. Raw reports go
-to `docs/recon/*.json` (gitignored).
+has freestanding vehicle dynamics driven by the car's Lua spec and tire
+positions, plus road polyline projection from the dump's own path data and race
+rules using the recovered Enma `EPlayState` values; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
+`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md` and
+`docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
 
 ## Tools
 
@@ -43,6 +44,9 @@ to `docs/recon/*.json` (gitignored).
     python tools/engine/build_host.py --test           # build C core + JNI checks
     python tools/engine/test_engine.py --corpus        # all data scripts via C
     python tools/engine/test_physics.py               # vehicle dynamics checks
+    python tools/engine/test_race.py                  # course projection + race rules
+    python tools/engine/course_descriptor.py --list-routes
+    python tools/engine/course_descriptor.py --route FUKUOKA --out out.r6course
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 

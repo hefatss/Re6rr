@@ -25,12 +25,32 @@ extern "C" {
 #define R6_ENMA_CFG_START_AZ    0x458
 #define R6_ENMA_CFG_GOAL_ODO    0x45c
 
+/* EPlayState, recovered with ?GetEPlayStateName@@YAPEBDW4EPlayState@@@Z. */
 enum r6_enma_play_state {
     R6_ENMA_PLAY_NONE = 0,
     R6_ENMA_PLAY_COUNTDOWN = 1,
     R6_ENMA_PLAY_RUN = 2,
     R6_ENMA_PLAY_RETIRE = 3,
-    R6_ENMA_PLAY_SLOWDOWN = 4
+    R6_ENMA_PLAY_SLOWDOWN = 4,
+    R6_ENMA_PLAY_STOP_WAIT = 5,
+    R6_ENMA_PLAY_TIME_UP = 6,
+    R6_ENMA_PLAY_GOAL_WAIT = 7,
+    R6_ENMA_PLAY_GOAL = 8,
+    R6_ENMA_PLAY_DEFEAT = 9,
+    R6_ENMA_PLAY_SUSPEND = 10
+};
+
+/* EGameMode, recovered with ?GetEGameModeName@@YAPEBDW4EGameMode@@@Z. */
+enum r6_enma_game_mode {
+    R6_ENMA_MODE_NONE = 0,
+    R6_ENMA_MODE_MAP_RUNNER = 1,
+    R6_ENMA_MODE_ENDING = 2,
+    R6_ENMA_MODE_STORY = 3,
+    R6_ENMA_MODE_BATTLE = 4,
+    R6_ENMA_MODE_TIME_ATTACK = 5,
+    R6_ENMA_MODE_TARGET = 6,
+    R6_ENMA_MODE_PHANTOM = 7,
+    R6_ENMA_MODE_EVENT = 8
 };
 
 enum r6_enma_transmission {

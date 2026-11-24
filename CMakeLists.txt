@@ -15,6 +15,8 @@ set(R6_CORE
     engine/src/assets/inflate.c
     engine/src/physics/vehicle.c
     engine/src/physics/lua_config.c
+    engine/src/physics/course.c
+    engine/src/physics/race.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

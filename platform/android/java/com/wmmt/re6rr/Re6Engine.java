@@ -107,6 +107,74 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Race with default rules: battle, Series01, 3 s countdown, one lap. */
+    public static Race createRace() {
+        return new Race(nativeRaceCreate(4, 3, 1, 0, 1.0e8f, 0.0f,
+                                         3.0f, 1, 2.0f, 1.0f));
+    }
+
+    /** Race with explicit SConfigPlay-like rules. */
+    public Race createRace(int mode, int stage, int course, int area,
+                           float goalOdo, float timeLimit, float countdown,
+                           int laps, float wrongWayLimit, float offroadFactor) {
+        check();
+        return new Race(nativeRaceCreate(mode, stage, course, area, goalOdo,
+                                         timeLimit, countdown, laps,
+                                         wrongWayLimit, offroadFactor));
+    }
+
+    /** Each course vertex is x y z halfWidth surface flags reserved pad. */
+    public static final class Race implements AutoCloseable {
+        private long handle;
+
+        private Race(long handle) {
+            if (handle == 0) {
+                throw new IllegalStateException("race init failed");
+            }
+            this.handle = handle;
+        }
+
+        @Override
+        public void close() {
+            if (handle != 0) {
+                nativeRaceDestroy(handle);
+                handle = 0;
+            }
+        }
+
+        /** vehicle is the 15-float array returned by Vehicle.state(). */
+        public int step(float[] vertices, boolean closed, float[] vehicle,
+                        float dt) {
+            if (handle == 0) {
+                throw new IllegalStateException("race closed");
+            }
+            if (vertices != null && vertices.length % 8 != 0) {
+                throw new IllegalArgumentException("vertex stride must be 8");
+            }
+            return nativeRaceStep(handle, vertices, closed, vehicle, dt);
+        }
+
+        /** Step from a packed .r6course descriptor produced by
+         *  tools/engine/course_descriptor.py. The closed flag comes from the
+         *  descriptor header. */
+        public int step(byte[] descriptor, float[] vehicle, float dt) {
+            if (handle == 0) {
+                throw new IllegalStateException("race closed");
+            }
+            return nativeRaceStepDescriptor(handle, descriptor, vehicle, dt);
+        }
+
+        /** State indices: playState outcome elapsed countdown lap lapTime
+         *  lastLap bestLap s progress odo lateral height halfWidth speed
+         *  offroadTime wrongWayTime surface offroad checkpointFlags. */
+        public float[] state() {
+            if (handle == 0) {
+                throw new IllegalStateException("race closed");
+            }
+            return nativeRaceState(handle);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -132,6 +200,11 @@ public final class Re6Engine implements AutoCloseable {
     private static native void nativeVehicleDestroy(long handle);
     private static native int nativeVehicleStep(long handle, float throttle, float brake, float steer, int gear, float dt);
     private static native float[] nativeVehicleState(long handle);
+    private static native long nativeRaceCreate(int mode, int stage, int course, int area, float goalOdo, float timeLimit, float countdown, int laps, float wrongWayLimit, float offroadFactor);
+    private static native void nativeRaceDestroy(long handle);
+    private static native int nativeRaceStep(long handle, float[] vertices, boolean closed, float[] vehicle, float dt);
+    private static native int nativeRaceStepDescriptor(long handle, byte[] descriptor, float[] vehicle, float dt);
+    private static native float[] nativeRaceState(long handle);
 
     static {
         System.loadLibrary("r6engine");

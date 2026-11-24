@@ -10,10 +10,12 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
+engine/include/r6/r6_course.h road polyline projection and surface flags
 engine/include/r6/r6_physics.h  vehicle config, state and simulation API
+engine/include/r6/r6_race.h   race rules and EPlayState state machine
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/physics/           freestanding vehicle dynamics + Lua config bridge
+engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
 engine/compat/                freestanding stdio/stdlib/assert/miniz shims
 third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
@@ -44,14 +46,24 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_vehicle_init/reset/step/get_state()` and `r6_vehicle_config_from_lua()` —
   deterministic car dynamics driven by the loaded spec/tire context. No CRT,
   no libm and no host calls; see `docs/P4_PHYSICS.md`.
+- `r6_course_length/project/at()` — arc length and nearest-point projection on
+  a host-supplied road polyline.
+- `r6_course_descriptor_parse()` — validate and unpack a packed `.r6course`
+  blob built from the dump's path and section data by
+  `tools/engine/course_descriptor.py`.
+- `r6_race_init/reset/step/get_state()` — countdown, lap/goal/timer, wrong-way
+  and off-road state using the recovered `EPlayState` values; see
+  `docs/P4_COURSE_RACE.md`.
 
 ## Android bridge
 
 `engine/src/host/jni.c` exposes `com.wmmt.re6rr.Re6Engine` to Java:
 `nativeCreate`/`nativeDestroy`, `nativeLoadScript`, `nativeLoadContext`,
 `nativeCallVec3`, `nativeCallNumber`, `nativeHasFunction`, `nativeLastError`,
-`nativeInflateGzip` and the `nativeVehicle*` family (create from defaults or
-from the loaded Lua context, step, read state, destroy). Java owns assets and
+`nativeInflateGzip`, the `nativeVehicle*` family (create from defaults or from
+the loaded Lua context, step, read state, destroy) and the `nativeRace*`
+family (create with SConfigPlay-like rules, step with course vertices and a
+vehicle state, read state, destroy). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
@@ -68,6 +80,9 @@ python tools/engine/build_host.py --test --dump D:\Games\W6W-05
 python tools/engine/test_engine.py --corpus --dump D:\Games\W6W-05
 python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
 python tools/engine/test_physics.py --dump D:\Games\W6W-05
+python tools/engine/test_race.py --dump D:\Games\W6W-05
+python tools/engine/course_descriptor.py --list-routes
+python tools/engine/course_descriptor.py --route FUKUOKA --out build\tmp\fukuoka.r6course
 ```
 
 Verified on this dump:
@@ -86,6 +101,8 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
 | vehicle model | idle stable, throttle/brake/steer respond, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
+| course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way and 180 coupled vehicle frames pass |
+| shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104; C parser matches the Python generator |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.
@@ -114,4 +131,7 @@ to be written must:
   stay in the Python recon tools for now.
 - Physics is an original arcade model, not a trace-equivalent of Enma: the
   shipped DLL needs host state to initialise and cannot be driven standalone.
-- Race rules, course collision and game systems (P4 remainder/P5) not started.
+- Course descriptors are synthetic: no road mesh or checkpoint layout has been
+  decoded from the dump yet. Race rules are not trace-equivalent of Enma.
+- Rival cars, collision response, ghost/phantom and game systems (P5) not
+  started.
