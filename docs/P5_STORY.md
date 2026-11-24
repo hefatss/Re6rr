@@ -95,10 +95,15 @@ string bytes, 386,681 bytes total.
   1..4 from `0x00/0x04/0x08/0x0c`, with native `GetStageId` / `GetActId_1..4`
   error labels. Actor values sit inside the `0..253` domain of
   native `getCarIdName(int)`, which indexes the `CRC_*`/`PLC_*` name table;
-  stage values fit Enma `EStage`. Native callers of that function are car-list
-  UI and honor debug code, not the `Environment.Lua` reader, and no shipped
-  scene-side conversion table exists. These remain proven domains, not applied
-  mappings. `CAR_ID` is a cut-in actor slot, not a `CRC_*` ID.
+  native callers of that function are car-list UI and honor debug code, not the
+  `Environment.Lua` reader. Stage values occupy native `EStage` fields: the
+  `CSeq::Init` builder copies three live-config offsets verbatim into
+  `SConfigPlay`, logging them as `target, eStage: %d`, `phantom, eStage: %d`,
+  and the `====== Phantom =======` section; the caller names live offset `0x630`
+  `config_play->RaceField.eStage`. All 26 shipped stage values are valid Enma
+  `EStage` indices. The scene-to-config write is not isolated, so these remain
+  proven domains, not applied mappings. `CAR_ID` is a cut-in actor slot, not a
+  `CRC_*` ID.
 - 3.10 GB of `.EES` cutscene camera/model data is not parsed.
 - gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
 - `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
