@@ -34,6 +34,7 @@ SOURCES = [
     "engine/src/physics/lua_config.c",
     "engine/src/physics/course.c",
     "engine/src/physics/race.c",
+    "engine/src/game/game.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

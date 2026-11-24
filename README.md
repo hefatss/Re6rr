@@ -16,8 +16,10 @@ Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 has a
 working C engine core with Lua host, script contexts and asset parsers. Phase 4
 has freestanding vehicle dynamics driven by the car's Lua spec and tire
 positions, plus road polyline projection from the dump's own path data and race
-rules and rival tracking using the recovered Enma `EPlayState` values; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
-`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md` and
+rules and rival tracking using the recovered Enma `EPlayState` values. Phase 5
+adds a freestanding game-flow state machine and the recovered `SConfigPlay` byte
+bridge; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md`,
+`docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md`, `docs/P5_GAME.md` and
 `docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
 
 ## Tools
@@ -45,6 +47,7 @@ rules and rival tracking using the recovered Enma `EPlayState` values; see `docs
     python tools/engine/test_engine.py --corpus        # all data scripts via C
     python tools/engine/test_physics.py               # vehicle dynamics checks
     python tools/engine/test_race.py                  # course projection + race rules
+    python tools/engine/test_game.py                  # game flow + SConfigPlay bytes
     python tools/engine/course_descriptor.py --list-routes
     python tools/engine/course_descriptor.py --route FUKUOKA --out out.r6course
     python tools/engine/course_surface.py --area FUKUOKA --section 101

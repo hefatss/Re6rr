@@ -30,7 +30,8 @@ enum {
     R6_ERR_SCRIPT = -4,
     R6_ERR_FORMAT = -5,
     R6_ERR_BUFFER = -6,
-    R6_ERR_NOT_FOUND = -7
+    R6_ERR_NOT_FOUND = -7,
+    R6_ERR_STATE = -8
 };
 
 typedef struct r6_engine r6_engine;

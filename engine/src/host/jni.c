@@ -10,6 +10,7 @@
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
 #include "r6/r6_course.h"
+#include "r6/r6_game.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 
@@ -726,4 +727,129 @@ Java_com_wmmt_re6rr_Re6Engine_nativeInflateGzip(JNIEnv *env, jclass cls,
     free(dst);
     free(src);
     return result;
+}
+
+/* ---- P5 game flow ---------------------------------------------------- */
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameCreate(JNIEnv *env, jclass cls) {
+    void *storage;
+    r6_game *game;
+    (void)env;
+    (void)cls;
+    storage = malloc(r6_game_size());
+    if (!storage) {
+        return 0;
+    }
+    game = r6_game_init(storage, r6_game_size(), NULL);
+    if (!game) {
+        free(storage);
+        return 0;
+    }
+    return (jlong)(size_t)game;
+}
+
+JNIEXPORT void JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameDestroy(JNIEnv *env, jclass cls,
+                                                jlong handle) {
+    (void)env;
+    (void)cls;
+    free((void *)(size_t)handle);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGamePhase(JNIEnv *env, jclass cls,
+                                              jlong handle) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_game_phase((const r6_game *)(size_t)handle);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameSelectCar(JNIEnv *env, jclass cls,
+                                                  jlong handle, jint index) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_game_select_car((r6_game *)(size_t)handle, (int)index);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameSelectCourse(
+        JNIEnv *env, jclass cls, jlong handle, jint course, jint area,
+        jint stage) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_game_select_course((r6_game *)(size_t)handle, (int)course,
+                                       (int)area, (int)stage);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameStart(JNIEnv *env, jclass cls,
+                                              jlong handle) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_game_start((r6_game *)(size_t)handle);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameStep(JNIEnv *env, jclass cls,
+                                             jlong handle, jint outcome,
+                                             jfloat elapsed, jfloat dt) {
+    r6_race_state state;
+    unsigned char *bytes = (unsigned char *)&state;
+    size_t i;
+    (void)env;
+    (void)cls;
+    for (i = 0; i < sizeof(state); i++) {
+        bytes[i] = 0;
+    }
+    state.outcome = (int)outcome;
+    state.elapsed = (float)elapsed;
+    return (jint)r6_game_step((r6_game *)(size_t)handle, (float)dt, &state);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameReset(JNIEnv *env, jclass cls,
+                                              jlong handle) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_game_reset((r6_game *)(size_t)handle);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameWriteConfig(JNIEnv *env, jclass cls,
+                                                    jlong handle) {
+    unsigned char blob[R6_ENMA_CFG_SIZE];
+    jbyteArray result;
+    (void)cls;
+    if (r6_game_write_config((const r6_game *)(size_t)handle, blob,
+                             sizeof(blob)) != R6_OK) {
+        return NULL;
+    }
+    result = (*env)->NewByteArray(env, (jsize)sizeof(blob));
+    if (result) {
+        (*env)->SetByteArrayRegion(env, result, 0, (jsize)sizeof(blob),
+                                   (jbyte *)blob);
+    }
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeGameReadConfig(JNIEnv *env, jclass cls,
+                                                   jlong handle,
+                                                   jbyteArray blob) {
+    unsigned char bytes[R6_ENMA_CFG_SIZE];
+    jsize length;
+    (void)cls;
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    if (length < (jsize)sizeof(bytes)) {
+        return R6_ERR_BUFFER;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, (jsize)sizeof(bytes),
+                               (jbyte *)bytes);
+    return (jint)r6_game_read_config((r6_game *)(size_t)handle, bytes,
+                                     sizeof(bytes));
 }

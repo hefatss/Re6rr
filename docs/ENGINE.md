@@ -1,4 +1,4 @@
-# Engine core (Phases 3–4)
+# Engine core (Phases 3–5)
 
 The engine is a small freestanding C library. The host gives it memory and
 already-inflated bytes; the engine owns the Lua state and the asset parsers.
@@ -13,9 +13,11 @@ engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
 engine/include/r6/r6_course.h road polyline projection and surface flags
 engine/include/r6/r6_physics.h  vehicle config, state and simulation API
 engine/include/r6/r6_race.h   race rules and EPlayState state machine
+engine/include/r6/r6_game.h   game flow and SConfigPlay byte bridge
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
+engine/src/game/              freestanding game-flow state machine
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
 engine/compat/                freestanding stdio/stdlib/assert/miniz shims
 third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
@@ -56,6 +58,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_race_init/reset/step/get_state()` and `r6_race_set_rivals()` — countdown,
   lap/goal/timer, wrong-way, off-road and rival contact events using the
   recovered `EPlayState` values; see `docs/P4_COURSE_RACE.md`.
+- `r6_game_init/select_car/select_course/start/step/reset()` — car/course
+  selection through race result, plus `r6_game_write_config()` /
+  `r6_game_read_config()` for the five recovered `SConfigPlay` offsets; see
+  `docs/P5_GAME.md`.
 
 ## Android bridge
 
@@ -65,7 +71,8 @@ platform/android/java/        Java side of the JNI bridge
 `nativeInflateGzip`, the `nativeVehicle*` family (create from defaults or from
 the loaded Lua context, step, read state, destroy) and the `nativeRace*`
 family (create with SConfigPlay-like rules, step with course vertices and a
-vehicle state, read state, destroy). Java owns assets and
+vehicle state, read state, destroy) and the `nativeGame*` family (phase flow
+and SConfigPlay byte round-trip). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
@@ -83,6 +90,7 @@ python tools/engine/test_engine.py --corpus --dump D:\Games\W6W-05
 python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
 python tools/engine/test_physics.py --dump D:\Games\W6W-05
 python tools/engine/test_race.py --dump D:\Games\W6W-05
+python tools/engine/test_game.py --dump D:\Games\W6W-05
 python tools/engine/course_descriptor.py --list-routes
 python tools/engine/course_descriptor.py --route FUKUOKA --out build\tmp\fukuoka.r6course
 python tools/engine/course_surface.py --area FUKUOKA --section 101
@@ -106,6 +114,7 @@ Verified on this dump:
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, goal, off-road, wrong-way, rival gap/place/contact and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
+| game flow | select car → course → race → result, invalid transitions rejected, SConfigPlay fields at 0x070/0x450/0x454/0x458/0x45c round-trip, short buffer rejected |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.

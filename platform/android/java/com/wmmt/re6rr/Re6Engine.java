@@ -203,6 +203,60 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Game flow plus the recovered SConfigPlay byte layout. */
+    public static class Game implements AutoCloseable {
+        private long handle;
+
+        private Game(long handle) {
+            this.handle = handle;
+        }
+
+        @Override
+        public void close() {
+            if (handle != 0) {
+                nativeGameDestroy(handle);
+                handle = 0;
+            }
+        }
+
+        public static Game create() {
+            return new Game(nativeGameCreate());
+        }
+
+        public int phase() {
+            return nativeGamePhase(handle);
+        }
+
+        public int selectCar(int index) {
+            return nativeGameSelectCar(handle, index);
+        }
+
+        public int selectCourse(int course, int area, int stage) {
+            return nativeGameSelectCourse(handle, course, area, stage);
+        }
+
+        public int start() {
+            return nativeGameStart(handle);
+        }
+
+        /** outcome and elapsed come from Race.state() indices 1 and 2. */
+        public int step(int outcome, float elapsed, float dt) {
+            return nativeGameStep(handle, outcome, elapsed, dt);
+        }
+
+        public int reset() {
+            return nativeGameReset(handle);
+        }
+
+        public byte[] writeConfig() {
+            return nativeGameWriteConfig(handle);
+        }
+
+        public int readConfig(byte[] blob) {
+            return nativeGameReadConfig(handle, blob);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -236,6 +290,16 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeRaceStep(long handle, float[] vertices, boolean closed, float[] vehicle, float dt);
     private static native int nativeRaceStepDescriptor(long handle, byte[] descriptor, float[] vehicle, float dt);
     private static native float[] nativeRaceState(long handle);
+    private static native long nativeGameCreate();
+    private static native void nativeGameDestroy(long handle);
+    private static native int nativeGamePhase(long handle);
+    private static native int nativeGameSelectCar(long handle, int index);
+    private static native int nativeGameSelectCourse(long handle, int course, int area, int stage);
+    private static native int nativeGameStart(long handle);
+    private static native int nativeGameStep(long handle, int outcome, float elapsed, float dt);
+    private static native int nativeGameReset(long handle);
+    private static native byte[] nativeGameWriteConfig(long handle);
+    private static native int nativeGameReadConfig(long handle, byte[] blob);
 
     static {
         System.loadLibrary("r6engine");
