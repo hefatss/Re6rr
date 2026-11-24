@@ -12,6 +12,7 @@
 struct r6_vehicle {
     r6_vehicle_config config;
     r6_vehicle_state state;
+    uint8_t surface;
 };
 
 static float clampf(float value, float low, float high) {
@@ -118,6 +119,7 @@ r6_vehicle *r6_vehicle_init(void *storage, size_t size,
     }
     vehicle = (r6_vehicle *)storage;
     r6_memset(vehicle, 0, sizeof(*vehicle));
+    vehicle->surface = 0;
     if (config) {
         vehicle->config = *config;
     } else {
@@ -140,6 +142,28 @@ int r6_vehicle_reset(r6_vehicle *vehicle, const r6_vehicle_config *config) {
     state->gear = 1;
     state->rpm = vehicle->config.rpm_idle;
     return R6_OK;
+}
+
+int r6_vehicle_set_surface(r6_vehicle *vehicle, uint8_t surface) {
+    if (!vehicle || surface > 2) {
+        return R6_ERR_ARG;
+    }
+    vehicle->surface = surface;
+    return R6_OK;
+}
+
+/* Road is the baseline; loose surfaces cut lateral grip and add rolling drag. */
+static void surface_factors(uint8_t surface, float *grip, float *rolling) {
+    if (surface == 1) {
+        *grip = 0.55f;
+        *rolling = 1.8f;
+    } else if (surface == 2) {
+        *grip = 0.72f;
+        *rolling = 1.4f;
+    } else {
+        *grip = 1.0f;
+        *rolling = 1.0f;
+    }
 }
 
 static float engine_torque(const r6_vehicle_config *config, float rpm) {
@@ -189,6 +213,8 @@ int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
     r6_vehicle_state *state;
     float substeps;
     float step;
+    float surface_grip;
+    float rolling_factor;
     int i;
     int rc;
 
@@ -223,6 +249,7 @@ int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
         substeps = 16.0f;
     }
     step = dt / substeps;
+    surface_factors(vehicle->surface, &surface_grip, &rolling_factor);
 
     for (i = 0; i < (int)substeps; i++) {
         float ratio = config->gear_ratio[state->gear] * config->final_drive;
@@ -263,8 +290,10 @@ int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
 
         drive_force = engine_torque(config, state->rpm) * ratio *
                       config->efficiency / config->wheel_radius * throttle;
-        if (drive_force > config->grip * config->mass * R6_GRAVITY) {
-            drive_force = config->grip * config->mass * R6_GRAVITY;
+        if (drive_force > config->grip * surface_grip *
+                          config->mass * R6_GRAVITY) {
+            drive_force = config->grip * surface_grip *
+                          config->mass * R6_GRAVITY;
         }
 
         brake_force = config->brake_torque * brake / config->wheel_radius;
@@ -272,7 +301,8 @@ int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
             brake_force = speed * config->mass / (step > 0.0f ? step : 1.0f);
         }
         resistance = config->drag_coeff * speed * speed +
-                     config->mass * R6_GRAVITY * config->rolling_resistance;
+                     config->mass * R6_GRAVITY * config->rolling_resistance *
+                     rolling_factor;
         accel = (drive_force - brake_force - resistance) / config->mass;
         if (state->vx < 0.0f) {
             accel += 2.0f * resistance / config->mass;
@@ -294,8 +324,10 @@ int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
         }
         front_force = -config->corner_stiffness * alpha_front;
         rear_force = -config->corner_stiffness * alpha_rear;
-        grip_front = config->grip * config->mass * R6_GRAVITY * 0.55f;
-        grip_rear = config->grip * config->mass * R6_GRAVITY * 0.45f;
+        grip_front = config->grip * surface_grip *
+                     config->mass * R6_GRAVITY * 0.55f;
+        grip_rear = config->grip * surface_grip *
+                    config->mass * R6_GRAVITY * 0.45f;
         front_force = clampf(front_force, -grip_front, grip_front);
         rear_force = clampf(rear_force, -grip_rear, grip_rear);
 

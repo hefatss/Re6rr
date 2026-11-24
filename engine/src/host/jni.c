@@ -367,6 +367,19 @@ Java_com_wmmt_re6rr_Re6Engine_nativeVehicleStep(JNIEnv *env, jclass cls,
                                  brake, steer, (int)gear, (float)dt);
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleSetSurface(JNIEnv *env, jclass cls,
+                                                      jlong handle,
+                                                      jint surface) {
+    (void)env;
+    (void)cls;
+    if (!handle || surface < 0 || surface > 2) {
+        return R6_ERR_ARG;
+    }
+    return (jint)r6_vehicle_set_surface((r6_vehicle *)(size_t)handle,
+                                        (uint8_t)surface);
+}
+
 JNIEXPORT jfloatArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
                                                     jlong handle) {

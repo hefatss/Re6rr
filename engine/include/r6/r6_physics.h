@@ -78,6 +78,11 @@ R6_API int r6_vehicle_reset(r6_vehicle *vehicle,
                             const r6_vehicle_config *config);
 R6_API int r6_vehicle_step(r6_vehicle *vehicle, float throttle, float brake,
                            float steer, int gear_command, float dt);
+
+/* Surface values match r6_course_vertex.surface: 0 road, 1 grass, 2 gravel.
+ * The setting changes tyre grip and rolling resistance; it is sticky until
+ * changed again. */
+R6_API int r6_vehicle_set_surface(r6_vehicle *vehicle, uint8_t surface);
 R6_API int r6_vehicle_get_state(const r6_vehicle *vehicle,
                                 r6_vehicle_state *out);
 

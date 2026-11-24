@@ -109,7 +109,8 @@ mean 6.04 m. `course_descriptor.py --no-surface` disables extraction.
 - sustained reverse travel over `wrong_way_limit` seconds using
   `EPlayState.Retire` and outcome `R6_RACE_WRONG_WAY`;
 - off-road detection when `|lateral| > half_width * offroad_factor`, with the
-  vertex surface carried into the state;
+  vertex surface carried into the state; callers feed that surface back through
+  `Vehicle.setSurface()` so grip and rolling drag follow the road;
 - finite-state guard that resets the race on divergence.
 - rival tracking: nearest gap, side offset, place, and contact events using
   approximate car footprints (4.5 m × 1.9 m).

@@ -92,6 +92,8 @@ class Physics:
                                         ctypes.c_int, ctypes.c_float]
         lib.r6_vehicle_get_state.argtypes = [ctypes.c_void_p,
                                              ctypes.POINTER(State)]
+        lib.r6_vehicle_set_surface.argtypes = [ctypes.c_void_p,
+                                               ctypes.c_uint8]
         lib.r6_course_project.argtypes = [
             ctypes.POINTER(CourseVertex), ctypes.c_size_t, ctypes.c_int,
             ctypes.c_float, ctypes.c_float, ctypes.POINTER(Projection)]
@@ -116,6 +118,9 @@ class Physics:
         out = State()
         self.lib.r6_vehicle_get_state(self.handle, ctypes.byref(out))
         return out
+
+    def set_surface(self, surface):
+        return self.lib.r6_vehicle_set_surface(self.handle, surface)
 
     def reset(self):
         self.lib.r6_vehicle_reset(self.handle, None)
@@ -177,6 +182,22 @@ def main():
     else:
         print("  steering: yaw %.3f rad, yaw_rate %.3f rad/s" %
               (state.yaw, state.yaw_rate))
+
+    physics.reset()
+    physics.set_surface(0)
+    drive(physics, 120, 1.0)
+    road_state = drive(physics, 90, 0.6, 0.0, 0.9)
+    physics.reset()
+    physics.set_surface(1)
+    drive(physics, 120, 1.0)
+    grass_state = drive(physics, 90, 0.6, 0.0, 0.9)
+    physics.set_surface(0)
+    if not (0.0 < grass_state.yaw < road_state.yaw):
+        failures.append("grass grip: yaw road=%f grass=%f" %
+                        (road_state.yaw, grass_state.yaw))
+    else:
+        print("  grass grip: yaw %.3f vs road %.3f rad" %
+              (grass_state.yaw, road_state.yaw))
 
     physics.reset()
     road = (CourseVertex * 2)(

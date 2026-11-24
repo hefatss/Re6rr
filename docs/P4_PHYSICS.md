@@ -67,6 +67,9 @@ WinAPI, no libm. It provides:
 - local sin/cos and sqrt implementations (Taylor series and Newton), so no
   `libm` dependency is introduced;
 - automatic reset to a finite state if any variable diverges;
+- `r6_vehicle_set_surface()` applies the surface class recovered from stage
+  models: grass cuts grip to 0.55 and raises rolling drag to 1.8×; gravel uses
+  0.72 and 1.4×; road is the 1.0 baseline;
 - `r6_vehicle_clamp_to_course()` keeps the car centre within a course polyline,
   damping lateral velocity, speed and yaw rate at contact.
 
@@ -83,6 +86,8 @@ stepping and state reads through `com.wmmt.re6rr.Re6Engine`.
 - 8 s full throttle reaches 36.5 m/s in gear 3 with the default config;
 - 2 s braking drops 36.5 → 15.6 m/s;
 - steering produces yaw and yaw rate;
+- identical throttle/steer on grass yields 1.017 rad yaw versus 1.839 rad on
+  road;
 - 240 hard-steer frames on a 2 m half-width road stay at lateral 1.050 m
   after clamping;
 - 600 mixed throttle/brake/steer frames remain finite;
@@ -94,7 +99,8 @@ Full engine suite (`build_host.py --test`, `test_engine.py --corpus`,
 
 ## Gaps
 
-- No collision, road surface, bank, slope, aero parts or ghost/phantom logic.
+- Surface affects grip and drag only; it does not change tyre model geometry.
+  No rival impulse, damage, bank, slope, aero parts or ghost/phantom logic.
 - Dynamics are calibrated to plausible arcade behaviour, not to Enma traces:
   the DLL cannot be driven standalone here.
 - Android NDK/SDK still absent, so the JNI/CMake path remains uncompiled.

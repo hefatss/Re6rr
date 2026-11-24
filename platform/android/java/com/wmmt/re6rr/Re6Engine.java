@@ -106,6 +106,14 @@ public final class Re6Engine implements AutoCloseable {
             return nativeVehicleState(handle);
         }
 
+        /** Surface from Race.state(): 0 road, 1 grass, 2 gravel. */
+        public int setSurface(int surface) {
+            if (handle == 0) {
+                throw new IllegalStateException("vehicle closed");
+            }
+            return nativeVehicleSetSurface(handle, surface);
+        }
+
         /** Clamp the car inside a packed .r6course descriptor. */
         public int clampToCourse(byte[] descriptor) {
             if (handle == 0) {
@@ -219,6 +227,7 @@ public final class Re6Engine implements AutoCloseable {
     private static native long nativeVehicleFromLua(long handle, String car, String model);
     private static native void nativeVehicleDestroy(long handle);
     private static native int nativeVehicleStep(long handle, float throttle, float brake, float steer, int gear, float dt);
+    private static native int nativeVehicleSetSurface(long handle, int surface);
     private static native float[] nativeVehicleState(long handle);
     private static native int nativeVehicleClampToCourseDescriptor(long handle, byte[] descriptor);
     private static native long nativeRaceCreate(int mode, int stage, int course, int area, float goalOdo, float timeLimit, float countdown, int laps, float wrongWayLimit, float offroadFactor);
