@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.wmmt.re6rr'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.wmmt.re6rr'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1'
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path '../../../CMakeLists.txt'
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['../java']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}

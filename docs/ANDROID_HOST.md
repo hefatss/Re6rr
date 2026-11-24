@@ -1,0 +1,47 @@
+# Android host
+
+`platform/android` is a minimal Android Gradle project around the freestanding
+engine. It has no renderer and no game data. It loads the Lua context for one
+car, steps `Vehicle` + `Race` + `Game` at 60 Hz and prints telemetry.
+
+    platform/android/
+      settings.gradle
+      build.gradle
+      app/build.gradle              # CMake points at ../../../CMakeLists.txt
+      app/src/main/AndroidManifest.xml
+      java/com/wmmt/re6rr/...        # bridge + MainActivity
+
+## Setup
+
+Generate derived assets from your own dump, then push them with the `data/`
+tree to app external files:
+
+    python tools/engine/car_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/cars.r6car
+    python tools/engine/course_descriptor.py --dump D:\Games\W6W-05 \
+        --route FUKUOKA --out <dump>/FUKUOKA.r6course
+    adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
+
+Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
+CMake). The app reads `cars.r6car` and every `*.r6course` in that directory.
+`AssetProvider` uses the native gzip inflater; the core still sees only bytes.
+
+## UI
+
+- `character car` overrides the model spinner through
+  `CarCatalog.carIndexForCharacter()` — e.g. `CRC_928GT_Masaki`.
+- `course descriptor` selects the `.r6course` file.
+- `throttle` toggles throttle/brake; `steer` is -1..1.
+- Status shows game phase, race return code, odo, speed, gear, surface,
+  offroad flag, lap and rival place.
+
+`Game.selectCourse()` uses the descriptor list index as `course`, area `0`,
+stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
+3 s countdown. No renderer, audio, story progression or All.Net code exists.
+
+## Validation
+
+Desktop checks compile `Re6Engine.java` + `AssetProvider.java` via
+`tools/engine/build_host.py`. `MainActivity.java` is Android-only; its syntax
+was checked against minimal local stubs under `build/tmp`. A real NDK/SDK
+build remains unverified in this repository.

@@ -1,5 +1,7 @@
 build/
 out/
+.gradle/
+local.properties
 docs/recon/
 *.log
 __pycache__/

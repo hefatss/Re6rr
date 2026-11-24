@@ -18,10 +18,11 @@ has freestanding vehicle dynamics driven by the car's Lua spec and tire
 positions, plus road polyline projection from the dump's own path data and race
 rules and rival tracking using the recovered Enma `EPlayState` values. Phase 5
 adds a freestanding game-flow state machine and the recovered `SConfigPlay` byte
-bridge and a packed catalog of the 151 shipped car specs; see
-`docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md`,
-`docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md`, `docs/P5_GAME.md`,
-`docs/P5_CARS.md` and `docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
+bridge, a packed catalog of the 151 shipped car specs and a minimal Android
+telemetry host; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
+`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md`,
+`docs/P5_GAME.md`, `docs/P5_CARS.md`, `docs/ANDROID_HOST.md` and
+`docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
 
 ## Tools
 
@@ -50,6 +51,7 @@ bridge and a packed catalog of the 151 shipped car specs; see
     python tools/engine/test_race.py                  # course projection + race rules
     python tools/engine/test_game.py                  # game flow + SConfigPlay bytes
     python tools/engine/car_catalog.py --list          # 151 car specs
+    python tools/engine/car_mapping.py               # CRC_* -> PLC_* pairs
     python tools/engine/test_catalog.py               # packed catalog parser
     python tools/engine/course_descriptor.py --list-routes
     python tools/engine/course_descriptor.py --route FUKUOKA --out out.r6course

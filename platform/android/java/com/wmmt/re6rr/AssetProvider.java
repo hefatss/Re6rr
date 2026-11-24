@@ -87,7 +87,13 @@ public final class AssetProvider {
     private static byte[] javaInflate(byte[] compressed) {
         try (java.util.zip.GZIPInputStream in = new java.util.zip.GZIPInputStream(
                  new java.io.ByteArrayInputStream(compressed))) {
-            return in.readAllBytes();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = in.read(buffer)) >= 0) {
+                out.write(buffer, 0, count);
+            }
+            return out.toByteArray();
         } catch (IOException e) {
             return null;
         }
