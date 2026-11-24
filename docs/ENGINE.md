@@ -1,4 +1,4 @@
-# Engine core (Phase 3)
+# Engine core (Phases 3–4)
 
 The engine is a small freestanding C library. The host gives it memory and
 already-inflated bytes; the engine owns the Lua state and the asset parsers.
@@ -9,8 +9,11 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 ```
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
+engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
+engine/include/r6/r6_physics.h  vehicle config, state and simulation API
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
+engine/src/physics/           freestanding vehicle dynamics + Lua config bridge
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
 engine/compat/                freestanding stdio/stdlib/assert/miniz shims
 third_party/lua-5.1.5/        stock Lua 5.1.5 sources (COPYRIGHT included)
@@ -38,14 +41,19 @@ platform/android/java/        Java side of the JNI bridge
   vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
   capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
   sequential.
+- `r6_vehicle_init/reset/step/get_state()` and `r6_vehicle_config_from_lua()` —
+  deterministic car dynamics driven by the loaded spec/tire context. No CRT,
+  no libm and no host calls; see `docs/P4_PHYSICS.md`.
 
 ## Android bridge
 
 `engine/src/host/jni.c` exposes `com.hefatss.re6rr.Re6Engine` to Java:
 `nativeCreate`/`nativeDestroy`, `nativeLoadScript`, `nativeLoadContext`,
-`nativeCallVec3`, `nativeCallNumber`, `nativeHasFunction`, `nativeLastError`
-and `nativeInflateGzip`. Java owns assets and gzip reads and passes plain
-bytes; the core never touches `AssetManager`. JNI C is syntax-checked against
+`nativeCallVec3`, `nativeCallNumber`, `nativeHasFunction`, `nativeLastError`,
+`nativeInflateGzip` and the `nativeVehicle*` family (create from defaults or
+from the loaded Lua context, step, read state, destroy). Java owns assets and
+gzip reads and passes plain bytes; the core never touches `AssetManager`. JNI C
+is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
 `build_host.py`. `CMakeLists.txt` links `r6core` into `libr6engine.so` for
 `ANDROID`.
@@ -59,6 +67,7 @@ The host build works without a CRT or Windows SDK: clang emits a DLL with
 python tools/engine/build_host.py --test --dump D:\Games\W6W-05
 python tools/engine/test_engine.py --corpus --dump D:\Games\W6W-05
 python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
+python tools/engine/test_physics.py --dump D:\Games\W6W-05
 ```
 
 Verified on this dump:
@@ -76,6 +85,7 @@ Verified on this dump:
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
+| vehicle model | idle stable, throttle/brake/steer respond, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.
@@ -102,4 +112,6 @@ to be written must:
 - NTWD parser records blob offsets; BC1/BC3/RGBA8 decompression not ported.
 - NDWD parser covers headers and groups; vertex layouts and material chains
   stay in the Python recon tools for now.
-- Physics/race and game systems (P4/P5) not started.
+- Physics is an original arcade model, not a trace-equivalent of Enma: the
+  shipped DLL needs host state to initialise and cannot be driven standalone.
+- Race rules, course collision and game systems (P4 remainder/P5) not started.

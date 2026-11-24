@@ -13,9 +13,11 @@ dump you own (`wmn6r.exe`, `data/`, `data_jp/`) and code that runs the result.
 ## Status
 
 Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 has a
-working C engine core with Lua host, script contexts and asset parsers: see
-`docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md` and
-`docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
+working C engine core with Lua host, script contexts and asset parsers. Phase 4
+has a freestanding vehicle dynamics model driven by the car's Lua spec and tire
+positions; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
+`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md` and `docs/ENGINE.md`. Raw reports go
+to `docs/recon/*.json` (gitignored).
 
 ## Tools
 
@@ -36,8 +38,11 @@ working C engine core with Lua host, script contexts and asset parsers: see
     python tools/lua/lua_probe.py --scripts PATH --query GetTirePos NAME 0 --vec3
     python tools/lua/script_sets.py --name GetTirePos  # which script defines a global
     python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
+    python tools/recon/enma_api.py --dump D:\Games\W6W-05  # Enma exports/enums/layouts
+    python tools/recon/enma_sim.py --dump D:\Games\W6W-05  # CGameInput offsets
     python tools/engine/build_host.py --test           # build C core + JNI checks
     python tools/engine/test_engine.py --corpus        # all data scripts via C
+    python tools/engine/test_physics.py               # vehicle dynamics checks
 
 Ghidra headless (needs `GHIDRA_INSTALL_DIR` set to a 12.1+ install):
 

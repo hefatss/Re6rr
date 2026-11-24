@@ -55,6 +55,58 @@ public final class Re6Engine implements AutoCloseable {
         return nativeInflateGzip(data);
     }
 
+    /** Create a vehicle from the currently loaded car context. */
+    public Vehicle createVehicle(String car, String model) {
+        check();
+        long vehicle = nativeVehicleFromLua(handle, car, model);
+        if (vehicle == 0) {
+            throw new IllegalStateException("vehicle init failed: " + lastError());
+        }
+        return new Vehicle(vehicle);
+    }
+
+    /** Vehicle with default parameters, independent of any Lua context. */
+    public static Vehicle createVehicle() {
+        long vehicle = nativeVehicleCreate();
+        if (vehicle == 0) {
+            throw new IllegalStateException("vehicle init failed");
+        }
+        return new Vehicle(vehicle);
+    }
+
+    /** State indices: x y z vx vy yaw yawRate speed rpm throttle brake steer
+     *  gear odo wheelSpin. */
+    public static final class Vehicle implements AutoCloseable {
+        private long handle;
+
+        private Vehicle(long handle) {
+            this.handle = handle;
+        }
+
+        @Override
+        public void close() {
+            if (handle != 0) {
+                nativeVehicleDestroy(handle);
+                handle = 0;
+            }
+        }
+
+        public int step(float throttle, float brake, float steer, int gear,
+                        float dt) {
+            if (handle == 0) {
+                throw new IllegalStateException("vehicle closed");
+            }
+            return nativeVehicleStep(handle, throttle, brake, steer, gear, dt);
+        }
+
+        public float[] state() {
+            if (handle == 0) {
+                throw new IllegalStateException("vehicle closed");
+            }
+            return nativeVehicleState(handle);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -75,6 +127,11 @@ public final class Re6Engine implements AutoCloseable {
     private static native boolean nativeHasFunction(long handle, String name);
     private static native String nativeLastError(long handle);
     private static native byte[] nativeInflateGzip(byte[] data);
+    private static native long nativeVehicleCreate();
+    private static native long nativeVehicleFromLua(long handle, String car, String model);
+    private static native void nativeVehicleDestroy(long handle);
+    private static native int nativeVehicleStep(long handle, float throttle, float brake, float steer, int gear, float dt);
+    private static native float[] nativeVehicleState(long handle);
 
     static {
         System.loadLibrary("r6engine");

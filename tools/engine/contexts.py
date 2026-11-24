@@ -100,6 +100,8 @@ def main():
                              "specification", "color"])
     ap.add_argument("--run", action="store_true",
                     help="load the bundle through the C engine and query it")
+    ap.add_argument("--tires", action="store_true",
+                    help="print all four tire positions after loading")
     ap.add_argument("--dll", default=os.path.join(ROOT, "build", "engine",
                                                   "r6_engine.dll"))
     args = ap.parse_args()
@@ -127,6 +129,10 @@ def main():
         print("loaded %d scripts" % len(paths))
         rc, vec = engine.vec3_key("GetTirePos", args.car, 0)
         print("GetTirePos(%r, 0) rc=%d = %r" % (args.car, rc, vec))
+        if args.tires:
+            for index in range(4):
+                rc, pos = engine.vec3_key("GetTirePos", args.car, index)
+                print("  tire %d rc=%d %r" % (index, rc, pos))
         return 0 if rc == R6_OK else 1
     finally:
         engine.close()

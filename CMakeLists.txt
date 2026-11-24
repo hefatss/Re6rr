@@ -13,6 +13,8 @@ set(R6_CORE
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
     engine/src/assets/inflate.c
+    engine/src/physics/vehicle.c
+    engine/src/physics/lua_config.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

@@ -9,6 +9,7 @@
 
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
+#include "r6/r6_physics.h"
 
 static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
@@ -244,6 +245,107 @@ Java_com_hefatss_re6rr_Re6Engine_nativeLastError(JNIEnv *env, jclass cls,
         buffer[0] = 0;
     }
     return (*env)->NewStringUTF(env, buffer);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hefatss_re6rr_Re6Engine_nativeVehicleCreate(JNIEnv *env, jclass cls) {
+    void *storage;
+    r6_vehicle *vehicle;
+    (void)env;
+    (void)cls;
+    storage = malloc(r6_vehicle_size());
+    if (!storage) {
+        return 0;
+    }
+    vehicle = r6_vehicle_init(storage, r6_vehicle_size(), NULL);
+    return vehicle ? (jlong)(size_t)vehicle : 0;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hefatss_re6rr_Re6Engine_nativeVehicleFromLua(JNIEnv *env, jclass cls,
+                                                      jlong engine_handle,
+                                                      jstring car,
+                                                      jstring model) {
+    r6_vehicle *vehicle;
+    r6_vehicle_config config;
+    const char *car_name = NULL;
+    const char *model_name = NULL;
+    void *storage;
+    (void)cls;
+    if (!engine_handle || !car) {
+        return 0;
+    }
+    storage = malloc(r6_vehicle_size());
+    if (!storage) {
+        return 0;
+    }
+    car_name = (*env)->GetStringUTFChars(env, car, NULL);
+    if (model) {
+        model_name = (*env)->GetStringUTFChars(env, model, NULL);
+    }
+    if (r6_vehicle_config_from_lua((r6_engine *)(size_t)engine_handle,
+                                   car_name, model_name, &config) != R6_OK) {
+        vehicle = NULL;
+    } else {
+        vehicle = r6_vehicle_init(storage, r6_vehicle_size(), &config);
+    }
+    if (model_name) {
+        (*env)->ReleaseStringUTFChars(env, model, model_name);
+    }
+    if (car_name) {
+        (*env)->ReleaseStringUTFChars(env, car, car_name);
+    }
+    if (!vehicle) {
+        free(storage);
+        return 0;
+    }
+    return (jlong)(size_t)vehicle;
+}
+
+JNIEXPORT void JNICALL
+Java_com_hefatss_re6rr_Re6Engine_nativeVehicleDestroy(JNIEnv *env, jclass cls,
+                                                      jlong handle) {
+    (void)env;
+    (void)cls;
+    free((void *)(size_t)handle);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hefatss_re6rr_Re6Engine_nativeVehicleStep(JNIEnv *env, jclass cls,
+                                                   jlong handle,
+                                                   jfloat throttle,
+                                                   jfloat brake, jfloat steer,
+                                                   jint gear, jfloat dt) {
+    (void)env;
+    (void)cls;
+    if (!handle) {
+        return R6_ERR_ARG;
+    }
+    return (jint)r6_vehicle_step((r6_vehicle *)(size_t)handle, throttle,
+                                 brake, steer, (int)gear, (float)dt);
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_hefatss_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
+                                                    jlong handle) {
+    r6_vehicle_state state;
+    jfloatArray result = NULL;
+    (void)cls;
+    if (!handle ||
+        r6_vehicle_get_state((r6_vehicle *)(size_t)handle, &state) != R6_OK) {
+        return NULL;
+    }
+    result = (*env)->NewFloatArray(env, 15);
+    if (result) {
+        jfloat values[15] = {
+            state.x, state.y, state.z, state.vx, state.vy,
+            state.yaw, state.yaw_rate, state.speed, state.rpm,
+            state.throttle, state.brake, state.steer,
+            (jfloat)state.gear, state.odo, state.wheel_spin
+        };
+        (*env)->SetFloatArrayRegion(env, result, 0, 15, values);
+    }
+    return result;
 }
 
 JNIEXPORT jbyteArray JNICALL

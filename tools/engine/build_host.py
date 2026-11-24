@@ -30,6 +30,8 @@ SOURCES = [
     "engine/src/assets/ndwd.c",
     "engine/src/assets/ntwd.c",
     "engine/src/assets/inflate.c",
+    "engine/src/physics/vehicle.c",
+    "engine/src/physics/lua_config.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
