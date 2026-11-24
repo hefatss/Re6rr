@@ -70,13 +70,15 @@ Verified on this dump:
 | `ColorMax()` with `LibraryColor.lua` | 250 |
 | ordered context bundle | reproduces the same `GetTirePos` |
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
-| 400 `.tex` files, 1,057 NTWD streams, 3,475 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
-| 400 `.mdl` files, 21,799 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
+| 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
+| 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK |
 
 All NTWD streams in this dump are type 2; the type-1 branch is implemented but
 has no corpus coverage here. No cube-map or multi-face texture appears either.
+The full asset sweep runs with `python tools/engine/test_engine.py --skip-lua
+--limit 10000`.
 
 ## Android build
 

@@ -99,12 +99,17 @@ class ScriptSource(ctypes.Structure):
     ]
 
 
+def load_core(dll, dump):
+    """Preload lua5.1.dll so the freestanding core resolves its imports."""
+    if hasattr(os, "add_dll_directory"):
+        os.add_dll_directory(dump)
+    ctypes.CDLL(os.path.join(dump, "lua5.1.dll"))
+    return ctypes.CDLL(dll)
+
+
 class Engine:
     def __init__(self, dll, dump):
-        if hasattr(os, "add_dll_directory"):
-            os.add_dll_directory(dump)
-        ctypes.CDLL(os.path.join(dump, "lua5.1.dll"))
-        self.lib = ctypes.CDLL(dll)
+        self.lib = load_core(dll, dump)
         lib = self.lib
         lib.r6_engine_size.restype = ctypes.c_size_t
         lib.r6_engine_init.restype = ctypes.c_void_p
@@ -298,7 +303,7 @@ def test_lua(dll, dump, failures):
 
 
 def test_gzip(dll, dump, failures):
-    lib = ctypes.CDLL(dll)
+    lib = load_core(dll, dump)
     lib.r6_gzip_expected_size.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                           ctypes.POINTER(ctypes.c_size_t)]
     lib.r6_gzip_inflate.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -365,7 +370,7 @@ def decompress(path):
 
 
 def test_assets(dll, dump, failures, limit):
-    lib = ctypes.CDLL(dll)
+    lib = load_core(dll, dump)
     lib.r6_xmd_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                  ctypes.POINTER(Stream), ctypes.c_size_t,
                                  ctypes.POINTER(ctypes.c_uint32),

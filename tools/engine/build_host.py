@@ -99,7 +99,7 @@ def build(dump, out_dir):
     return out
 
 
-def check_jni():
+def check_jni(dump):
     java_home = os.environ.get("JAVA_HOME")
     if not java_home:
         return
@@ -115,13 +115,18 @@ def check_jni():
     print("JNI layer syntax OK")
     javac = os.path.join(java_home, "bin", "javac.exe" if os.name == "nt"
                          else "javac")
-    source = os.path.join(ROOT, "platform", "android", "java", "com",
-                          "hefatss", "re6rr", "Re6Engine.java")
-    if os.path.exists(javac) and os.path.exists(source):
+    java_dir = os.path.join(ROOT, "platform", "android", "java", "com",
+                            "hefatss", "re6rr")
+    if os.path.exists(javac) and os.path.isdir(java_dir):
         classes = os.path.join(ROOT, "build", "tmp", "jni-classes")
         os.makedirs(classes, exist_ok=True)
-        subprocess.run([javac, "-d", classes, source], check=True)
+        sources = [os.path.join(java_dir, name)
+                   for name in ("Re6Engine.java", "AssetProvider.java")]
+        subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
+        subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"
+                                     else "java"), "-cp", classes,
+                        "com.hefatss.re6rr.AssetProvider", dump], check=True)
 
 
 def main():
@@ -132,7 +137,7 @@ def main():
     ap.add_argument("--test", action="store_true")
     args = ap.parse_args()
     dll = build(args.dump, args.out)
-    check_jni()
+    check_jni(args.dump)
     if args.test:
         test = os.path.join(ROOT, "tools", "engine", "test_engine.py")
         subprocess.run([sys.executable, test, "--dump", args.dump,
