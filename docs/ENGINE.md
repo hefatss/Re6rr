@@ -47,7 +47,7 @@ platform/android/java/        Java side of the JNI bridge
 
 ## Android bridge
 
-`engine/src/host/jni.c` exposes `com.hefatss.re6rr.Re6Engine` to Java:
+`engine/src/host/jni.c` exposes `com.wmmt.re6rr.Re6Engine` to Java:
 `nativeCreate`/`nativeDestroy`, `nativeLoadScript`, `nativeLoadContext`,
 `nativeCallVec3`, `nativeCallNumber`, `nativeHasFunction`, `nativeLastError`,
 `nativeInflateGzip` and the `nativeVehicle*` family (create from defaults or

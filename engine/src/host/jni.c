@@ -2,7 +2,7 @@
  * user-supplied dump directory) and gzip container reads; it passes plain
  * bytes to this layer. The engine core itself stays platform-independent.
  *
- * Java class: com.hefatss.re6rr.Re6Engine
+ * Java class: com.wmmt.re6rr.Re6Engine
  */
 #include <jni.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@ static r6_engine *from_handle(jlong handle) {
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeCreate(JNIEnv *env, jclass cls) {
+Java_com_wmmt_re6rr_Re6Engine_nativeCreate(JNIEnv *env, jclass cls) {
     void *storage;
     r6_engine *engine;
     (void)env;
@@ -35,7 +35,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeCreate(JNIEnv *env, jclass cls) {
 }
 
 JNIEXPORT void JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeDestroy(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeDestroy(JNIEnv *env, jclass cls,
                                                jlong handle) {
     r6_engine *engine = from_handle(handle);
     void *storage = engine;
@@ -49,7 +49,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeDestroy(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeLoadScript(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeLoadScript(JNIEnv *env, jclass cls,
                                                   jlong handle, jstring name,
                                                   jbyteArray bytes) {
     r6_engine *engine = from_handle(handle);
@@ -85,7 +85,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeLoadScript(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeLoadContext(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeLoadContext(JNIEnv *env, jclass cls,
                                                    jlong handle,
                                                    jobjectArray names,
                                                    jobjectArray chunks) {
@@ -170,7 +170,7 @@ cleanup:
 }
 
 JNIEXPORT jfloatArray JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeCallVec3(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeCallVec3(JNIEnv *env, jclass cls,
                                                 jlong handle, jstring name,
                                                 jstring key, jint index) {
     r6_engine *engine = from_handle(handle);
@@ -203,7 +203,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeCallVec3(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jdouble JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeCallNumber(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeCallNumber(JNIEnv *env, jclass cls,
                                                   jlong handle, jstring name) {
     r6_engine *engine = from_handle(handle);
     const char *function;
@@ -219,7 +219,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeCallNumber(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeHasFunction(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeHasFunction(JNIEnv *env, jclass cls,
                                                    jlong handle, jstring name) {
     r6_engine *engine = from_handle(handle);
     const char *function;
@@ -235,7 +235,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeHasFunction(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeLastError(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeLastError(JNIEnv *env, jclass cls,
                                                  jlong handle) {
     r6_engine *engine = from_handle(handle);
     char buffer[256];
@@ -248,7 +248,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeLastError(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeVehicleCreate(JNIEnv *env, jclass cls) {
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleCreate(JNIEnv *env, jclass cls) {
     void *storage;
     r6_vehicle *vehicle;
     (void)env;
@@ -262,7 +262,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeVehicleCreate(JNIEnv *env, jclass cls) {
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeVehicleFromLua(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleFromLua(JNIEnv *env, jclass cls,
                                                       jlong engine_handle,
                                                       jstring car,
                                                       jstring model) {
@@ -303,7 +303,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeVehicleFromLua(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT void JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeVehicleDestroy(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleDestroy(JNIEnv *env, jclass cls,
                                                       jlong handle) {
     (void)env;
     (void)cls;
@@ -311,7 +311,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeVehicleDestroy(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeVehicleStep(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleStep(JNIEnv *env, jclass cls,
                                                    jlong handle,
                                                    jfloat throttle,
                                                    jfloat brake, jfloat steer,
@@ -326,7 +326,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeVehicleStep(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jfloatArray JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
                                                     jlong handle) {
     r6_vehicle_state state;
     jfloatArray result = NULL;
@@ -349,7 +349,7 @@ Java_com_hefatss_re6rr_Re6Engine_nativeVehicleState(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_com_hefatss_re6rr_Re6Engine_nativeInflateGzip(JNIEnv *env, jclass cls,
+Java_com_wmmt_re6rr_Re6Engine_nativeInflateGzip(JNIEnv *env, jclass cls,
                                                    jbyteArray bytes) {
     unsigned char *src = NULL;
     unsigned char *dst = NULL;

@@ -118,7 +118,7 @@ def check_jni(dump):
     javac = os.path.join(java_home, "bin", "javac.exe" if os.name == "nt"
                          else "javac")
     java_dir = os.path.join(ROOT, "platform", "android", "java", "com",
-                            "hefatss", "re6rr")
+                            "wmmt", "re6rr")
     if os.path.exists(javac) and os.path.isdir(java_dir):
         classes = os.path.join(ROOT, "build", "tmp", "jni-classes")
         os.makedirs(classes, exist_ok=True)
@@ -128,7 +128,7 @@ def check_jni(dump):
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"
                                      else "java"), "-cp", classes,
-                        "com.hefatss.re6rr.AssetProvider", dump], check=True)
+                        "com.wmmt.re6rr.AssetProvider", dump], check=True)
 
 
 def main():

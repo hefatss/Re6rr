@@ -70,7 +70,7 @@ WinAPI, no libm. It provides:
 
 Public API is in `engine/include/r6/r6_physics.h`; the Enma byte contract is in
 `r6_enma.h`. JNI exposes `Vehicle` creation from the loaded Lua context,
-stepping and state reads through `com.hefatss.re6rr.Re6Engine`.
+stepping and state reads through `com.wmmt.re6rr.Re6Engine`.
 
 ## Validation
 

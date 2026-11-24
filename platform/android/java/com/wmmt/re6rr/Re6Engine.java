@@ -1,4 +1,4 @@
-package com.hefatss.re6rr;
+package com.wmmt.re6rr;
 
 /** Java side of the JNI bridge. Asset lookup and gzip container reads belong
  *  in the Android platform layer; this class only marshals bytes into the C
