@@ -62,6 +62,18 @@ def run(dump, failures):
     check(len(tones) == 120, "SYSTEM tone count", failures)
     check(tones[47][1] == "select.wav", "SYSTEM tone 47 wav", failures)
 
+    play_3d = sections["dispatch"]["play_3d_se_loop"]
+    check(play_3d["function"] == 0x140C50D80 and play_3d["request"] == 0 and
+          play_3d["volume"] == 0.0 and play_3d["pan"] == 0.0 and
+          play_3d["slot_stride"] == 8 and play_3d["flag_offset"] == 0 and
+          play_3d["tone_offset"] == 4 and play_3d["vectors"] == 2 and
+          play_3d["vector_floats"] == 3, "3D SE loop ABI", failures)
+    check(play_3d["wrapper"] == 0x180363B0 and
+          play_3d["wrapper_errors"] == {"null_secondary": 0x80000031,
+                                        "null_third": 0x80000032,
+                                        "null_position": 0x80000033},
+          "3D KeySet wrapper errors", failures)
+
     playback = sections["dispatch"]["playback"]
     check(playback["bgm_stream_handle"] == 0 and
           playback["voice_slots"] == 0x40 and

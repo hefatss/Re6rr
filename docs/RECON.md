@@ -89,7 +89,9 @@ volume, pan, flags, &key)`; `readyBank` requires bank state `3` at `+0x1c`.
 `playSeLoop` uses 8-byte request records and scene sound reserves slot `0x21`
 of 34; `nuSound2KeyOnHandle` defaults are volume `1.0`, pan `0.0`, flags `0`.
 `FUN_1401aebc0` drives positional SE from 0x24-byte records
-(bank, tone, interval, xyz). Playback ABI: BGM goes through
+(bank, tone, interval, xyz); `FUN_140c50d80` (`play3DSeLoop`) takes two xyz
+triples and enters the same 0xa0 voice request through
+`nuSound2_3DKeySetOnHandle` with request id 0. Playback ABI: BGM goes through
 `nuSound2StreamStartEx(handle 0, path, 0)`; `nuSound2_win64` keeps 64 voice
 slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
 `FUN_18002eb80` uses 0x804-byte slots and returns distinct errors for bad index,

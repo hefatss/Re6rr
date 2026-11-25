@@ -19,6 +19,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
                volume, pan, flags, &key); readyBank checks state 3 at +0x1c
   0x140c50ac0  playSeLoop: 8-byte loop records, request id 0x21 used by scene
   0x1401aebc0  positional SE records of 0x24 bytes (bank, tone, frames, xyz)
+  0x140c50d80  play3DSeLoop: request 0, two xyz triples into the 0xa0 voice
+               request via nuSound2_3DKeySetOnHandle
   0x140c52100  BGM play: nuSound2StreamStartEx(handle 0, path, 0) via playStream
   0x18002c2b0  nuSound2 voice params: 64 slots of 0xa0, meta at 0x2800+slot*0xc
   0x1800237d0  builds the 0xa0 voice request: pointers at +0x10/+0x18/+0x20,
@@ -98,6 +100,16 @@ VOICE_REQUEST_FIELDS = {
     "extra_a": (0x90, 4), "extra_b": (0x94, 4), "extra_c": (0x98, 4),
 }
 VOICE_FLOAT_DEFAULTS = (1.0, 0.0, 0, 0.0, 1.0, 1.0)
+
+# sys::Sound::Impl::play3DSeLoop (0x140c50d80) -> nuSound2_3DKeySetOnHandle.
+PLAY_3D_SE_LOOP = {
+    "function": 0x140C50D80, "request": 0, "volume": 0.0, "pan": 0.0,
+    "slot_stride": 8, "flag_offset": 0, "tone_offset": 4,
+    "vectors": 2, "vector_floats": 3,
+    "wrapper": 0x180363B0,
+    "wrapper_errors": {"null_secondary": 0x80000031,
+                       "null_third": 0x80000032, "null_position": 0x80000033},
+}
 
 
 def voice_request(request, bank, tone, bank_info=0, bank_ptr=0, tone_ptr=0,
@@ -242,6 +254,7 @@ def dispatch_facts(dump):
                      "loop_stride": LOOP_RECORD_STRIDE,
                      "positional_stride": POSITIONAL_SE_STRIDE},
         "key_on_defaults": KEYON_DEFAULTS,
+        "play_3d_se_loop": PLAY_3D_SE_LOOP,
         "playback": {
             "bgm_stream_handle": BGM_STREAM_HANDLE,
             "voice_slots": VOICE_SLOT_COUNT,
