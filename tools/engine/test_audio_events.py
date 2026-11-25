@@ -61,6 +61,19 @@ def run(dump, failures):
     check(len(tones) == 120, "SYSTEM tone count", failures)
     check(tones[47][1] == "select.wav", "SYSTEM tone 47 wav", failures)
 
+    playback = sections["dispatch"]["playback"]
+    check(playback["bgm_stream_handle"] == 0 and
+          playback["voice_slots"] == 0x40 and
+          playback["voice_stride"] == 0xA0 and
+          playback["voice_meta_base"] == 0x2800 and
+          playback["voice_meta_stride"] == 0xC,
+          "nuSound2 playback ABI", failures)
+    check(playback["bank_set_errors"] == {
+        "bad_index": 0x8000001E, "bad_format": 0x8000001D,
+        "null_data": 0x80000024, "already_set": 0x80000021,
+        "voice_fail": 0x80000026, "stream_fail": 0x80000027},
+        "nuSound2 bank-set errors", failures)
+
     dispatch = sections["dispatch"]
     check(dispatch["bank_table"] == {
         "stride": 0x20, "handle": 0x18, "state": 0x1C, "ready": 3},

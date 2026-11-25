@@ -89,8 +89,12 @@ volume, pan, flags, &key)`; `readyBank` requires bank state `3` at `+0x1c`.
 `playSeLoop` uses 8-byte request records and scene sound reserves slot `0x21`
 of 34; `nuSound2KeyOnHandle` defaults are volume `1.0`, pan `0.0`, flags `0`.
 `FUN_1401aebc0` drives positional SE from 0x24-byte records
-(bank, tone, interval, xyz). `tools/engine/audio_events.py` reads these tables
-and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
+(bank, tone, interval, xyz). Playback ABI: BGM goes through
+`nuSound2StreamStartEx(handle 0, path, 0)`; `nuSound2_win64` keeps 64 voice
+slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
+`FUN_18002eb80` uses 0x804-byte slots and returns distinct errors for bad index,
+bad format, null data, already-set banks and voice/stream failures.
+`tools/engine/audio_events.py` reads these tables and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
 three stage-effect parameter files declare symbolic `NUD_TONE_RACE_HANABI1/2`
 names; those resolve to RACE bank 3, tones `0xe`/`0xf` and match the literals in
 `FUN_1401b0cd0`. All other event → `(bank, tone)` pairs remain native

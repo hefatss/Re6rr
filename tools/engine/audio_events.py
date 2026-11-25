@@ -19,6 +19,9 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
                volume, pan, flags, &key); readyBank checks state 3 at +0x1c
   0x140c50ac0  playSeLoop: 8-byte loop records, request id 0x21 used by scene
   0x1401aebc0  positional SE records of 0x24 bytes (bank, tone, frames, xyz)
+  0x140c52100  BGM play: nuSound2StreamStartEx(handle 0, path, 0) via playStream
+  0x18002c2b0  nuSound2 voice params: 64 slots of 0xa0, meta at 0x2800+slot*0xc
+  0x18002eb80  bank-slot setup: 64 slots of 0x804, voice ids at +0x46
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -55,6 +58,15 @@ LOOP_RECORD_STRIDE = 8
 POSITIONAL_SE_STRIDE = 0x24
 KEYON_DEFAULTS = {"volume": 1.0, "pan": 0.0, "flags": 0,
                   "extra": [0.0, 1.0, 1.0]}
+BGM_STREAM_HANDLE = 0
+VOICE_SLOT_COUNT = 0x40
+VOICE_RECORD_STRIDE = 0xA0
+VOICE_META_BASE = 0x2800
+VOICE_META_STRIDE = 0xC
+# FUN_18002eb80 bank-slot errors, keyed by the value returned to the caller.
+BANK_SET_ERRORS = {"bad_index": 0x8000001E, "bad_format": 0x8000001D,
+                   "null_data": 0x80000024, "already_set": 0x80000021,
+                   "voice_fail": 0x80000026, "stream_fail": 0x80000027}
 
 # Lua name -> function VA, native call form, fixed bank/tone where present.
 BINDINGS = {
@@ -131,6 +143,14 @@ def dispatch_facts(dump):
                      "loop_stride": LOOP_RECORD_STRIDE,
                      "positional_stride": POSITIONAL_SE_STRIDE},
         "key_on_defaults": KEYON_DEFAULTS,
+        "playback": {
+            "bgm_stream_handle": BGM_STREAM_HANDLE,
+            "voice_slots": VOICE_SLOT_COUNT,
+            "voice_stride": VOICE_RECORD_STRIDE,
+            "voice_meta_base": VOICE_META_BASE,
+            "voice_meta_stride": VOICE_META_STRIDE,
+            "bank_set_errors": BANK_SET_ERRORS,
+        },
         "config": config,
     }
 
