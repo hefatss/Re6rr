@@ -75,7 +75,13 @@ car/tune mappings resolve; group is stored but runtime layer selection is not
 decoded. `tools/engine/engine_sound.py` reports the full mapping.
 `SoundManager` loads `config.bin`
 and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
-1 stream. `nuSound2_win64.dll` analysis also recovers 64 bank slots of stride
+1 stream. Its ctor writes a 0x28-byte config at `0x1407d674d`: counts at `+0`
+(`<=0x10`), `+4` (`<=0x100`), `+8` (`1..0x10`), config pointers at `+0x10` and
+`+0x18`, and an opaque `bnusCoreInitEx` argument at `+0x20`. `sys::Sound::Initialize`
+(`0x140c53c20`) passes it to the 0x98-byte Impl ctor (`0x140c533c0`), whose
+vectors sit at `+0`/`+0x20`/`+0x40` with strides `0x20`/`8`/`0x10`; each stream
+gets a `0xac440` buffer and output mode is fixed at 4. `nuSound2_win64.dll`
+analysis also recovers 64 bank slots of stride
 `0x804` and tone-record `+0x28` bit 0 as the loop flag. `sys::Sound::Impl::playSe`
 uses a 0x20-stride bank table with the nuSound2 handle at bank `+0x18` and calls
 `nuSound2KeyOnHandle(handle, tone, 0)`. Twelve Lua sound bindings were recovered

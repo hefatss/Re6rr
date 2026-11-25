@@ -98,6 +98,28 @@ def run(dump, failures):
           dispatch["key_on_defaults"]["pan"] == 0.0 and
           dispatch["key_on_defaults"]["flags"] == 0,
           "KeyOn defaults", failures)
+    init = sections["sound_init"]
+    check(init["config_size"] == 0x28 and
+          init["bank_num"] == {"offset": 0, "value": 8, "max": 0x10} and
+          init["reqid_num"] == {"offset": 4, "value": 0x22, "max": 0x100} and
+          init["stream_num"] == {"offset": 8, "value": 1, "min": 1,
+                                 "max": 0x10}, "Sound::Initialize config",
+          failures)
+    check(init["bank_num"]["value"] == len(banks) and
+          init["reqid_num"]["value"] == dispatch["requests"]["count"],
+          "shipped bank/request counts", failures)
+    check((init["config_bin"], init["config_3d_bin"], init["core_init"]) ==
+          (0x10, 0x18, 0x20), "config pointer offsets", failures)
+    impl = init["impl"]
+    check(impl["size"] == 0x98 and
+          impl["banks"] == {"offset": 0, "stride": 0x20} and
+          impl["requests"] == {"offset": 0x20, "stride": 8} and
+          impl["streams"] == {"offset": 0x40, "stride": 0x10},
+          "Impl vector ABI", failures)
+    check(impl["stream_buffer_size"] == 0xAC440 and impl["output_mode"] == 4
+          and impl["volume_offsets"] == (0x80, 0x88) and
+          impl["sentinel_offset"] == 0x90, "Impl stream/tail ABI", failures)
+
     cfg3d = sections["config_3d"]
     check(cfg3d["version"] == (1, 2, 3) and cfg3d["count"] == 5 and
           cfg3d["stride"] == 0x130 and len(cfg3d["sections"]) == 5,

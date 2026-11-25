@@ -31,6 +31,10 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
                instance +0x1c20/+0x1c28/+0x1c2c
   0x18034fc0  nuSound2_3DSetConfig parses config_3d.bin: 5 sections of 0x130,
                10 records of 0x1c, dB -> amplitude at 0x1800274d0
+   0x1407d674d  SoundManager ctor builds the 0x28-byte Sound::Initialize config:
+                bankNum 8, reqidNum 0x22, streamNum 1, two config pointers
+   0x140c53c20  sys::Sound::Initialize -> Impl ctor 0x140c533c0; 0x98-byte Impl
+   0x18029a60  nuSound2InitEx reads config +0x20 as bnusCoreInitEx argument
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -112,6 +116,44 @@ PLAY_3D_SE_LOOP = {
     "wrapper_errors": {"null_secondary": 0x80000031,
                        "null_third": 0x80000032, "null_position": 0x80000033},
 }
+
+
+# sys::Sound::Initialize (0x140c53c20) takes a 0x28-byte config. SoundManager's
+# ctor fills it at 0x1407d674d; the Impl ctor (0x140c533c0) validates the three
+# counts and sizes the three vectors. nuSound2InitEx passes config +0x20 to
+# bnusCoreInitEx (0x18001c9e0).
+INIT_CONFIG_WRITE_VA = 0x1407D674D
+INIT_CONFIG_BYTES = bytes.fromhex(
+    "c745d708000000" "c745db22000000" "c745df01000000")
+SOUND_INIT = {
+    "config_size": 0x28,
+    "bank_num": {"offset": 0x00, "value": 8, "max": 0x10},
+    "reqid_num": {"offset": 0x04, "value": 0x22, "max": 0x100},
+    "stream_num": {"offset": 0x08, "value": 1, "min": 1, "max": 0x10},
+    "config_bin": 0x10,
+    "config_3d_bin": 0x18,
+    "core_init": 0x20,
+    "impl": {
+        "size": 0x98,
+        "banks": {"offset": 0x00, "stride": 0x20},
+        "requests": {"offset": 0x20, "stride": 0x08},
+        "streams": {"offset": 0x40, "stride": 0x10},
+        "stream_buffer_size": 0xAC440,
+        "output_mode": 4,
+        "zero_quad_offset": 0x60,
+        "volume_offsets": (0x80, 0x88),
+        "sentinel_offset": 0x90,
+    },
+}
+
+
+def sound_init_facts(pe):
+    """Return the Sound::Initialize ABI, grounded in the shipped constants."""
+    off = pe.off(INIT_CONFIG_WRITE_VA - pe.image_base)
+    if off is None or pe.raw[off:off + len(INIT_CONFIG_BYTES)] != \
+            INIT_CONFIG_BYTES:
+        raise ValueError("Sound::Initialize config constants not found")
+    return SOUND_INIT
 
 
 def voice_request(request, bank, tone, bank_info=0, bank_ptr=0, tone_ptr=0,
@@ -376,6 +418,7 @@ def build(dump):
         "bgm": bgm_table(pe),
         "bindings": resolved_bindings(dump),
         "dispatch": dispatch_facts(dump),
+        "sound_init": sound_init_facts(pe),
         "mixer": mixer_facts(),
         "config_3d": parse_config_3d(open(os.path.join(dump, "data", "sound",
                                                 "config_3d.bin"), "rb").read()),
