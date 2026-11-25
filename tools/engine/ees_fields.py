@@ -23,6 +23,10 @@ Proven from `wmn6r.exe` (VA, image base 0x140000000):
                 round(value * 65536 / 2pi) into an int16 slot
 
   car_info, stride 0x8c: +0x00 int32, native default -1.
+
+  car_effect, stride 0xa0: FUN_1401cc390 copies 38 dwords and 2 bytes into
+  the runtime SInfoCarEffectCopy record at offsets 0x08..0xa0 and 0xdc.
+  `car_effect_copy` models the exact source -> destination map.
 """
 
 import argparse
@@ -39,8 +43,22 @@ import ees_scene  # noqa: E402
 CAMERA_STRIDE = 0x160
 CAR_DISP_STRIDE = 0x180
 CAR_INFO_STRIDE = 0x8C
+CAR_EFFECT_STRIDE = 0xA0
 CAMERA_TYPES = (0, 1, 2)
 CAMERA_EMPTY = -1
+
+# FUN_1401cc390: (source byte offset, destination byte offset, width).
+# The first 15 dwords and the 4x4 grid are regular; the 7 trailing dwords and
+# the two bytes are explicit. Destination layout is SInfoCarEffectCopy.
+CAR_EFFECT_COPY = [(index * 4, 8 + index * 4, 4) for index in range(0x0F)]
+CAR_EFFECT_COPY += [(0x3C, 0x44, 1)]
+for _column in range(4):
+    for _row in range(4):
+        CAR_EFFECT_COPY.append((0x40 + _column * 4 + _row * 0x10,
+                                0x48 + _column * 4 + _row * 0x10, 4))
+CAR_EFFECT_COPY += [(0x80 + index * 4, 0x88 + index * 4, 4)
+                    for index in range(7)]
+CAR_EFFECT_COPY += [(0x9C, 0xDC, 1)]
 
 # FUN_1401e0330 debug logger field names -> (byte offset, kind). The logger
 # prints several f32 fields with "%d"; those entries are marked f32 here.
@@ -139,6 +157,18 @@ def car_disp_record(raw, offset):
         "yaw_units": int(yaw * 65536.0 / (2.0 * math.pi) + 0.5)
         if math.isfinite(yaw) else 0,
     }
+
+
+def car_effect_copy(raw, offset):
+    """Model FUN_1401cc390: map a 0xa0 EES record into runtime fields."""
+    record = raw[offset:offset + CAR_EFFECT_STRIDE]
+    if len(record) < CAR_EFFECT_STRIDE:
+        raise ValueError("short car_effect record")
+    fields = {}
+    for source, destination, width in CAR_EFFECT_COPY:
+        fmt = "B" if width == 1 else "I"
+        fields[destination] = struct.unpack_from("<" + fmt, record, source)[0]
+    return fields
 
 
 def camera_rows(raw, header):

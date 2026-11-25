@@ -28,7 +28,7 @@ Status legend: **Done** = implemented and checked against shipped data;
 | P5 story data | Partial | 122 episodes, 3,309 messages, 3,484 events, 647 `drive_story_*` keys extracted; native condition schema known, per-episode predicate instances absent from dump. |
 | Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin` layout, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, BGM stream handle; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
 | Audio playback internals | Open | Mixer, envelope and 0xa0 voice-record fields unresolved; no audio playback host. |
-| Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` fields and remaining camera bytes uninterpreted. |
+| Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` copy ABI mapped, field semantics and remaining camera bytes uninterpreted. |
 | Renderer | Partial | Shipped SM4 DXBC operands decoded; no GLSL/Vulkan translation and no renderer host. |
 | Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |
 | Test suite | Done | `build_host.py --test` plus all `test_*.py` green against the dump. |

@@ -112,8 +112,10 @@ duration and `+0x0c` exact-frame flag (`FUN_1401c8f60`), plus car `+0x00` id,
 (`FUN_1401cba00`/`FUN_1401cc9d0`). `FUN_1401e0330` names 31 further camera
 fields from `+0x00` to `+0x10c`, including start/end field angles, look-at
 ranges and rotations, offset positions and connection ids;
-`ees_fields.camera_fields()` decodes them. The remaining camera bytes and
-`car_effect` fields are uninterpreted. Details in `recon/SCENE_EES.md`.
+`ees_fields.camera_fields()` decodes them. The `car_effect` copy ABI from the
+0xa0 EES record into the 0xe0 runtime record is mapped by `FUN_1401cc390` and
+modelled by `ees_fields.car_effect_copy()`, but neither its field semantics nor
+the remaining camera bytes are interpreted. Details in `recon/SCENE_EES.md`.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. Details in

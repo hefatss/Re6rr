@@ -74,7 +74,32 @@ def run(dump, failures):
           empty["m_LookAtStartRenge"] == 0.0,
           "named sentinel fields", failures)
 
+    mapping = ees_fields.CAR_EFFECT_COPY
+    check(len(mapping) == 40, "car_effect copy count", failures)
+    check(len(set(destination for _, destination, _ in mapping)) == 40,
+          "car_effect destinations unique", failures)
+    check(all(0 <= source < 0xA0 and 0 <= destination < 0xE0 and
+              width in (1, 4) for source, destination, width in mapping),
+          "car_effect copy bounds", failures)
+    check((0x00, 0x08, 4) in mapping and (0x38, 0x40, 4) in mapping and
+          (0x3C, 0x44, 1) in mapping and (0x40, 0x48, 4) in mapping and
+          (0x54, 0x5C, 4) in mapping and (0x80, 0x88, 4) in mapping and
+          (0x98, 0xA0, 4) in mapping and (0x9C, 0xDC, 1) in mapping,
+          "car_effect copy sample", failures)
+
     raw, header = load(dump, "ESeries_001/FrontEvent/CarData0.EES")
+    effect_offset = header["arrays"][1]["offset"]
+    copied = ees_fields.car_effect_copy(raw, effect_offset)
+    check(len(copied) == 40, "car_effect shipped copy", failures)
+    source_word, = struct.unpack_from("<I", raw, effect_offset)
+    check(copied[0x08] == source_word, "car_effect first word", failures)
+    check(copied[0xDC] == raw[effect_offset + 0x9C],
+          "car_effect trailing byte", failures)
+    check(all(copied[8 + index * 4] ==
+              struct.unpack_from("<I", raw, effect_offset + index * 4)[0]
+              for index in range(0x0F)), "car_effect contiguous words",
+          failures)
+
     cars = ees_fields.car_rows(raw, header)
     check(len(cars) == 10800, "car record count", failures)
     check(all(len(row["matrix"]) == 16 for row in cars),
