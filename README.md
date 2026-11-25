@@ -27,7 +27,7 @@ Status legend: **Done** = implemented and checked against shipped data;
 | P5 catalogs | Done | 151 cars, 77 mappings, 250 colours, 107 wheels, 261 aero/parts, 151 tunes, 42 tire scales. |
 | P5 story data | Partial | 122 episodes, 3,309 messages, 3,484 events, 647 `drive_story_*` keys extracted; native condition schema known, per-episode predicate instances absent from dump. |
 | Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin`/`config_3d.bin` layouts, Sound::Initialize config/Impl ABI, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, BGM stream handle; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
-| Audio playback internals | Partial | Mixer bus/fade ABI, dB↔volume conversion and 0xa0 voice-request layout recovered; copied extension blobs, envelope and playback host unresolved. |
+| Audio playback internals | Partial | Mixer bus/fade ABI, dB↔volume conversion, 0xa0 voice-request layout and extended-KeyOn activation via 3D vectors recovered; envelope semantics and playback host unresolved. |
 | Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` copy ABI mapped, field semantics and remaining camera bytes uninterpreted. |
 | Renderer | Partial | Shipped SM4 DXBC operands and structured IF/LOOP/SWITCH blocks decoded; no GLSL/Vulkan translation and no renderer host. |
 | Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |

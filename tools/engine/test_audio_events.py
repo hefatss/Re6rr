@@ -74,6 +74,26 @@ def run(dump, failures):
                                         "null_position": 0x80000033},
           "3D KeySet wrapper errors", failures)
 
+    ext = sections["dispatch"]["extended_key_on"]
+    check(ext["memcpy"] == 0x18001A4E0 and ext["layer"] == 0x1800237D0 and
+          ext["activator"] == 0x180026A60 and
+          ext["flag"] == "both_extension_pointers_non_null",
+          "extended KeyOn activation", failures)
+    check(ext["blobs"] == {
+        "a": {"request_offset": 0x34, "size": 0x34},
+        "b": {"request_offset": 0x68, "size": 0x1C}},
+        "extended KeyOn blob layout", failures)
+    check(ext["chain"]["last_tone_offset"] == 0x2C and
+          ext["chain"]["error"] == 0x8000004B and
+          ext["chain"]["modes"] == (1, 2, 3), "chained tone ABI", failures)
+    check(ext["3d"]["key_set"] == 0x180363B0 and
+          ext["3d"]["chgrp"] == 0x180361F0 and
+          ext["3d"]["vector_bytes"] == 0xC and
+          ext["3d"]["vectors"] == 3 and
+          ext["3d"]["null_errors"] == {"secondary": 0x80000031,
+                                       "third": 0x80000032,
+                                       "position": 0x80000033},
+          "3D extension vectors", failures)
     playback = sections["dispatch"]["playback"]
     check(playback["bgm_stream_handle"] == 0 and
           playback["voice_slots"] == 0x40 and
@@ -81,6 +101,15 @@ def run(dump, failures):
           playback["voice_meta_base"] == 0x2800 and
           playback["voice_meta_stride"] == 0xC,
           "nuSound2 playback ABI", failures)
+    check(ext["blobs"]["a"]["request_offset"] ==
+          playback["request_fields"]["ext_a"][0] and
+          ext["blobs"]["a"]["size"] ==
+          playback["request_fields"]["ext_a"][1] and
+          ext["blobs"]["b"]["request_offset"] ==
+          playback["request_fields"]["ext_b"][0] and
+          ext["blobs"]["b"]["size"] ==
+          playback["request_fields"]["ext_b"][1],
+          "extended blobs match voice request", failures)
     check(playback["bank_set_errors"] == {
         "bad_index": 0x8000001E, "bad_format": 0x8000001D,
         "null_data": 0x80000024, "already_set": 0x80000021,

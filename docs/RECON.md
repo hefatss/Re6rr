@@ -109,7 +109,13 @@ Mixer ABI: 68 buses of 0x48 bytes with fade target/step/frames fields, plus
 piecewise-linear dB ↔ volume conversion calibrated at instance
 `+0x1c20/+0x1c28/+0x1c2c`. The 0xa0 voice request layout is known from
 `FUN_1800237d0`: request/bank/tone, three pointers, volume/pan/flags and six
-floats with defaults from `FUN_1800011b0`. `tools/engine/audio_events.py` reads
+floats with defaults from `FUN_1800011b0`. `FUN_18001a4e0` is `memcpy`;
+`FUN_180026a60` activates the extended path only when both extension pointers
+are non-null, and `FUN_1800237d0` copies `0x34` bytes to request `+0x34` and
+`0x1c` bytes to `+0x68`. The six-argument game wrappers pass null pointers;
+`play3DSeLoop` passes three vectors through `nuSound2_3DKeySetOnHandle` and its
+Chgrp variant, so the shipped extended users are 3D voices. Envelope semantics
+inside those blobs remain unproven. `tools/engine/audio_events.py` reads
 these tables, models the mixer and voice request, and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
 three stage-effect parameter files declare symbolic `NUD_TONE_RACE_HANABI1/2`
 names; those resolve to RACE bank 3, tones `0xe`/`0xf` and match the literals in

@@ -35,6 +35,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
                 bankNum 8, reqidNum 0x22, streamNum 1, two config pointers
    0x140c53c20  sys::Sound::Initialize -> Impl ctor 0x140c533c0; 0x98-byte Impl
    0x18029a60  nuSound2InitEx reads config +0x20 as bnusCoreInitEx argument
+   0x1800237d0  extended KeyOn: memcpy 0x34/0x1c bytes from two pointers only
+                when both are non-null; 3D wrappers are the shipped users
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -144,6 +146,27 @@ SOUND_INIT = {
         "volume_offsets": (0x80, 0x88),
         "sentinel_offset": 0x90,
     },
+}
+
+
+# FUN_18001a4e0 is memcpy. FUN_180026a60 sets its extended flag only when both
+# extension pointers are non-null; FUN_1800237d0 then copies them into the voice
+# request at +0x34 (0x34 bytes) and +0x68 (0x1c bytes). The 6-argument game
+# wrappers pass null pointers; play3DSeLoop passes three vectors through
+# nuSound2_3DKeySetOnHandle -> ...Chgrp, so the shipped extended users are 3D.
+EXTENDED_KEY_ON = {
+    "memcpy": 0x18001A4E0,
+    "layer": 0x1800237D0,
+    "activator": 0x180026A60,
+    "flag": "both_extension_pointers_non_null",
+    "blobs": {"a": {"request_offset": 0x34, "size": 0x34},
+              "b": {"request_offset": 0x68, "size": 0x1C}},
+    "chain": {"last_tone_offset": 0x2C, "error": 0x8000004B,
+              "modes": (1, 2, 3)},
+    "3d": {"key_set": 0x180363B0, "chgrp": 0x180361F0,
+           "vector_bytes": 0xC, "vectors": 3,
+           "null_errors": {"secondary": 0x80000031, "third": 0x80000032,
+                           "position": 0x80000033}},
 }
 
 
@@ -346,6 +369,7 @@ def dispatch_facts(dump):
                      "positional_stride": POSITIONAL_SE_STRIDE},
         "key_on_defaults": KEYON_DEFAULTS,
         "play_3d_se_loop": PLAY_3D_SE_LOOP,
+        "extended_key_on": EXTENDED_KEY_ON,
         "playback": {
             "bgm_stream_handle": BGM_STREAM_HANDLE,
             "voice_slots": VOICE_SLOT_COUNT,
