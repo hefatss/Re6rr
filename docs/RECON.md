@@ -76,7 +76,15 @@ decoded. `tools/engine/engine_sound.py` reports the full mapping.
 `SoundManager` loads `config.bin`
 and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
 1 stream. `nuSound2_win64.dll` analysis also recovers 64 bank slots of stride
-`0x804` and tone-record `+0x28` bit 0 as the loop flag. Format details, call
+`0x804` and tone-record `+0x28` bit 0 as the loop flag. `sys::Sound::Impl::playSe`
+uses a 0x20-stride bank table with the nuSound2 handle at bank `+0x18` and calls
+`nuSound2KeyOnHandle(handle, tone, 0)`. Twelve Lua sound bindings were recovered
+from the `luaL_Reg` table at `0x141e1a070`: `PlaySE` fixes bank 2 (SYSTEM),
+`PlaySEOfBank` takes the bank, and Decide/Cancel/Move hardcode tones `0x2f`
+(`SELECT`), `7` (`CANCEL`) and `0xf` (`CURSOR`). BGM ids `0..141` map through a
+142-entry name table (`0x1414ec550`, 0x40-byte strings) and a 142-pointer path
+table (`0x141e1f8e0`); id `0x8c` stops and `0x8d` is the rejected `RANDOM` id.
+`tools/engine/audio_events.py` reads these shipped tables. Format details, call
 sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
 
 `.EES` scene files are raw, with no encryption or decompression on the native
