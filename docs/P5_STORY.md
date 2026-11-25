@@ -93,17 +93,22 @@ string bytes, 386,681 bytes total.
   `docs/recon/STORY_NATIVE.md`. Ghidra full analysis recovered the exact editor
   slots: stage/root/day come from struct offsets `0x10/0x14/0x18` and actors
   1..4 from `0x00/0x04/0x08/0x0c`, with native `GetStageId` / `GetActId_1..4`
-  error labels. Actor values sit inside the `0..253` domain of
-  native `getCarIdName(int)`, which indexes the `CRC_*`/`PLC_*` name table;
-  native callers of that function are car-list UI and honor debug code, not the
-  `Environment.Lua` reader. Stage values occupy native `EStage` fields: the
-  `CSeq::Init` builder copies three live-config offsets verbatim into
-  `SConfigPlay`, logging them as `target, eStage: %d`, `phantom, eStage: %d`,
-  and the `====== Phantom =======` section; the caller names live offset `0x630`
+  error labels. `FUN_1401e3640` copies the eight slots into scene struct offsets
+  `0x08/0x0c/0x10/0x14/0x18/0x1c/0x20/0x24`. `FUN_1401fae70` then passes
+  `stage - 1`, `stage_day` and each actor through
+  `FUN_1401d1db0` / `FUN_1401d1d00` / `FUN_1401d1d20`, resolving to `EAreaId_*`,
+  `Day_*`/`NIGHT`, and `getCarIdName` names. `tools/engine/scene_config.py`
+  reproduces those lookups from the shipped binary's 254-car, 149-stage and
+  5-day pointer tables; all 59 shipped episodes resolve. This proves scene
+  actor-to-car *name* resolution, not rival instantiation or gameplay model
+  assignment. Stage values occupy native `EStage` fields: the `CSeq::Init`
+  builder copies three live-config offsets verbatim into `SConfigPlay`, logging
+  them as `target, eStage: %d`, `phantom, eStage: %d`, and the
+  `====== Phantom =======` section; the caller names live offset `0x630`
   `config_play->RaceField.eStage`. All 26 shipped stage values are valid Enma
-  `EStage` indices. The scene-to-config write is not isolated, so these remain
-  proven domains, not applied mappings. `CAR_ID` is a cut-in actor slot, not a
-  `CRC_*` ID.
+  `EStage` indices. No write from the scene struct into those live-config
+  fields was found, so scene-to-config propagation stays unproven. `CAR_ID` is
+  a cut-in actor slot, not a `CRC_*` ID.
 - 3.10 GB of `.EES` cutscene camera/model data is not parsed.
 - gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
 - `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
