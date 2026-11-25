@@ -28,6 +28,18 @@ def check(dump):
     assert all(len(row) == 47 for row in layout["sound_records"])
     assert len(layout["request_records"]) == 1
     assert layout["request_records"][0][1:] == [-1, -1]
+    assert len(engine_sound.RECORD_FIELD_TYPES) == 47
+    first_record = layout["sound_records"][0]
+    assert first_record[13] == 0.625 and first_record[14] == 225.0
+    typed = layout["typed_sound_records"][0]
+    assert typed[4] == 0xffffff06 and typed[12] == 9000
+    assert typed[13] == 0.625 and typed[14] == 225.0
+    assert engine_sound.s32(typed[4]) == -250
+    assert all(engine_sound.u32(value) == value & 0xffffffff
+               for value in first_record[:4])
+    assert layout["runtime_constants"]["state_threshold"] == 1
+    assert layout["runtime_constants"]["state_min_scale"] == 0.99
+    assert layout["runtime_constants"]["request_amplitude"] == 5000
 
     data = engine_sound.collect(dump)
     assert data["counts"]["sounds"] == 224
@@ -58,7 +70,26 @@ def check(dump):
             tuned["group"]) == (13, 4, 95, 3)
     assert tuned["layer_tones"] == [169, 170, 171, 172, 173, 174, 175, 176,
                                     1, 0, 0, 3, 4, 0, -1, -1]
-    print("  320 car/tune mappings, 224 engine sounds, bank 7/4 tones: all engine sound checks passed")
+    layers = engine_sound.layer_envelopes(layout, 0)
+    assert len(layers) == 16
+    assert [item["envelope_source"] for item in layers] == \
+        ["A"] * 4 + ["B"] * 4 + ["D"] * 3 + ["F"] * 3 + ["H"] * 2
+    assert [item["tone"] for item in layers] == first["layer_tones"]
+    assert layers[-1]["envelope"] == layout["envelopes"][0][:5]
+    assert layers[-1]["rpm_limit"] is None
+    assert engine_sound.envelope_output([0, 1000, 500, 800, 200], 500,
+                                        1000, 2.0, 1.0,
+                                        layout["header"]) == (824, 2)
+    neutral = engine_sound.layer_outputs(layout, 0, 5000)
+    assert len(neutral) == 16
+    assert [item["tone"] for item in neutral] == first["layer_tones"]
+    assert neutral[0]["pitch"] == 0 and neutral[0]["volume"] == -6625
+    assert neutral[5]["pitch"] == 4936 and neutral[5]["volume"] == -5250
+    shifted = engine_sound.layer_outputs(layout, 0, 5000,
+                                         request_offset=1000)
+    assert shifted[2]["pitch"] == 1 and shifted[5]["pitch"] == 4557
+    assert [item["tone"] for item in shifted] == first["layer_tones"]
+    print("  320 car/tune mappings, 224 engine sounds, bank 7/4 tones, 16 runtime layers: all engine sound checks passed")
 
 
 def main():
