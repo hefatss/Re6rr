@@ -85,6 +85,133 @@ def parse_signature(raw, chunk):
     return {"marker": marker, "entries": entries}
 
 
+def read_name(raw, start, limit):
+    if start >= limit:
+        raise ValueError("name offset 0x%x outside chunk" % start)
+    end = raw.find(b"\0", start, limit)
+    if end < 0:
+        raise ValueError("unterminated name at 0x%x" % start)
+    return raw[start:end].decode("ascii", "replace")
+
+
+STAGE_NAMES = {
+    0xfffe: "vertex", 0xffff: "pixel", 0x4753: "geometry",
+    0x4853: "hull", 0x4453: "domain", 0x4353: "compute",
+}
+CLASS_NAMES = {0: "scalar", 1: "vector", 2: "matrix_rows",
+               3: "matrix_columns", 4: "object", 5: "struct"}
+TYPE_NAMES = {0: "void", 1: "bool", 2: "int", 3: "float", 4: "string",
+              19: "uint"}
+RESOURCE_NAMES = {0: "cbuffer", 1: "tbuffer", 2: "texture", 3: "sampler",
+                  4: "uav_typed"}
+
+
+def parse_rdef(raw, chunk):
+    start = chunk["data_offset"]
+    end = start + chunk["size"]
+    if chunk["size"] < 0x1c:
+        raise ValueError("short RDEF chunk")
+    cb_count, cb_offset, res_count, res_offset = struct.unpack_from(
+        "<4I", raw, start)
+    target, stage = struct.unpack_from("<2H", raw, start + 0x10)
+    flags, creator_offset = struct.unpack_from("<2I", raw, start + 0x14)
+    sm5 = target >= 0x500
+    res_stride = 36 if target >= 0x501 else 32
+    var_stride = 40 if sm5 else 24
+    # ponytail: SM5 nameOffset fields handled, no struct-member recursion.
+    resources = []
+    for index in range(res_count):
+        position = start + res_offset + index * res_stride
+        if position + res_stride > end:
+            raise ValueError("RDEF resource outside chunk")
+        fields = list(struct.unpack_from("<8I", raw, position))
+        entry = {
+            "name": read_name(raw, start + fields[0], end),
+            "type": RESOURCE_NAMES.get(fields[1], fields[1]),
+            "return_type": fields[2], "dimension": fields[3],
+            "sample_count": fields[4], "bind_point": fields[5],
+            "bind_count": fields[6], "flags": fields[7],
+        }
+        if res_stride == 36:
+            entry["space"], entry["id"] = fields[8:10]
+        resources.append(entry)
+    cbuffers = []
+    for index in range(cb_count):
+        position = start + cb_offset + index * 24
+        if position + 24 > end:
+            raise ValueError("RDEF cbuffer outside chunk")
+        name_offset, var_count, var_offset, size, cb_flags, cb_type = \
+            struct.unpack_from("<6I", raw, position)
+        variables = []
+        for variable in range(var_count):
+            entry = start + var_offset + variable * var_stride
+            if entry + var_stride > end:
+                raise ValueError("RDEF variable outside chunk")
+            vals = struct.unpack_from("<6I", raw, entry)
+            type_start = start + vals[4]
+            if type_start + 16 > end:
+                raise ValueError("RDEF type outside chunk")
+            var_class, var_type, rows, cols, elements, members = \
+                struct.unpack_from("<6H", raw, type_start)
+            member_offset, = struct.unpack_from("<I", raw, type_start + 12)
+            type_name_offset = 0x20 if sm5 else 0x10
+            type_name = ""
+            if member_offset or sm5:
+                if sm5:
+                    type_name_offset, = struct.unpack_from(
+                        "<I", raw, type_start + 0x20)
+                if type_name_offset:
+                    type_name = read_name(raw, start + type_name_offset, end)
+            variables.append({
+                "name": read_name(raw, start + vals[0], end),
+                "offset": vals[1], "size": vals[2], "flags": vals[3],
+                "type": {
+                    "class": CLASS_NAMES.get(var_class, var_class),
+                    "type": TYPE_NAMES.get(var_type, var_type),
+                    "rows": rows, "cols": cols, "elements": elements,
+                    "members": members, "member_offset": member_offset,
+                    "name": type_name,
+                },
+                "default_offset": vals[5],
+            })
+        cbuffers.append({
+            "name": read_name(raw, start + name_offset, end),
+            "size": size, "flags": cb_flags, "type": cb_type,
+            "variables": variables,
+        })
+    return {
+        "target_version": target,
+        "stage": STAGE_NAMES.get(stage, hex(stage)),
+        "flags": flags,
+        "creator": read_name(raw, start + creator_offset, end),
+        "cbuffers": cbuffers,
+        "resources": resources,
+    }
+
+
+STAT_FIELDS = [
+    "instruction_count", "temp_register_count", "unknown_a", "dcl_count",
+    "flt_instruction_count", "int_instruction_count", "uint_instruction_count",
+    "static_flow_control_count", "dynamic_flow_control_count", "unknown_b",
+    "temp_array_count", "array_instruction_count", "cut_instruction_count",
+    "emit_instruction_count", "sample_tex_count", "load_tex_count",
+    "cmp_tex_count", "sample_bias_tex_count", "sample_grad_tex_count",
+    "mov_instruction_count", "unknown_c", "conv_instruction_count",
+    "unknown_d", "input_prim_count", "gs_output_topology",
+    "gs_max_output_vtx_count", "unknown_e0", "unknown_e1", "unknown_e2",
+    "unknown_f", "c_control_points", "hs_output_prim", "hs_partitioning",
+    "tessellator_domain", "unknown_g0", "unknown_g1", "unknown_g2",
+]
+
+
+def parse_stat(raw, chunk):
+    count = chunk["size"] // 4
+    if chunk["size"] % 4 or count > len(STAT_FIELDS):
+        raise ValueError("unsupported STAT size 0x%x" % chunk["size"])
+    words = struct.unpack_from("<%dI" % count, raw, chunk["data_offset"])
+    return dict(zip(STAT_FIELDS, words))
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -111,6 +238,10 @@ def parse_nsh(path):
         for chunk in blob["chunks"]:
             if chunk["tag"] in ("ISGN", "OSGN"):
                 chunk["signature"] = parse_signature(raw, chunk)
+            elif chunk["tag"] == "RDEF":
+                chunk["reflection"] = parse_rdef(raw, chunk)
+            elif chunk["tag"] == "STAT":
+                chunk["statistics"] = parse_stat(raw, chunk)
         records.append({
             "index": index,
             "offset": offset,
@@ -164,11 +295,24 @@ def report_text(data):
         for chunk in record["dxbc"]["chunks"]:
             chunks[chunk["tag"]] = chunks.get(chunk["tag"], 0) + 1
     sizes = [record["dxbc_size"] for record in records]
+    reflections = [chunk["reflection"] for record in records
+                   for chunk in record["dxbc"]["chunks"]
+                   if chunk["tag"] == "RDEF"]
+    stages = {}
+    for reflection in reflections:
+        stages[reflection["stage"]] = stages.get(reflection["stage"], 0) + 1
+    cbuffers = sum(len(item["cbuffers"]) for item in reflections)
+    variables = sum(len(cb["variables"]) for item in reflections
+                    for cb in item["cbuffers"])
+    resources = sum(len(item["resources"]) for item in reflections)
     return "\n".join([
         "%d .nsh files, %d DXBC blobs, %d..%d bytes" %
         (len(shaders), len(records), min(sizes), max(sizes)),
         "chunks: %s" % ", ".join("%s=%d" % item
                                  for item in sorted(chunks.items())),
+        "reflection: %s, %d cbuffers, %d variables, %d resources" %
+        (", ".join("%s=%d" % item for item in sorted(stages.items())),
+         cbuffers, variables, resources),
     ])
 
 
