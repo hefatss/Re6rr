@@ -12,7 +12,8 @@ Proven from `wmn6r.exe` (VA, image base 0x140000000):
     +0x0c uint8  exact-frame flag: 1 = match only start, 0 = inclusive range
   `FUN_1401c8f60` converts start to f32, adds duration, truncates to int and
   compares against the frame: start <= frame <= end for flag 0, start == frame
-  for flag 1. `FUN_1401ca060` accepts types 0 and 2 only.
+  for flag 1. `FUN_1401ca060` accepts types 0 and 2 only. `FUN_1401e0330`
+  names 31 further fields from +0x00 to +0x10c; `camera_fields` decodes them.
 
   car_disp, stride 0x180, array pointer at container +0x1b0
     +0x00 int32  car/actor id (-1 is the native default from FUN_1401cc9d0)
@@ -41,6 +42,42 @@ CAR_INFO_STRIDE = 0x8C
 CAMERA_TYPES = (0, 1, 2)
 CAMERA_EMPTY = -1
 
+# FUN_1401e0330 debug logger field names -> (byte offset, kind). The logger
+# prints several f32 fields with "%d"; those entries are marked f32 here.
+CAMERA_FIELDS = {
+    "m_CamType": (0x00, "i32"),
+    "m_StratFrame": (0x04, "i32"),
+    "m_ActFrame": (0x08, "f32"),
+    "m_WiatMode": (0x0C, "u8"),
+    "m_StratFieldAngle": (0x90, "f32"),
+    "m_EndFieldAngle": (0x94, "f32"),
+    "m_FieldAngleCalcId": (0x98, "i32"),
+    "m_GlobalLookAt": (0xA8, "i32"),
+    "m_LookAtId": (0xB4, "i32"),
+    "m_LookAtStartRenge": (0xB8, "f32"),
+    "m_LookAtStartCamRotX": (0xBC, "f32"),
+    "m_LookAtStartCamRotY": (0xC0, "f32"),
+    "m_LookAtStartCamRotZ": (0xC4, "f32"),
+    "m_LookAtEndRenge": (0xC8, "f32"),
+    "m_LookAtEndCamRotX": (0xCC, "f32"),
+    "m_LookAtEndCamRotY": (0xD0, "f32"),
+    "m_LookAtEndCamRotZ": (0xD4, "f32"),
+    "m_TransCalcId": (0xD8, "i32"),
+    "m_RotCalcId": (0xDC, "i32"),
+    "m_StratOpRotZ": (0xE0, "f32"),
+    "m_EndOpRotZ": (0xE4, "f32"),
+    "m_OpRotZCalcId": (0xE8, "i32"),
+    "m_LookAtStartOfsetPosX": (0xEC, "f32"),
+    "m_LookAtStartOfsetPosY": (0xF0, "f32"),
+    "m_LookAtStartOfsetPosZ": (0xF4, "f32"),
+    "m_LookAtEndOfsetPosX": (0xF8, "f32"),
+    "m_LookAtEndOfsetPosY": (0xFC, "f32"),
+    "m_LookAtEndOfsetPosZ": (0x100, "f32"),
+    "m_OfsetCalcId": (0x104, "i32"),
+    "m_StartConnection": (0x108, "i32"),
+    "m_EndConnection": (0x10C, "i32"),
+}
+
 
 def camera_record(raw, offset):
     record = raw[offset:offset + CAMERA_STRIDE]
@@ -53,6 +90,22 @@ def camera_record(raw, offset):
         "exact": record[0x0C],
         "end": int(start + duration) if math.isfinite(duration) else None,
     }
+
+
+def camera_fields(raw, offset):
+    """Decode the 0x160 record fields named by FUN_1401e0330."""
+    record = raw[offset:offset + CAMERA_STRIDE]
+    if len(record) < CAMERA_STRIDE:
+        raise ValueError("short camera_data record")
+    fields = {}
+    for name, (field_offset, kind) in CAMERA_FIELDS.items():
+        if kind == "u8":
+            fields[name] = record[field_offset]
+        else:
+            fmt = "i" if kind == "i32" else "f"
+            fields[name] = struct.unpack_from("<" + fmt, record,
+                                              field_offset)[0]
+    return fields
 
 
 def camera_at_frame(records, frame):

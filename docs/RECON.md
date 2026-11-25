@@ -105,9 +105,11 @@ bytes. All 1,129 shipped files parse with exact size identity;
 consumers decode camera `+0x00` type, `+0x04` int32 start frame, `+0x08` float
 duration and `+0x0c` exact-frame flag (`FUN_1401c8f60`), plus car `+0x00` id,
 `+0x04` flags, `+0x10` transform matrix and `+0x150` yaw
-(`FUN_1401cba00`/`FUN_1401cc9d0`). `tools/engine/ees_fields.py` applies those
-field layouts; the remaining camera and `car_effect` fields are uninterpreted.
-Details in `recon/SCENE_EES.md`.
+(`FUN_1401cba00`/`FUN_1401cc9d0`). `FUN_1401e0330` names 31 further camera
+fields from `+0x00` to `+0x10c`, including start/end field angles, look-at
+ranges and rotations, offset positions and connection ids;
+`ees_fields.camera_fields()` decodes them. The remaining camera bytes and
+`car_effect` fields are uninterpreted. Details in `recon/SCENE_EES.md`.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. Details in

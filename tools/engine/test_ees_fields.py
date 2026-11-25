@@ -53,6 +53,27 @@ def run(dump, failures):
     check(ees_fields.camera_at_frame(rows, start - 1) != 0
           if start > 0 else True, "camera lookup before start", failures)
 
+    camera_offset = header["arrays"][1]["offset"]
+    fields = ees_fields.camera_fields(raw, camera_offset)
+    check(len(fields) == 31, "named camera field count", failures)
+    check(fields["m_CamType"] == 2 and fields["m_StratFrame"] == start,
+          "named camera identity", failures)
+    check(fields["m_ActFrame"] == record["duration"] and
+          fields["m_WiatMode"] == record["exact"],
+          "named camera timing", failures)
+    # FUN_1401e0330 prints this f32 with "%d"; the raw value is 48.0.
+    check(abs(fields["m_StratFieldAngle"] - 48.0) < 0.001,
+          "named field angle is f32", failures)
+    check(abs(fields["m_LookAtStartRenge"] - 36.0) < 0.001 and
+          abs(fields["m_LookAtEndRenge"] - 43.0) < 0.001,
+          "named look-at ranges", failures)
+    check(abs(fields["m_LookAtStartCamRotY"] - 0.326) < 0.01,
+          "named look-at rotation", failures)
+    empty = ees_fields.camera_fields(raw, camera_offset + 4 * 0x160)
+    check(empty["m_CamType"] == -1 and empty["m_WiatMode"] == 1 and
+          empty["m_LookAtStartRenge"] == 0.0,
+          "named sentinel fields", failures)
+
     raw, header = load(dump, "ESeries_001/FrontEvent/CarData0.EES")
     cars = ees_fields.car_rows(raw, header)
     check(len(cars) == 10800, "car record count", failures)
