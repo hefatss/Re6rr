@@ -38,7 +38,7 @@ must come from imports, string references, RTTI and pattern matching.
 | `.tex` | 1,175 + 75 | 406 MB | gzip, inner `XMD` |
 | `.mdl` | 578 + 32 | 188 MB | gzip, inner `XMD.001` |
 | `.nub` | 149 | 3.45 GB | raw sound banks (`data/sound/BGM...`) |
-| `.ees` | 1,129 | 2.89 GB | raw, header `0x2712` — scene camera/event data |
+| `.ees` | 1,129 | 2.89 GB | raw `EventScene2` header + typed arrays — scene camera/car data |
 | `.nud` | 371 | 6.2 MB | `NDWD` — navimap |
 | `.nsh` | 257 | 1.4 MB | `NSXR` — compiled shader blobs |
 | `.act` | 170 | 6.8 MB | `RESOURCE:NU` — effect actors |
@@ -71,6 +71,13 @@ and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
 1 stream. `nuSound2_win64.dll` analysis also recovers 64 bank slots of stride
 `0x804` and tone-record `+0x28` bit 0 as the loop flag. Format details, call
 sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
+
+`.EES` scene files are raw, with no encryption or decompression on the native
+load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`
+plus `0x160` bytes; car files hold 10,800 records of `0x180`, `0xa0` and `0x8c`
+bytes. All 1,129 shipped files parse with exact size identity;
+`tools/engine/ees_scene.py` inventories and extracts the arrays. Field layout
+inside records is still unknown. Details in `recon/SCENE_EES.md`.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. Details in
