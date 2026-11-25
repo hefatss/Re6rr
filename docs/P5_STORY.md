@@ -106,9 +106,15 @@ string bytes, 386,681 bytes total.
   them as `target, eStage: %d`, `phantom, eStage: %d`, and the
   `====== Phantom =======` section; the caller names live offset `0x630`
   `config_play->RaceField.eStage`. All 26 shipped stage values are valid Enma
-  `EStage` indices. No write from the scene struct into those live-config
-  fields was found, so scene-to-config propagation stays unproven. `CAR_ID` is
-  a cut-in actor slot, not a `CRC_*` ID.
+  `EStage` indices. One scene-to-config bridge is now proven: `FUN_1401eaab0`
+  copies scene struct `+0x24` (`CAMID`) into the embedded camera config at
+  scene base `+0x740+0x70`; `FUN_1401f1f20` uses that value to select the
+  `CamData.EES` slot at base `+0x2d78 + camid*0x1b0` and copies it to the
+  loader at `+0x48`, while `FUN_1401e1ff0` uses it to index 255-entry camera
+  arrays. `tools/engine/scene_bridge.py` models the copy and lookup; all 59
+  shipped episodes use camid `0..2`. No write from stage/root/day/actor scene
+  fields into live-config `0x630` was found, so that propagation stays
+  unproven. `CAR_ID` is a cut-in actor slot, not a `CRC_*` ID.
 - 3.10 GB of `.EES` cutscene camera/model data is not parsed.
 - gzip/NTWD cut-in textures are not decoded; only their paths are catalogued.
 - `LETTERING` points at `data_jp/flash/DRIVE/Race/EVENT/` files whose text is
