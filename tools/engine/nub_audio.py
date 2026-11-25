@@ -74,8 +74,9 @@ def tones(path, meta=None):
                 raise ValueError("short tone record: %s[%d]" %
                                  (path, tone_index))
             codec = record[:8].split(b"\0", 1)[0].decode("ascii", "replace")
-            tone_slot, group, flags, length, data_offset, align = \
+            tone_slot, group, flags, length, data_offset, format_count = \
                 struct.unpack_from("<6I", record, 8)
+            loop_flag = struct.unpack_from("<I", record, 0x28)[0]
             rate, byte_rate, block_align, bits = \
                 struct.unpack_from("<IIHH", record, 0xc0)
             width = bits // 8
@@ -92,8 +93,9 @@ def tones(path, meta=None):
                 "index": tone_index, "slot": tone_slot, "group": group,
                 "record_offset": offset, "codec": codec,
                 "length": length, "data_offset": data_offset,
-                "flags": flags, "align": align, "rate": rate,
+                "flags": flags, "format_count": format_count, "rate": rate,
                 "channels": block_align // width, "bits": bits,
+                "loop_flag": loop_flag, "loop": bool(loop_flag & 1),
                 "block_align": block_align, "byte_rate": byte_rate,
             })
         return result

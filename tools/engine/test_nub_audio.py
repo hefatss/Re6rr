@@ -22,11 +22,13 @@ def check(dump):
     assert first["bits"] == 16 and first["length"] == 0x11a20
     assert first["data_offset"] == 0
     assert {row["data_offset"] for row in bgm["tone_records"]} == {0}
+    assert all(row["loop"] for row in bgm["tone_records"])
 
     system = nub_audio.parse_nub(os.path.join(root, "SYSTEM.nub"))
     assert system["tone_count"] == 120
     assert system["tone_records"][1]["data_offset"] == 0x2a6f0
     assert system["tone_records"][1]["length"] == 0x25c6a
+    assert sum(row["loop"] for row in system["tone_records"]) == 9
 
     strings = nub_audio.parse_string_table(
         os.path.join(root, "nuSound2ToneStrBGM.bin"), "tone")

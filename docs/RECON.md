@@ -61,8 +61,9 @@ entry. Shipped engine-sound lookup tables are parsed by
 group)` pairs, 224 ids, groups 2/3/4) and `emtis.tbl` has version `3 3 17`, seven
 numbered sections and 416 source WAV names. `SoundManager` loads `config.bin`
 and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
-1 stream. Format details, call sites and unresolved mixer fields are in
-`recon/AUDIO_NUB.md`.
+1 stream. `nuSound2_win64.dll` analysis also recovers 64 bank slots of stride
+`0x804` and tone-record `+0x28` bit 0 as the loop flag. Format details, call
+sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
 
 Shader folder holds compiled blobs (`NSXR`), not HLSL source, so a port translates
 behaviour rather than recompiling shaders.
