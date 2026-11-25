@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import struct
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -100,6 +101,32 @@ def run(dump, failures):
     check(audio_events.decibels_to_volume(-100.0, lo, mid, hi) == 0.0 and
           audio_events.volume_to_decibels(0.0, lo, mid, hi) == lo,
           "dB clamps", failures)
+    fields = playback["request_fields"]
+    check(len(fields) == 18 and fields["bank_ptr"] == (0x10, 8) and
+          fields["voice_ptr"] == (0x20, 8) and
+          fields["volume"] == (0x84, 4) and fields["extra_c"] == (0x98, 4),
+          "voice request fields", failures)
+    check(list(playback["float_defaults"]) == [1.0, 0.0, 0, 0.0, 1.0, 1.0],
+          "voice request defaults", failures)
+    record = audio_events.voice_request(7, 3, 14, bank_info=9, bank_ptr=0x100,
+                                        tone_ptr=0x200, voice_ptr=0x300,
+                                        chain_tone=-1, volume=0.5, pan=-0.25,
+                                        flags=2)
+    check(len(record) == 0xA0, "voice request size", failures)
+    check(struct.unpack_from("<iiiI", record, 0) == (7, 3, 9, 14),
+          "voice request header", failures)
+    check(struct.unpack_from("<QQQ", record, 0x10) == (0x100, 0x200, 0x300),
+          "voice request pointers", failures)
+    check(struct.unpack_from("<iiI", record, 0x28) == (-1, 0, 0),
+          "voice request chain", failures)
+    check(struct.unpack_from("<ffIfff", record, 0x84) ==
+          (0.5, -0.25, 2, 0.0, 1.0, 1.0), "voice request floats",
+          failures)
+    default = audio_events.voice_request(1, 2, 3)
+    check(struct.unpack_from("<ffIfff", default, 0x84) ==
+          (1.0, 0.0, 0, 0.0, 1.0, 1.0), "voice request default floats",
+          failures)
+
     state = {"volume": 1.0, "target": 1.0, "step": 0.0, "frames": 0,
              "mode": 0}
     audio_events.bus_fade(state, 2.0, 10)

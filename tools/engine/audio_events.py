@@ -21,6 +21,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
   0x1401aebc0  positional SE records of 0x24 bytes (bank, tone, frames, xyz)
   0x140c52100  BGM play: nuSound2StreamStartEx(handle 0, path, 0) via playStream
   0x18002c2b0  nuSound2 voice params: 64 slots of 0xa0, meta at 0x2800+slot*0xc
+  0x1800237d0  builds the 0xa0 voice request: pointers at +0x10/+0x18/+0x20,
+               volume/pan/flags at +0x84/+0x88/+0x8c, defaults from 0x1800011b0
   0x18002eb80  bank-slot setup: 64 slots of 0x804, voice ids at +0x46
   0x18001cbc0  68 mixer buses of 0x48; nuSound2BusFade fades over N frames
   0x180020290  piecewise dB -> volume; 0x1800201b0 inverse, calibration at
@@ -84,6 +86,42 @@ BUS_FADE_MODE = 2
 BUS_INVALID = 0x80000001
 # Piecewise dB <-> linear volume calibration at instance +0x1c20/28/2c.
 DB_CALIBRATION_OFFSETS = (0x1C20, 0x1C28, 0x1C2C)
+
+# FUN_1800237d0 builds the 0xa0 voice request from the KeyOn arguments;
+# FUN_1800011b0 sets defaults for the six floats at +0x84.
+VOICE_REQUEST_FIELDS = {
+    "request": (0x00, 4), "bank": (0x04, 4), "bank_info": (0x08, 4),
+    "tone": (0x0C, 4), "bank_ptr": (0x10, 8), "tone_ptr": (0x18, 8),
+    "voice_ptr": (0x20, 8), "chain_tone": (0x28, 4), "extended": (0x2C, 4),
+    "reserved": (0x30, 4), "ext_a": (0x34, 0x34), "ext_b": (0x68, 0x1C),
+    "volume": (0x84, 4), "pan": (0x88, 4), "flags": (0x8C, 4),
+    "extra_a": (0x90, 4), "extra_b": (0x94, 4), "extra_c": (0x98, 4),
+}
+VOICE_FLOAT_DEFAULTS = (1.0, 0.0, 0, 0.0, 1.0, 1.0)
+
+
+def voice_request(request, bank, tone, bank_info=0, bank_ptr=0, tone_ptr=0,
+                  voice_ptr=0, chain_tone=-1, extended=0, ext_a=b"",
+                  ext_b=b"", volume=None, pan=None, flags=None,
+                  extra_a=None, extra_b=None, extra_c=None):
+    """Build the 0xa0 record passed to FUN_18002c2b0."""
+    values = [volume, pan, flags, extra_a, extra_b, extra_c]
+    floats = [VOICE_FLOAT_DEFAULTS[index] if value is None else value
+              for index, value in enumerate(values)]
+    record = bytearray(VOICE_RECORD_STRIDE)
+    struct.pack_into("<iiiIQQQiiI", record, 0, request, bank, bank_info,
+                     tone, bank_ptr, tone_ptr, voice_ptr, chain_tone,
+                     extended, 0)
+    offset = VOICE_REQUEST_FIELDS["ext_a"][0]
+    for blob, width in ((ext_a, 0x34), (ext_b, 0x1C)):
+        if len(blob) > width:
+            raise ValueError("voice extension too long")
+        record[offset:offset + len(blob)] = blob
+        offset += width
+    struct.pack_into("<ffIfff", record, VOICE_REQUEST_FIELDS["volume"][0],
+                     float(floats[0]), float(floats[1]), int(floats[2]),
+                     float(floats[3]), float(floats[4]), float(floats[5]))
+    return record
 
 
 def decibels_to_volume(db, lo, mid, hi):
@@ -211,6 +249,8 @@ def dispatch_facts(dump):
             "voice_meta_base": VOICE_META_BASE,
             "voice_meta_stride": VOICE_META_STRIDE,
             "bank_set_errors": BANK_SET_ERRORS,
+            "request_fields": VOICE_REQUEST_FIELDS,
+            "float_defaults": VOICE_FLOAT_DEFAULTS,
         },
         "config": config,
     }

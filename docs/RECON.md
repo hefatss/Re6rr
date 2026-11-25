@@ -96,13 +96,15 @@ slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
 bad format, null data, already-set banks and voice/stream failures.
 Mixer ABI: 68 buses of 0x48 bytes with fade target/step/frames fields, plus
 piecewise-linear dB ↔ volume conversion calibrated at instance
-`+0x1c20/+0x1c28/+0x1c2c`. `tools/engine/audio_events.py` reads these tables,
-models the mixer and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
+`+0x1c20/+0x1c28/+0x1c2c`. The 0xa0 voice request layout is known from
+`FUN_1800237d0`: request/bank/tone, three pointers, volume/pan/flags and six
+floats with defaults from `FUN_1800011b0`. `tools/engine/audio_events.py` reads
+these tables, models the mixer and voice request, and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
 three stage-effect parameter files declare symbolic `NUD_TONE_RACE_HANABI1/2`
 names; those resolve to RACE bank 3, tones `0xe`/`0xf` and match the literals in
 `FUN_1401b0cd0`. All other event → `(bank, tone)` pairs remain native
 call-site constants. Format details, call sites and the remaining envelope
-gaps are in `recon/AUDIO_NUB.md`.
+gaps (the two copied extension blobs) are in `recon/AUDIO_NUB.md`.
 
 `.EES` scene files are raw, with no encryption or decompression on the native
 load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`
