@@ -54,7 +54,8 @@ and `STAT` chunks; `tools/engine/nsxr_shader.py` inventories, extracts and parse
 signatures, reflection and statistics. Shader record 0 is vertex, record 1 pixel;
 varyings match. All 446 blobs target SM4 (`0x0400`), with 797 constant buffers,
 2,029 variables and 1,849 resource bindings; creator is the Microsoft HLSL
-compiler `9.29.952.3111`.
+compiler `9.29.952.3111`. `SHDR` instruction boundaries and opcode ids decode
+cleanly: 25,758 instructions total, SM4 opcode ids `0..105`.
 
 `.nub` is now decoded: 32-byte header, tone-record offsets, 208-byte records with
 PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse

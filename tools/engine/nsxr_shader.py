@@ -212,6 +212,62 @@ def parse_stat(raw, chunk):
     return dict(zip(STAT_FIELDS, words))
 
 
+OPCODE_NAMES = [
+    "ADD", "AND", "BREAK", "BREAKC", "CALL", "CALLC", "CASE", "CONTINUE",
+    "CONTINUEC", "CUT", "DEFAULT", "DERIV_RTX", "DERIV_RTY", "DISCARD",
+    "DIV", "DP2", "DP3", "DP4", "ELSE", "EMIT", "EMITTHENCUT", "ENDIF",
+    "ENDLOOP", "ENDSWITCH", "EQ", "EXP", "FRC", "FTOI", "FTOU", "GE",
+    "IADD", "IF", "IEQ", "IGE", "ILT", "IMAD", "IMAX", "IMIN", "IMUL",
+    "INE", "INEG", "ISHL", "ISHR", "ITOF", "LABEL", "LD", "LD_MS", "LOG",
+    "LOOP", "LT", "MAD", "MIN", "MAX", "CUSTOMDATA", "MOV", "MOVC", "MUL",
+    "NE", "NOP", "NOT", "OR", "RESINFO", "RET", "RETC", "ROUND_NE",
+    "ROUND_NI", "ROUND_PI", "ROUND_Z", "RSQ", "SAMPLE", "SAMPLE_C",
+    "SAMPLE_C_LZ", "SAMPLE_L", "SAMPLE_D", "SAMPLE_B", "SQRT", "SWITCH",
+    "SINCOS", "UDIV", "ULT", "UGE", "UMUL", "UMAD", "UMAX", "UMIN", "USHR",
+    "UTOF", "XOR", "DCL_RESOURCE", "DCL_CONSTANT_BUFFER", "DCL_SAMPLER",
+    "DCL_INDEX_RANGE", "DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY",
+    "DCL_GS_INPUT_PRIMITIVE", "DCL_MAX_OUTPUT_VERTEX_COUNT", "DCL_INPUT",
+    "DCL_INPUT_SGV", "DCL_INPUT_SIV", "DCL_INPUT_PS", "DCL_INPUT_PS_SGV",
+    "DCL_INPUT_PS_SIV", "DCL_OUTPUT", "DCL_OUTPUT_SGV", "DCL_OUTPUT_SIV",
+    "DCL_TEMPS", "DCL_INDEXABLE_TEMP", "DCL_GLOBAL_FLAGS", "RESERVED0",
+    "LOD", "GATHER4", "SAMPLE_POS", "SAMPLE_INFO",
+]
+SHADER_TYPES = ["pixel", "vertex", "geometry", "hull", "domain", "compute"]
+
+
+def parse_shdr(raw, chunk):
+    start = chunk["data_offset"]
+    end = start + chunk["size"]
+    if chunk["size"] < 8:
+        raise ValueError("short SHDR chunk")
+    version, = struct.unpack_from("<B", raw, start)
+    program, = struct.unpack_from("<H", raw, start + 2)
+    dword_count, = struct.unpack_from("<I", raw, start + 4)
+    position = start + 8
+    opcodes = {}
+    instruction_count = 0
+    while position < end:
+        if position + 4 > end:
+            raise ValueError("truncated SHDR instruction")
+        token, = struct.unpack_from("<I", raw, position)
+        opcode, length = token & 0x7ff, token >> 24
+        if length == 0 or position + length * 4 > end:
+            raise ValueError("bad SHDR instruction length 0x%x" % length)
+        name = OPCODE_NAMES[opcode] if opcode < len(OPCODE_NAMES) else \
+            "OP_%d" % opcode
+        opcodes[name] = opcodes.get(name, 0) + 1
+        instruction_count += 1
+        position += length * 4
+    return {
+        "version": version,
+        "shader_type": SHADER_TYPES[program] if program < len(SHADER_TYPES)
+                       else hex(program),
+        "dword_count": dword_count,
+        "instruction_count": instruction_count,
+        "opcodes": opcodes,
+    }
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -242,6 +298,8 @@ def parse_nsh(path):
                 chunk["reflection"] = parse_rdef(raw, chunk)
             elif chunk["tag"] == "STAT":
                 chunk["statistics"] = parse_stat(raw, chunk)
+            elif chunk["tag"] == "SHDR":
+                chunk["code"] = parse_shdr(raw, chunk)
         records.append({
             "index": index,
             "offset": offset,
@@ -305,6 +363,9 @@ def report_text(data):
     variables = sum(len(cb["variables"]) for item in reflections
                     for cb in item["cbuffers"])
     resources = sum(len(item["resources"]) for item in reflections)
+    code = [chunk["code"] for record in records
+            for chunk in record["dxbc"]["chunks"] if chunk["tag"] == "SHDR"]
+    instructions = sum(item["instruction_count"] for item in code)
     return "\n".join([
         "%d .nsh files, %d DXBC blobs, %d..%d bytes" %
         (len(shaders), len(records), min(sizes), max(sizes)),
@@ -313,6 +374,8 @@ def report_text(data):
         "reflection: %s, %d cbuffers, %d variables, %d resources" %
         (", ".join("%s=%d" % item for item in sorted(stages.items())),
          cbuffers, variables, resources),
+        "bytecode: %d instructions, version 0x%02x" %
+        (instructions, min(item["version"] for item in code)),
     ])
 
 

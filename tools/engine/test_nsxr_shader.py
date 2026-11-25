@@ -69,6 +69,21 @@ def check(dump):
     assert [item["type"] for item in pixel_rdef["resources"]].count("sampler") \
         == 3
 
+    vertex_code = chunk(body["records"][0], "SHDR")["code"]
+    pixel_code = chunk(body["records"][1], "SHDR")["code"]
+    assert vertex_code["version"] == pixel_code["version"] == 0x40
+    assert vertex_code["shader_type"] == "vertex"
+    assert pixel_code["shader_type"] == "pixel"
+    assert [vertex_code["instruction_count"],
+            pixel_code["instruction_count"]] == [52, 171]
+    assert vertex_code["opcodes"]["MAD"] == 13
+    assert "SAMPLE" not in vertex_code["opcodes"]
+    assert pixel_code["opcodes"]["SAMPLE"] == 3
+    assert pixel_code["opcodes"]["DCL_SAMPLER"] == 3
+    assert pixel_code["opcodes"]["DCL_RESOURCE"] == 3
+    assert pixel_code["opcodes"]["DISCARD"] == 14
+    assert pixel_code["opcodes"]["DCL_OUTPUT"] == 3
+
     vertex_stat = chunk(body["records"][0], "STAT")["statistics"]
     assert [vertex_stat[key] for key in
             ("instruction_count", "temp_register_count", "dcl_count",
@@ -117,6 +132,14 @@ def check(dump):
     stats = [chunk(record, "STAT")["statistics"] for record in records]
     assert len(stats) == 446
     assert all(item["instruction_count"] > 0 for item in stats)
+    code = [chunk(record, "SHDR")["code"] for record in records]
+    assert len(code) == 446
+    assert all(item["version"] == 0x40 for item in code)
+    assert sum(item["instruction_count"] for item in code) == 25758
+    assert sum(item["shader_type"] == "vertex" for item in code) == 223
+    assert sum(item["shader_type"] == "pixel" for item in code) == 223
+    assert all(not any(name.startswith("OP_") for name in item["opcodes"])
+               for item in code)
 
     with tempfile.TemporaryDirectory() as directory:
         output = os.path.join(directory, "body.dxbc")
@@ -124,7 +147,7 @@ def check(dump):
         raw = open(output, "rb").read()
         assert len(raw) == record["dxbc_size"] == 0x9a8
         assert raw[:4] == b"DXBC"
-    print("  223 .nsh files, 446 DXBC blobs, 446 RDEF/STAT records, one extract round-trip: all shader checks passed")
+    print("  223 .nsh files, 446 DXBC blobs, 25758 instructions, one extract round-trip: all shader checks passed")
 
 
 def main():
