@@ -91,8 +91,13 @@ sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
 load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`
 plus `0x160` bytes; car files hold 10,800 records of `0x180`, `0xa0` and `0x8c`
 bytes. All 1,129 shipped files parse with exact size identity;
-`tools/engine/ees_scene.py` inventories and extracts the arrays. Field layout
-inside records is still unknown. Details in `recon/SCENE_EES.md`.
+`tools/engine/ees_scene.py` inventories and extracts the arrays. Native
+consumers decode camera `+0x00` type, `+0x04` int32 start frame, `+0x08` float
+duration and `+0x0c` exact-frame flag (`FUN_1401c8f60`), plus car `+0x00` id,
+`+0x04` flags, `+0x10` transform matrix and `+0x150` yaw
+(`FUN_1401cba00`/`FUN_1401cc9d0`). `tools/engine/ees_fields.py` applies those
+field layouts; the remaining camera and `car_effect` fields are uninterpreted.
+Details in `recon/SCENE_EES.md`.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. Details in
