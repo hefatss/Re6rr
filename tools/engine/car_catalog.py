@@ -120,6 +120,7 @@ def specification(dump, path):
         "engine_cc": as_int(scalar(body, "EngineDisplacement")),
         "drive": as_int(scalar(body, "DriveSystem")),
         "mission": as_int(scalar(body, "MissionNumber")),
+        "engine_sound": as_int(scalar(body, "EngineSound"), -1),
         "tire_front": as_float(scalar(body, "TireOutsideFront")),
         "tire_rear": as_float(scalar(body, "TireOutsideRear")),
         "tire_width_front": as_int(scalar(body, "PureTireWidthFront")),

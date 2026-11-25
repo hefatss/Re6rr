@@ -56,7 +56,12 @@ PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse
 PCM to standard WAV. Native callers show `sys::Sound::Impl::playSe` selecting a
 bank number and tone index before calling `nuSound2KeyOnHandle(handle, tone,
 attr)`, while `registerBank` stores the nuSound2 handle in a 32-byte bank-table
-entry. Format details, call sites and unresolved mixer fields are in
+entry. Shipped engine-sound lookup tables are parsed by
+`tools/engine/audio_tables.py`: `engmap.tbl` is 32 x 20 u32 (320 `(engine sound,
+group)` pairs, 224 ids, groups 2/3/4) and `emtis.tbl` has version `3 3 17`, seven
+numbered sections and 416 source WAV names. `SoundManager` loads `config.bin`
+and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
+1 stream. Format details, call sites and unresolved mixer fields are in
 `recon/AUDIO_NUB.md`.
 
 Shader folder holds compiled blobs (`NSXR`), not HLSL source, so a port translates
