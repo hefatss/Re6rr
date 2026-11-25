@@ -77,11 +77,18 @@ def tones(path, meta=None):
             tone_slot, group, flags, length, data_offset, format_count = \
                 struct.unpack_from("<6I", record, 8)
             loop_flag = struct.unpack_from("<I", record, 0x28)[0]
+            volume = struct.unpack_from("<f", record, 0x34)[0]
+            three_d_param_no = struct.unpack_from("<I", record, 0x54)[0]
+            format_tag, format_channels = struct.unpack_from("<HH", record,
+                                                              0xbc)
             rate, byte_rate, block_align, bits = \
                 struct.unpack_from("<IIHH", record, 0xc0)
             width = bits // 8
             if codec != "wav" or width == 0 or block_align == 0:
                 raise ValueError("unsupported tone format: %s[%d]" %
+                                 (path, tone_index))
+            if format_tag != 1 or format_channels != block_align // width:
+                raise ValueError("bad WAV format block: %s[%d]" %
                                  (path, tone_index))
             if length % block_align or data_offset + length > meta["data_size"]:
                 raise ValueError("tone data outside bank: %s[%d]" %
@@ -96,6 +103,8 @@ def tones(path, meta=None):
                 "flags": flags, "format_count": format_count, "rate": rate,
                 "channels": block_align // width, "bits": bits,
                 "loop_flag": loop_flag, "loop": bool(loop_flag & 1),
+                "volume": volume, "three_d_param_no": three_d_param_no,
+                "format_tag": format_tag, "format_channels": format_channels,
                 "block_align": block_align, "byte_rate": byte_rate,
             })
         return result

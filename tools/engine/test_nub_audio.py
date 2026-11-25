@@ -23,6 +23,9 @@ def check(dump):
     assert first["data_offset"] == 0
     assert {row["data_offset"] for row in bgm["tone_records"]} == {0}
     assert all(row["loop"] for row in bgm["tone_records"])
+    assert all(row["format_tag"] == 1 and
+               row["format_channels"] == row["channels"]
+               for row in bgm["tone_records"])
 
     system = nub_audio.parse_nub(os.path.join(root, "SYSTEM.nub"))
     assert system["tone_count"] == 120
