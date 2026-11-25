@@ -6,7 +6,9 @@
         --extract Body.nsh --stage 0 --out build/tmp/body_dxbc.bin
 
 `.nsh` files are raw `NSXR` containers. Each has two records; a record points
-0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. No game data is stored in
+0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
+into instructions, declarations and SM4 operands (register type, mask/swizzle,
+immediate and relative indices, neg/abs modifiers). No game data is stored in
 this repository.
 """
 
@@ -234,6 +236,221 @@ OPCODE_NAMES = [
 ]
 SHADER_TYPES = ["pixel", "vertex", "geometry", "hull", "domain", "compute"]
 
+# SM4 operand encoding from DXBC: token bits 0..1 component count, 2..3
+# selection mode, 4..7 mask, 4..11 swizzle, 12..19 type, 20..21 index
+# dimension, 22..30 index representations, bit 31 extended modifier.
+OPERAND_TYPES = [
+    "temp", "input", "output", "indexable_temp", "immediate32",
+    "immediate64", "sampler", "resource", "constant_buffer",
+    "immediate_constant_buffer", "label", "input_primitiveid",
+    "output_depth", "null", "rasterizer", "output_coverage_mask", "stream",
+    "function_body", "function_table", "interface", "function_input",
+    "function_output", "output_control_point_id", "input_fork_instance_id",
+    "input_join_instance_id", "input_control_point", "output_control_point",
+    "input_patch_constant", "input_domain_point", "this_pointer",
+    "unordered_access_view", "thread_group_shared_memory", "input_thread_id",
+    "input_thread_group_id", "input_thread_id_in_group", "input_coverage_mask",
+    "input_thread_id_in_group_flattened", "input_gs_instance_id",
+    "output_depth_greater_equal", "output_depth_less_equal", "cycle_counter",
+    "output_stencil_ref", "inner_coverage",
+]
+SELECTION_MODES = ["mask", "swizzle", "select1"]
+COMPONENT_NAMES = "xyzw"
+NUM_COMPONENT_NAMES = ["scalar", "one", "four", "n"]
+INDEX_TYPES = ["immediate32", "immediate64", "relative",
+               "immediate32_plus_relative", "immediate64_plus_relative"]
+MODIFIER_NAMES = ["none", "neg", "abs", "absneg"]
+PRECISION_NAMES = ["default", "float16", "float10", "unused", "sint16",
+                   "uint16", "any16", "any10"]
+EXTENDED_OPCODE_TYPES = ["empty", "sample_controls", "resource_dim",
+                         "resource_return_type"]
+
+# Operand counts for the SM4 opcodes in OPCODE_NAMES. Declarations use
+# DECL_OPERAND_COUNTS below; CUSTOMDATA is not an instruction.
+OPERAND_COUNTS = {}
+for _ops, _count in (
+        ((2, 7, 9, 10, 18, 19, 20, 21, 22, 23, 48, 58, 62), 0),
+        ((3, 4, 6, 8, 13, 31, 44, 63, 76), 1),
+        ((5, 11, 12, 25, 26, 27, 28, 40, 43, 47, 54, 59, 64, 65, 66, 67,
+          68, 75, 86, 111), 2),
+        ((0, 1, 14, 15, 16, 17, 24, 29, 30, 32, 33, 34, 36, 37, 38, 39,
+          41, 42, 45, 49, 51, 52, 56, 57, 60, 61, 77, 78, 79, 80, 81, 83,
+          84, 85, 87, 110), 3),
+        ((35, 46, 50, 55, 69, 82, 108, 109), 4),
+        ((70, 71, 72, 74), 5),
+        ((73,), 6)):
+    for _opcode in _ops:
+        OPERAND_COUNTS[_opcode] = _count
+
+# DCL_TEMPS, DCL_INDEXABLE_TEMP and DCL_GLOBAL_FLAGS carry plain dwords, not
+# operands. Other SM4 declarations in this table carry exactly one operand.
+DECL_OPERAND_COUNTS = dict.fromkeys(range(88, 92), 1)
+DECL_OPERAND_COUNTS.update(dict.fromkeys(range(95, 104), 1))
+DECL_OPERAND_COUNTS.update(dict.fromkeys((92, 93, 94, 104, 105, 106), 0))
+
+# Extra plain dwords after each declaration's operand(s): resource dimension,
+# semantic id, index range count, temp count, indexable temp layout.
+DECL_TRAILING_DWORDS = {
+    88: 1, 91: 1, 96: 1, 97: 1, 99: 1, 100: 1, 102: 1, 103: 1,
+    104: 1, 105: 3,
+}
+
+
+def _component_text(components):
+    return "".join(COMPONENT_NAMES[value] for value in components
+                   if 0 <= value < 4)
+
+
+def decode_operand(words, position, end):
+    if position >= end:
+        raise ValueError("operand token outside SHDR")
+    token = words[position]
+    position += 1
+    num_components = token & 3
+    selection = SELECTION_MODES[(token >> 2) & 3]
+    if selection == "mask":
+        components = [index for index in range(4) if token & (0x10 << index)]
+    elif selection == "swizzle":
+        components = [(token >> (4 + index * 2)) & 3 for index in range(4)]
+    else:
+        components = [(token >> 4) & 3]
+    operand_type = (token >> 12) & 0xff
+    index_dimension = (token >> 20) & 3
+    representations = [(token >> shift) & 3 for shift in (22, 25, 28)]
+    extended = bool(token & 0x80000000)
+
+    modifier = "none"
+    precision = "default"
+    nonuniform = False
+    while extended:
+        if position >= end:
+            raise ValueError("extended operand token outside SHDR")
+        extra, = (words[position],)
+        position += 1
+        if (extra & 0x3f) > 1:
+            raise ValueError("unsupported extended operand type %d" %
+                             (extra & 0x3f))
+        modifier = MODIFIER_NAMES[(extra >> 6) & 3]
+        precision = PRECISION_NAMES[(extra >> 14) & 7]
+        nonuniform = bool(extra & 0x20000)
+        extended = bool(extra & 0x80000000)
+
+    values = []
+    if operand_type in (4, 5):
+        count = 1 if num_components == 1 else 4
+        values = list(words[position:position + count])
+        if position + count > end:
+            raise ValueError("immediate operand outside SHDR")
+        position += count
+
+    indices = []
+    for dimension in range(index_dimension):
+        representation = INDEX_TYPES[representations[dimension]]
+        index = {"kind": representation}
+        if representation in ("immediate32", "immediate32_plus_relative"):
+            if position >= end:
+                raise ValueError("operand index outside SHDR")
+            index["value"] = words[position]
+            position += 1
+        elif representation in ("immediate64", "immediate64_plus_relative"):
+            if position + 2 > end:
+                raise ValueError("64-bit operand index outside SHDR")
+            index["value"] = (words[position] << 32) | words[position + 1]
+            position += 2
+        if representation in ("relative", "immediate32_plus_relative",
+                              "immediate64_plus_relative"):
+            relative, position = decode_operand(words, position, end)
+            index["operand"] = relative
+        indices.append(index)
+
+    result = {
+        "type": OPERAND_TYPES[operand_type]
+        if operand_type < len(OPERAND_TYPES) else "op_%d" % operand_type,
+        "selection": selection,
+        "components": _component_text(components),
+        "num_components": NUM_COMPONENT_NAMES[num_components],
+        "indices": indices,
+    }
+    if values:
+        result["values"] = values
+    if modifier != "none":
+        result["modifier"] = modifier
+    if precision != "default":
+        result["precision"] = precision
+    if nonuniform:
+        result["nonuniform"] = True
+    return result, position
+
+
+def decode_operation(words, position, end):
+    start = position
+    if position >= end:
+        raise ValueError("instruction outside SHDR")
+    token = words[position]
+    opcode = token & 0x7ff
+    if opcode not in OPERAND_COUNTS:
+        raise ValueError("no operand count for opcode %d" % opcode)
+    length = (token >> 24) & 0x7f
+    extended = bool(token & 0x80000000)
+    position += 1
+    extra_tokens = []
+    while extended:
+        if position >= end:
+            raise ValueError("extended opcode token outside SHDR")
+        extra, = (words[position],)
+        position += 1
+        info = {"type": EXTENDED_OPCODE_TYPES[extra & 3]
+                if (extra & 3) < len(EXTENDED_OPCODE_TYPES)
+                else "op_%d" % (extra & 0x3f)}
+        if (extra & 3) == 1:
+            offsets = [(extra >> shift) & 0xf for shift in (9, 13, 17)]
+            info["texel_offsets"] = [value - 16 if value > 7 else value
+                                     for value in offsets]
+        extra_tokens.append(info)
+        extended = bool(extra & 0x80000000)
+    operands = []
+    for _ in range(OPERAND_COUNTS[opcode]):
+        operand, position = decode_operand(words, position, end)
+        operands.append(operand)
+    return {
+        "opcode": opcode,
+        "name": OPCODE_NAMES[opcode],
+        "flags": {
+            "saturate": bool(token & 0x2000),
+            "nonzero": bool(token & 0x40000),
+            "precise": (token >> 19) & 0xf,
+        },
+        "extended": extra_tokens,
+        "operands": operands,
+        "consumed": position - start,
+    }, position - start
+
+
+def decode_declaration(words, position, end):
+    start = position
+    token = words[position]
+    opcode = token & 0x7ff
+    if opcode not in DECL_OPERAND_COUNTS:
+        raise ValueError("no operand count for declaration %d" % opcode)
+    position += 1
+    operands = []
+    for _ in range(DECL_OPERAND_COUNTS[opcode]):
+        operand, position = decode_operand(words, position, end)
+        operands.append(operand)
+    trailing = DECL_TRAILING_DWORDS.get(opcode, 0)
+    if position + trailing > end:
+        raise ValueError("declaration trailing dwords outside SHDR")
+    trailing_words = list(words[position:position + trailing])
+    position += trailing
+    return {
+        "opcode": opcode,
+        "name": OPCODE_NAMES[opcode],
+        "access_pattern": (token >> 26) & 3 if opcode == 89 else None,
+        "operands": operands,
+        "trailing": trailing_words,
+        "consumed": position - start,
+    }, position - start
+
 
 def parse_shdr(raw, chunk):
     start = chunk["data_offset"]
@@ -243,28 +460,42 @@ def parse_shdr(raw, chunk):
     version, = struct.unpack_from("<B", raw, start)
     program, = struct.unpack_from("<H", raw, start + 2)
     dword_count, = struct.unpack_from("<I", raw, start + 4)
-    position = start + 8
+    words = struct.unpack_from("<%dI" % (chunk["size"] // 4), raw, start)
+    position = 2
     opcodes = {}
-    instruction_count = 0
-    while position < end:
-        if position + 4 > end:
-            raise ValueError("truncated SHDR instruction")
-        token, = struct.unpack_from("<I", raw, position)
-        opcode, length = token & 0x7ff, token >> 24
-        if length == 0 or position + length * 4 > end:
+    instructions = []
+    declarations = []
+    while position < len(words):
+        token = words[position]
+        opcode = token & 0x7ff
+        length = (token >> 24) & 0x7f
+        if length == 0 or position + length > len(words):
             raise ValueError("bad SHDR instruction length 0x%x" % length)
         name = OPCODE_NAMES[opcode] if opcode < len(OPCODE_NAMES) else \
             "OP_%d" % opcode
         opcodes[name] = opcodes.get(name, 0) + 1
-        instruction_count += 1
-        position += length * 4
+        if opcode in DECL_OPERAND_COUNTS:
+            item, consumed = decode_declaration(words, position, len(words))
+            declarations.append(item)
+        else:
+            item, consumed = decode_operation(words, position, len(words))
+            item["offset"] = position * 4
+            instructions.append(item)
+        item["length"] = length
+        if consumed != length:
+            raise ValueError("SHDR %s at +0x%x consumed %d of %d dwords" %
+                             (name, position * 4, consumed, length))
+        position += length
     return {
         "version": version,
         "shader_type": SHADER_TYPES[program] if program < len(SHADER_TYPES)
                        else hex(program),
         "dword_count": dword_count,
-        "instruction_count": instruction_count,
+        "instruction_count": len(instructions),
+        "declaration_count": len(declarations),
         "opcodes": opcodes,
+        "instructions": instructions,
+        "declarations": declarations,
     }
 
 
@@ -374,8 +605,12 @@ def report_text(data):
         "reflection: %s, %d cbuffers, %d variables, %d resources" %
         (", ".join("%s=%d" % item for item in sorted(stages.items())),
          cbuffers, variables, resources),
-        "bytecode: %d instructions, version 0x%02x" %
-        (instructions, min(item["version"] for item in code)),
+        "bytecode: %d instructions, %d declarations, %d operands, "
+        "version 0x%02x" %
+        (instructions,
+         sum(item["declaration_count"] for item in code),
+         sum(len(op) for item in code for op in item["operands"]),
+         min(item["version"] for item in code)),
     ])
 
 

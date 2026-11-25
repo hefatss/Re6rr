@@ -75,7 +75,9 @@ def check(dump):
     assert vertex_code["shader_type"] == "vertex"
     assert pixel_code["shader_type"] == "pixel"
     assert [vertex_code["instruction_count"],
-            pixel_code["instruction_count"]] == [52, 171]
+            pixel_code["instruction_count"]] == [37, 153]
+    assert [vertex_code["declaration_count"],
+            pixel_code["declaration_count"]] == [15, 18]
     assert vertex_code["opcodes"]["MAD"] == 13
     assert "SAMPLE" not in vertex_code["opcodes"]
     assert pixel_code["opcodes"]["SAMPLE"] == 3
@@ -83,6 +85,36 @@ def check(dump):
     assert pixel_code["opcodes"]["DCL_RESOURCE"] == 3
     assert pixel_code["opcodes"]["DISCARD"] == 14
     assert pixel_code["opcodes"]["DCL_OUTPUT"] == 3
+
+    first_mul = next(item for item in vertex_code["instructions"]
+                     if item["name"] == "MUL")
+    assert first_mul["offset"] == 196 and first_mul["consumed"] == 8
+    assert [op["type"] for op in first_mul["operands"]] == \
+        ["temp", "input", "constant_buffer"]
+    assert [op["components"] for op in first_mul["operands"]] == \
+        ["xyzw", "yyyy", "xyzw"]
+    assert first_mul["operands"][2]["indices"] == [
+        {"kind": "immediate32", "value": 1},
+        {"kind": "immediate32", "value": 9},
+    ]
+    first_sample = next(item for item in pixel_code["instructions"]
+                        if item["name"] == "SAMPLE")
+    assert [op["type"] for op in first_sample["operands"]] == \
+        ["temp", "input", "resource", "sampler"]
+    assert first_sample["operands"][2]["indices"] == \
+        [{"kind": "immediate32", "value": 0}]
+    assert first_sample["operands"][3]["indices"] == \
+        [{"kind": "immediate32", "value": 0}]
+    assert all(item["consumed"] == item["length"]
+               for item in vertex_code["instructions"] + pixel_code["instructions"])
+
+    vertex_decl = vertex_code["declarations"][0]
+    assert vertex_decl["name"] == "DCL_CONSTANT_BUFFER"
+    assert vertex_decl["access_pattern"] == 1
+    assert vertex_decl["operands"][0]["indices"] == [
+        {"kind": "immediate32", "value": 1},
+        {"kind": "immediate32", "value": 12},
+    ]
 
     vertex_stat = chunk(body["records"][0], "STAT")["statistics"]
     assert [vertex_stat[key] for key in
@@ -135,11 +167,24 @@ def check(dump):
     code = [chunk(record, "SHDR")["code"] for record in records]
     assert len(code) == 446
     assert all(item["version"] == 0x40 for item in code)
-    assert sum(item["instruction_count"] for item in code) == 25758
+    assert sum(item["instruction_count"] for item in code) == 20563
+    assert sum(item["instruction_count"] for item, stat in
+               zip(code, stats)) == sum(
+                   item["instruction_count"] for item in stats)
+    assert sum(item["declaration_count"] for item in code) == 5195
+    assert sum(len(instruction["operands"]) for shader in code
+               for instruction in shader["instructions"]) == 43827
     assert sum(item["shader_type"] == "vertex" for item in code) == 223
     assert sum(item["shader_type"] == "pixel" for item in code) == 223
     assert all(not any(name.startswith("OP_") for name in item["opcodes"])
                for item in code)
+    assert all(item["consumed"] == item["length"]
+               for shader in code for item in shader["instructions"])
+    assert sum("modifier" in operand for shader in code
+               for item in shader["instructions"]
+               for operand in item["operands"]) == 1029
+    assert sum(item["flags"]["nonzero"] for shader in code
+               for item in shader["instructions"]) == 1935
 
     with tempfile.TemporaryDirectory() as directory:
         output = os.path.join(directory, "body.dxbc")
@@ -147,7 +192,9 @@ def check(dump):
         raw = open(output, "rb").read()
         assert len(raw) == record["dxbc_size"] == 0x9a8
         assert raw[:4] == b"DXBC"
-    print("  223 .nsh files, 446 DXBC blobs, 25758 instructions, one extract round-trip: all shader checks passed")
+    print("  223 .nsh files, 446 DXBC blobs, 20563 instructions, "
+          "43827 decoded operands, one extract round-trip: "
+          "all shader checks passed")
 
 
 def main():
