@@ -37,6 +37,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
    0x18029a60  nuSound2InitEx reads config +0x20 as bnusCoreInitEx argument
    0x1800237d0  extended KeyOn: memcpy 0x34/0x1c bytes from two pointers only
                 when both are non-null; 3D wrappers are the shipped users
+   0x1407d6940  playBGM: current/next ids at +0x44c/+0x450; 0x8c stops via fade
+   0x180016850  nuSound2StreamFadeOut: fade frames/step at stream +0x298/+0x29c
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -168,6 +170,35 @@ EXTENDED_KEY_ON = {
            "null_errors": {"secondary": 0x80000031, "third": 0x80000032,
                            "position": 0x80000033}},
 }
+
+
+# BGM playback and fade. The Lua FadeOutBGM binding (0x140781ba0) converts
+# 60 fps frames to milliseconds; stopStream treats "not playing" as success.
+BGM_PLAYBACK = {
+    "play": 0x1407D6940,
+    "start": 0x140C52100,
+    "stop": 0x140C52110,
+    "fade_binding": 0x140781BA0,
+    "fade": 0x1407D48C0,
+    "frame_rate": 60,
+    "manager_ids": {"current": 0x44C, "next": 0x450, "no_change": -1},
+    "fade_out": {
+        "export": 0x180016850, "fallback_stop": 0x1800161E0,
+        "handle_table": 0x1800483D0, "handle_limit": 0x180048410,
+        "invalid_handle": 0x8000000A, "not_playing": 0x8000000B,
+        "already_fading": 0x80000000,
+        "ms_per_tick": 5.333,
+        "fields": {"state": 0x28C, "fader_flag": 0x293, "mode": 0x294,
+                   "frames": 0x298, "step": 0x29C, "volume": 0x2A0,
+                   "voice": 0x2A8, "channel": 0x148, "fader": 0x2C0},
+        "playing": 3, "fading": 2, "stopped": 5,
+    },
+}
+
+
+def fade_frames_to_ms(now_frame, max_frame):
+    """FUN_140781ba0: integer frame delta at 60 fps, then milliseconds."""
+    return int((int(max_frame) - int(now_frame)) / 60) * 1000
 
 
 def sound_init_facts(pe):
@@ -370,6 +401,7 @@ def dispatch_facts(dump):
         "key_on_defaults": KEYON_DEFAULTS,
         "play_3d_se_loop": PLAY_3D_SE_LOOP,
         "extended_key_on": EXTENDED_KEY_ON,
+        "bgm_playback": BGM_PLAYBACK,
         "playback": {
             "bgm_stream_handle": BGM_STREAM_HANDLE,
             "voice_slots": VOICE_SLOT_COUNT,

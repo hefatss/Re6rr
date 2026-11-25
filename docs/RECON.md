@@ -90,6 +90,15 @@ from the `luaL_Reg` table at `0x141e1a070`: `PlaySE` fixes bank 2 (SYSTEM),
 (`SELECT`), `7` (`CANCEL`) and `0xf` (`CURSOR`). BGM ids `0..141` map through a
 142-entry name table (`0x1414ec550`, 0x40-byte strings) and a 142-pointer path
 table (`0x141e1f8e0`); id `0x8c` stops and `0x8d` is the rejected `RANDOM` id.
+`FUN_1407d6940` keeps the current and queued BGM ids at SoundManager `+0x44c`
+and `+0x450`: `-1` is a no-op, an id when none plays starts stream 0, a
+different id is queued after a fade, and the same id logs "play already".
+The Lua `FadeOutBGM` binding (`0x140781ba0`) takes 60 fps frame counters and
+passes `((max_frame-now_frame)/60)*1000` milliseconds to `FUN_1407d48c0`, which
+calls `nuSound2StreamFadeOut(handle 0, ms)`. In nuSound2 (`FUN_180016850`) an
+idle stream returns `0x8000000b`, a playing stream starts fade mode 2 with
+frames `ms/5.333` and step `-volume/frames`, and a stream already fading returns
+`0x80000000`; other states stop immediately via `FUN_1800161e0`.
 A second `playSe` entry point calls `nuSound2KeySetOnHandle(handle, tone,
 volume, pan, flags, &key)`; `readyBank` requires bank state `3` at `+0x1c`.
 `playSeLoop` uses 8-byte request records and scene sound reserves slot `0x21`

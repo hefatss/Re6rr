@@ -94,6 +94,37 @@ def run(dump, failures):
                                        "third": 0x80000032,
                                        "position": 0x80000033},
           "3D extension vectors", failures)
+    bgm = sections["dispatch"]["bgm_playback"]
+    check(bgm["play"] == 0x1407D6940 and bgm["start"] == 0x140C52100 and
+          bgm["stop"] == 0x140C52110 and
+          bgm["fade_binding"] == 0x140781BA0 and
+          bgm["fade"] == 0x1407D48C0 and bgm["frame_rate"] == 60,
+          "BGM call chain", failures)
+    check(bgm["manager_ids"] == {"current": 0x44C, "next": 0x450,
+                                 "no_change": -1} and
+          audio_events.BGM_NO_SOUND == 0x8C and
+          audio_events.BGM_RANDOM == 0x8D and
+          audio_events.BGM_STREAM_HANDLE == 0, "BGM state ids", failures)
+    fade = bgm["fade_out"]
+    check(fade["export"] == 0x180016850 and
+          fade["fallback_stop"] == 0x1800161E0 and
+          fade["handle_table"] == 0x1800483D0 and
+          fade["invalid_handle"] == 0x8000000A and
+          fade["not_playing"] == 0x8000000B and
+          fade["already_fading"] == 0x80000000, "stream fade errors",
+          failures)
+    check(fade["fields"] == {"state": 0x28C, "fader_flag": 0x293,
+                             "mode": 0x294, "frames": 0x298,
+                             "step": 0x29C, "volume": 0x2A0,
+                             "voice": 0x2A8, "channel": 0x148,
+                             "fader": 0x2C0} and
+          (fade["playing"], fade["fading"], fade["stopped"]) == (3, 2, 5),
+          "stream fade fields", failures)
+    check(audio_events.fade_frames_to_ms(0, 120) == 2000 and
+          audio_events.fade_frames_to_ms(30, 90) == 1000 and
+          audio_events.fade_frames_to_ms(60, 60) == 0,
+          "frame to millisecond fade", failures)
+
     playback = sections["dispatch"]["playback"]
     check(playback["bgm_stream_handle"] == 0 and
           playback["voice_slots"] == 0x40 and
