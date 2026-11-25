@@ -94,12 +94,15 @@ of 34; `nuSound2KeyOnHandle` defaults are volume `1.0`, pan `0.0`, flags `0`.
 slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
 `FUN_18002eb80` uses 0x804-byte slots and returns distinct errors for bad index,
 bad format, null data, already-set banks and voice/stream failures.
-`tools/engine/audio_events.py` reads these tables and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
+Mixer ABI: 68 buses of 0x48 bytes with fade target/step/frames fields, plus
+piecewise-linear dB ↔ volume conversion calibrated at instance
+`+0x1c20/+0x1c28/+0x1c2c`. `tools/engine/audio_events.py` reads these tables,
+models the mixer and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
 three stage-effect parameter files declare symbolic `NUD_TONE_RACE_HANABI1/2`
 names; those resolve to RACE bank 3, tones `0xe`/`0xf` and match the literals in
 `FUN_1401b0cd0`. All other event → `(bank, tone)` pairs remain native
-call-site constants. Format details, call sites and unresolved mixer fields
-are in `recon/AUDIO_NUB.md`.
+call-site constants. Format details, call sites and the remaining envelope
+gaps are in `recon/AUDIO_NUB.md`.
 
 `.EES` scene files are raw, with no encryption or decompression on the native
 load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`

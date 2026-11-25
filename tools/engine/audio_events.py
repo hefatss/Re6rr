@@ -22,6 +22,9 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
   0x140c52100  BGM play: nuSound2StreamStartEx(handle 0, path, 0) via playStream
   0x18002c2b0  nuSound2 voice params: 64 slots of 0xa0, meta at 0x2800+slot*0xc
   0x18002eb80  bank-slot setup: 64 slots of 0x804, voice ids at +0x46
+  0x18001cbc0  68 mixer buses of 0x48; nuSound2BusFade fades over N frames
+  0x180020290  piecewise dB -> volume; 0x1800201b0 inverse, calibration at
+               instance +0x1c20/+0x1c28/+0x1c2c
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -67,6 +70,64 @@ VOICE_META_STRIDE = 0xC
 BANK_SET_ERRORS = {"bad_index": 0x8000001E, "bad_format": 0x8000001D,
                    "null_data": 0x80000024, "already_set": 0x80000021,
                    "voice_fail": 0x80000026, "stream_fail": 0x80000027}
+
+# nuSound2 mixer: 68 buses of 0x48 bytes (FUN_18001cbc0), fade fields relative
+# to the bus base (FUN_18001cbc0 / nuSound2BusSetVol / nuSound2BusFade).
+BUS_COUNT = 0x44
+BUS_STRIDE = 0x48
+BUS_MODE_OFFSET = 0x10
+BUS_VOLUME_OFFSET = 0x00
+BUS_TARGET_OFFSET = 0x18
+BUS_STEP_OFFSET = 0x1C
+BUS_FRAME_OFFSET = 0x14
+BUS_FADE_MODE = 2
+BUS_INVALID = 0x80000001
+# Piecewise dB <-> linear volume calibration at instance +0x1c20/28/2c.
+DB_CALIBRATION_OFFSETS = (0x1C20, 0x1C28, 0x1C2C)
+
+
+def decibels_to_volume(db, lo, mid, hi):
+    """FUN_180020290: piecewise-linear dB -> volume with runtime calibration."""
+    if db <= lo:
+        return 0.0
+    if db < mid:
+        return hi / (mid - lo) * (db - lo)
+    return (hi - 1.0) / mid * db + 1.0
+
+
+def volume_to_decibels(volume, lo, mid, hi):
+    """FUN_1800201b0: inverse of `decibels_to_volume`."""
+    if volume <= 0.0:
+        return lo
+    if volume <= hi:
+        return (mid - lo) / hi * volume + lo
+    return mid / (hi - 1.0) * (volume - 1.0)
+
+
+def bus_fade(state, target, frames):
+    """nuSound2BusFade: immediate set for frames < 1, else linear step."""
+    if frames < 1:
+        state["volume"] = target
+        state["step"] = 0.0
+        state["mode"] = 0
+        state["frames"] = 0
+    else:
+        state["target"] = target
+        state["step"] = (target - state["volume"]) / float(frames)
+        state["frames"] = frames
+        state["mode"] = BUS_FADE_MODE
+    return state
+
+
+def mixer_facts():
+    return {
+        "bus_count": BUS_COUNT, "bus_stride": BUS_STRIDE,
+        "fields": {"mode": BUS_MODE_OFFSET, "volume": BUS_VOLUME_OFFSET,
+                   "target": BUS_TARGET_OFFSET, "step": BUS_STEP_OFFSET,
+                   "frames": BUS_FRAME_OFFSET},
+        "fade_mode": BUS_FADE_MODE, "invalid_bus": BUS_INVALID,
+        "db_calibration": DB_CALIBRATION_OFFSETS,
+    }
 
 # Lua name -> function VA, native call form, fixed bank/tone where present.
 BINDINGS = {
@@ -213,6 +274,7 @@ def build(dump):
         "bgm": bgm_table(pe),
         "bindings": resolved_bindings(dump),
         "dispatch": dispatch_facts(dump),
+        "mixer": mixer_facts(),
     }
 
 

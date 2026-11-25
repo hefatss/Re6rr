@@ -85,6 +85,31 @@ def run(dump, failures):
           dispatch["key_on_defaults"]["pan"] == 0.0 and
           dispatch["key_on_defaults"]["flags"] == 0,
           "KeyOn defaults", failures)
+    mixer = sections["mixer"]
+    check(mixer["bus_count"] == 0x44 and mixer["bus_stride"] == 0x48 and
+          mixer["fields"] == {"mode": 0x10, "volume": 0x00,
+                              "target": 0x18, "step": 0x1C, "frames": 0x14} and
+          mixer["fade_mode"] == 2 and mixer["invalid_bus"] == 0x80000001 and
+          list(mixer["db_calibration"]) == [0x1C20, 0x1C28, 0x1C2C],
+          "mixer ABI", failures)
+    lo, mid, hi = -96.0, 6.0, 2.0
+    for db in (-96.0, -48.0, 0.0, 5.999, 6.0, 12.0, 24.0):
+        volume = audio_events.decibels_to_volume(db, lo, mid, hi)
+        check(abs(audio_events.volume_to_decibels(volume, lo, mid, hi) - db)
+              < 0.001, "dB round trip %s" % db, failures)
+    check(audio_events.decibels_to_volume(-100.0, lo, mid, hi) == 0.0 and
+          audio_events.volume_to_decibels(0.0, lo, mid, hi) == lo,
+          "dB clamps", failures)
+    state = {"volume": 1.0, "target": 1.0, "step": 0.0, "frames": 0,
+             "mode": 0}
+    audio_events.bus_fade(state, 2.0, 10)
+    check(state["target"] == 2.0 and abs(state["step"] - 0.1) < 1e-6 and
+          state["frames"] == 10 and state["mode"] == 2,
+          "bus fade over frames", failures)
+    audio_events.bus_fade(state, 0.5, 0)
+    check(state["volume"] == 0.5 and state["mode"] == 0 and
+          state["frames"] == 0, "bus fade immediate", failures)
+
     config = dispatch["config"]
     check(config["size"] == 0xA50 and config["header_size"] == 0x50,
           "config.bin header", failures)
