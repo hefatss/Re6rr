@@ -66,7 +66,14 @@ attr)`, while `registerBank` stores the nuSound2 handle in a 32-byte bank-table
 entry. Shipped engine-sound lookup tables are parsed by
 `tools/engine/audio_tables.py`: `engmap.tbl` is 32 x 20 u32 (320 `(engine sound,
 group)` pairs, 224 ids, groups 2/3/4) and `emtis.tbl` has version `3 3 17`, seven
-numbered sections and 416 source WAV names. `SoundManager` loads `config.bin`
+numbered sections and 416 source WAV names. `FUN_1407cca90` indexes ENGMAP by car `EngineSound` and tune level, and
+`FUN_1407d27f0` resolves the selected EMTIS record into 16 layer tones: section
+0 arrays `C[i0][2..9]`, `E[i1][1..3]`, `G[i2][1..3]` plus section 5 `J[i3][1..2]`.
+`CSoundImpl::FUN_1407d0450` plays those on bank 7 (`ENGINE.nub`, 409 tones);
+six request objects use bank 4 (`MISSFIRE.nub`, 6 tones). All 320 shipped
+car/tune mappings resolve; group is stored but runtime layer selection is not
+decoded. `tools/engine/engine_sound.py` reports the full mapping.
+`SoundManager` loads `config.bin`
 and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
 1 stream. `nuSound2_win64.dll` analysis also recovers 64 bank slots of stride
 `0x804` and tone-record `+0x28` bit 0 as the loop flag. Format details, call

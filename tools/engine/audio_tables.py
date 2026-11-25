@@ -100,6 +100,7 @@ def parse_emtis(path):
         "magic": EMTIS_MAGIC,
         "version": version,
         "header": header,
+        "tokens": tokens,
         "sections": sections,
         "names": names,
         "name_counts": name_counts,
