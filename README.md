@@ -12,17 +12,33 @@ dump you own (`wmn6r.exe`, `data/`, `data_jp/`) and code that runs the result.
 
 ## Status
 
-Phases 0–2 done (recon, x64 → C lift spike, asset containers). Phase 3 has a
-working C engine core with Lua host, script contexts and asset parsers. Phase 4
-has freestanding vehicle dynamics driven by the car's Lua spec and tire
-positions, plus road polyline projection from the dump's own path data and race
-rules and rival tracking using the recovered Enma `EPlayState` values. Phase 5
-adds a freestanding game-flow state machine and the recovered `SConfigPlay` byte
-bridge, a packed catalog of the 151 shipped car specs and a minimal Android
-telemetry host; see `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`,
-`docs/P3_LUA_HOST.md`, `docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md`,
-`docs/P5_GAME.md`, `docs/P5_CARS.md`, `docs/ANDROID_HOST.md` and
-`docs/ENGINE.md`. Raw reports go to `docs/recon/*.json` (gitignored).
+Status legend: **Done** = implemented and checked against shipped data;
+**Partial** = working subset, gaps listed; **Open** = not implemented;
+**Out of scope** = deliberately excluded.
+
+| Area | Status | Keterangan |
+| --- | --- | --- |
+| P0 recon | Done | PE/imports/`.pdata`, Lua inventory, 219 native bindings, Ghidra full analysis of `wmn6r.exe` and `nuSound2_win64.dll`. |
+| P1 x64 → C lift spike | Done | IR lift, annotated disassembly, C emit, Unicorn difftest against original bytes. |
+| P2 asset decode | Done | gzip/NTWD containers, NDWD → OBJ, 223 `.nsh` / 446 DXBC blobs decoded, 149 `.nub` banks and 781 tones read. |
+| P3 engine core + Lua | Done | Freestanding C core, stock Lua 5.1.5 host, script contexts, asset parsers; full corpus check. |
+| P4 physics / course / race | Done | Vehicle dynamics from shipped Lua spec and tire positions, road polyline projection, race rules, rivals, `EPlayState` values. |
+| P5 game flow + `SConfigPlay` | Done | Freestanding state machine and recovered byte bridge. |
+| P5 catalogs | Done | 151 cars, 77 mappings, 250 colours, 107 wheels, 261 aero/parts, 151 tunes, 42 tire scales. |
+| P5 story data | Partial | 122 episodes, 3,309 messages, 3,484 events, 647 `drive_story_*` keys extracted; native condition schema known, per-episode predicate instances absent from dump. |
+| Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin` layout, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, BGM stream handle; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
+| Audio playback internals | Open | Mixer, envelope and 0xa0 voice-record fields unresolved; no audio playback host. |
+| Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` fields and remaining camera bytes uninterpreted. |
+| Renderer | Partial | Shipped SM4 DXBC operands decoded; no GLSL/Vulkan translation and no renderer host. |
+| Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |
+| Test suite | Done | `build_host.py --test` plus all `test_*.py` green against the dump. |
+| Online / DRM | Out of scope | No dongle (HASP) or All.Net circumvention. |
+
+Details in `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md`,
+`docs/P4_PHYSICS.md`, `docs/P4_COURSE_RACE.md`, `docs/P5_GAME.md`,
+`docs/P5_CARS.md`, `docs/P5_STORY.md`, `docs/P5_CUSTOM.md`,
+`docs/ANDROID_HOST.md`, `docs/ENGINE.md` and `docs/RECON.md`. Raw reports go to
+`docs/recon/*.json` (gitignored).
 
 ## Tools
 
