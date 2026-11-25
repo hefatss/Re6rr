@@ -60,6 +60,38 @@ def run(dump, failures):
     tones = audio_events.tone_names(dump, "SYSTEM")
     check(len(tones) == 120, "SYSTEM tone count", failures)
     check(tones[47][1] == "select.wav", "SYSTEM tone 47 wav", failures)
+
+    dispatch = sections["dispatch"]
+    check(dispatch["bank_table"] == {
+        "stride": 0x20, "handle": 0x18, "state": 0x1C, "ready": 3},
+        "bank table ABI", failures)
+    check(dispatch["requests"]["count"] == 34, "request id count", failures)
+    check(dispatch["requests"]["loop_slot"] == 0x21 < 34,
+          "scene loop slot", failures)
+    check(dispatch["key_on_defaults"]["volume"] == 1.0 and
+          dispatch["key_on_defaults"]["pan"] == 0.0 and
+          dispatch["key_on_defaults"]["flags"] == 0,
+          "KeyOn defaults", failures)
+    config = dispatch["config"]
+    check(config["size"] == 0xA50 and config["header_size"] == 0x50,
+          "config.bin header", failures)
+    check(config["float_offset"] == 0x70, "config.bin float offset", failures)
+    check(config["sections"] == [(4, 0x470), (5, 0x4B0), (0x21, 0x500),
+                                 (10, 0x710), (8, 0x850), (8, 0x950)],
+          "config.bin sections", failures)
+
+    scripts = 0
+    for directory, _, names in os.walk(dump):
+        for name in names:
+            if not name.endswith(".lua"):
+                continue
+            scripts += 1
+            with open(os.path.join(directory, name), "rb") as stream:
+                text = stream.read()
+            if b"PlaySE" in text or b"PlayBGM" in text:
+                failures.append("shipped Lua calls sound binding")
+                break
+    check(scripts > 4000, "Lua inventory", failures)
     return len(failures)
 
 

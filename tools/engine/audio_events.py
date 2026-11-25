@@ -15,8 +15,14 @@ Native evidence (VA in `wmn6r.exe`, image base 0x140000000):
 Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
 `FUN_140c51f80` / `FUN_140c51fa0` / `FUN_140c52010` / `FUN_140c52050`.
 `PlaySE` hardcodes bank 2 (SYSTEM); `PlaySEOfBank` takes the bank id.
+  0x140c50740  six-argument playSe: nuSound2KeySetOnHandle(bank handle, tone,
+               volume, pan, flags, &key); readyBank checks state 3 at +0x1c
+  0x140c50ac0  playSeLoop: 8-byte loop records, request id 0x21 used by scene
+  0x1401aebc0  positional SE records of 0x24 bytes (bank, tone, frames, xyz)
+
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
-native call-site constants, not invented data.
+native call-site constants, not invented data. No shipped Lua file calls any of
+the 12 bindings above.
 """
 
 import argparse
@@ -37,6 +43,18 @@ BGM_COUNT = 142
 BGM_NAME_STRIDE = 0x40
 BGM_NO_SOUND = 0x8C
 BGM_RANDOM = 0x8D
+
+# Sound dispatch ABI recovered from sys::Sound::Impl and nuSound2 exports.
+BANK_STRIDE = 0x20
+BANK_HANDLE_OFFSET = 0x18
+BANK_STATE_OFFSET = 0x1C
+BANK_STATE_READY = 3
+REQUEST_COUNT = 0x22
+LOOP_SLOT_SCENE = 0x21
+LOOP_RECORD_STRIDE = 8
+POSITIONAL_SE_STRIDE = 0x24
+KEYON_DEFAULTS = {"volume": 1.0, "pan": 0.0, "flags": 0,
+                  "extra": [0.0, 1.0, 1.0]}
 
 # Lua name -> function VA, native call form, fixed bank/tone where present.
 BINDINGS = {
@@ -84,6 +102,37 @@ def tone_names(dump, bank):
         result.append((cstr(raw, offset, 0x40),
                        cstr(raw, offset + 0x40, 0x40)))
     return result
+
+
+def config_header(dump):
+    """Parse the six (count, offset) pairs in data/sound/config.bin."""
+    path = os.path.join(dump, SOUND, "config.bin")
+    with open(path, "rb") as stream:
+        raw = stream.read()
+    if raw[:4] != b"nusc" or raw[4:8] != b"\x01\x02\x03\x00":
+        raise ValueError("unexpected config.bin header")
+    size, header_size = struct.unpack_from("<II", raw, 8)
+    if size != len(raw) or header_size != 0x50:
+        raise ValueError("config.bin size/header mismatch")
+    float_offset, = struct.unpack_from("<I", raw, 0x14)
+    # 0x18 onward: six (count, offset) pairs; 0x14 is the float-block offset.
+    pairs = [struct.unpack_from("<II", raw, 0x18 + index * 8)
+             for index in range(6)]
+    return {"size": size, "header_size": header_size,
+            "float_offset": float_offset, "sections": pairs}
+
+
+def dispatch_facts(dump):
+    config = config_header(dump)
+    return {
+        "bank_table": {"stride": BANK_STRIDE, "handle": BANK_HANDLE_OFFSET,
+                       "state": BANK_STATE_OFFSET, "ready": BANK_STATE_READY},
+        "requests": {"count": REQUEST_COUNT, "loop_slot": LOOP_SLOT_SCENE,
+                     "loop_stride": LOOP_RECORD_STRIDE,
+                     "positional_stride": POSITIONAL_SE_STRIDE},
+        "key_on_defaults": KEYON_DEFAULTS,
+        "config": config,
+    }
 
 
 def bgm_table(pe):
@@ -143,6 +192,7 @@ def build(dump):
         "banks": bank_names(dump),
         "bgm": bgm_table(pe),
         "bindings": resolved_bindings(dump),
+        "dispatch": dispatch_facts(dump),
     }
 
 
@@ -169,6 +219,10 @@ def main():
     for index in (0, BGM_NO_SOUND, BGM_RANDOM):
         row = sections["bgm"][index]
         print("  bgm %3d %-24s %s" % (index, row["name"], row["path"]))
+    dispatch = sections["dispatch"]
+    print("requests: %d, scene loop slot: 0x%x, config sections: %s" %
+          (dispatch["requests"]["count"], dispatch["requests"]["loop_slot"],
+           dispatch["config"]["sections"]))
     return 0
 
 

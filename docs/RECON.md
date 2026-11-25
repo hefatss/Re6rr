@@ -84,8 +84,16 @@ from the `luaL_Reg` table at `0x141e1a070`: `PlaySE` fixes bank 2 (SYSTEM),
 (`SELECT`), `7` (`CANCEL`) and `0xf` (`CURSOR`). BGM ids `0..141` map through a
 142-entry name table (`0x1414ec550`, 0x40-byte strings) and a 142-pointer path
 table (`0x141e1f8e0`); id `0x8c` stops and `0x8d` is the rejected `RANDOM` id.
-`tools/engine/audio_events.py` reads these shipped tables. Format details, call
-sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
+A second `playSe` entry point calls `nuSound2KeySetOnHandle(handle, tone,
+volume, pan, flags, &key)`; `readyBank` requires bank state `3` at `+0x1c`.
+`playSeLoop` uses 8-byte request records and scene sound reserves slot `0x21`
+of 34; `nuSound2KeyOnHandle` defaults are volume `1.0`, pan `0.0`, flags `0`.
+`FUN_1401aebc0` drives positional SE from 0x24-byte records
+(bank, tone, interval, xyz). `tools/engine/audio_events.py` reads these tables
+and checks the dispatch ABI. No shipped Lua file calls any sound binding, so
+arbitrary event → `(bank, tone)` pairs remain native call-site constants.
+Format details, call sites and unresolved mixer fields are in
+`recon/AUDIO_NUB.md`.
 
 `.EES` scene files are raw, with no encryption or decompression on the native
 load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`
