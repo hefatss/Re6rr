@@ -48,7 +48,9 @@ must come from imports, string references, RTTI and pattern matching.
 | `.med` | 28 + 39 | 3.9 MB | motion data |
 
 Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
-(`NTWD`, `XMD`, `NDWD`, `NSXR`) still need per-format parsers.
+`NTWD`, `XMD` and `NDWD` have per-format parsers. `NSXR` is now decoded too:
+223 `.nsh` files wrap two DXBC blobs each, with `RDEF`, `ISGN`, `OSGN`, `SHDR`
+and `STAT` chunks; `tools/engine/nsxr_shader.py` inventories and extracts them.
 
 `.nub` is now decoded: 32-byte header, tone-record offsets, 208-byte records with
 PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse
@@ -65,8 +67,9 @@ and `config_3d.bin`, then initialises nuSound2 with 8 banks, 34 request ids and
 `0x804` and tone-record `+0x28` bit 0 as the loop flag. Format details, call
 sites and unresolved mixer fields are in `recon/AUDIO_NUB.md`.
 
-Shader folder holds compiled blobs (`NSXR`), not HLSL source, so a port translates
-behaviour rather than recompiling shaders.
+Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
+port translates behaviour rather than recompiling shaders. Details in
+`recon/RENDER_NSXR.md`.
 
 ## Lua
 
