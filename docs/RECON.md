@@ -128,7 +128,10 @@ modelled by `ees_fields.car_effect_copy()`, but neither its field semantics nor
 the remaining camera bytes are interpreted. Details in `recon/SCENE_EES.md`.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
-port translates behaviour rather than recompiling shaders. Details in
+port translates behaviour rather than recompiling shaders. SM4 control flow is
+structured: 272 `SWITCH`, 22 `LOOP` and 9 `IF` blocks match cleanly across all
+446 blobs with no label operands or unmatched closers;
+`nsxr_shader.control_flow()` builds the nested block map. Details in
 `recon/RENDER_NSXR.md`.
 
 ## Lua

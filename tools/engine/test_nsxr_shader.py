@@ -86,6 +86,25 @@ def check(dump):
     assert pixel_code["opcodes"]["DISCARD"] == 14
     assert pixel_code["opcodes"]["DCL_OUTPUT"] == 3
 
+    body_flow = nsxr_shader.control_flow(pixel_code["instructions"])
+    assert [block["kind"] for block in body_flow["blocks"]] == \
+        ["switch", "switch"]
+    assert not body_flow["unmatched"]
+    switch = body_flow["blocks"][0]
+    assert switch["start"] < switch["cases"][0]["start"] < switch["end"]
+    assert len(switch["breaks"]) == 9
+
+    depth = nsxr_shader.parse_nsh(
+        os.path.join(dump, nsxr_shader.SHADER_DIR, "DepthBlend.nsh"))
+    depth_code = next(chunk["code"] for chunk
+                      in depth["records"][1]["dxbc"]["chunks"]
+                      if chunk["tag"] == "SHDR")
+    depth_flow = nsxr_shader.control_flow(depth_code["instructions"])
+    assert [block["kind"] for block in depth_flow["blocks"]] == \
+        ["if", "loop", "loop"]
+    assert not depth_flow["unmatched"]
+    assert depth_flow["blocks"][1]["continues"] == [31]
+
     first_mul = next(item for item in vertex_code["instructions"]
                      if item["name"] == "MUL")
     assert first_mul["offset"] == 196 and first_mul["consumed"] == 8

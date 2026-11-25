@@ -8,8 +8,9 @@
 `.nsh` files are raw `NSXR` containers. Each has two records; a record points
 0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
 into instructions, declarations and SM4 operands (register type, mask/swizzle,
-immediate and relative indices, neg/abs modifiers). No game data is stored in
-this repository.
+immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
+blocks are matched by `control_flow()`. No game data is stored in this
+repository.
 """
 
 import argparse
@@ -499,6 +500,49 @@ def parse_shdr(raw, chunk):
     }
 
 
+def control_flow(instructions):
+    """Match structured SM4 control-flow opcodes into nested blocks.
+
+    SM4 shaders in this dump carry no label operands; IF/ELSE/ENDIF,
+    LOOP/ENDLOOP and SWITCH/CASE/DEFAULT/ENDSWITCH are matched structurally.
+    """
+    blocks = []
+    stack = []
+    unmatched = []
+    for index, instruction in enumerate(instructions):
+        name = instruction["name"]
+        if name in ("IF", "LOOP", "SWITCH"):
+            stack.append({"kind": name.lower(), "start": index,
+                          "cases": [], "breaks": [], "continues": []})
+        elif name == "ELSE" and stack and stack[-1]["kind"] == "if":
+            stack[-1]["else"] = index
+        elif name in ("CASE", "DEFAULT") and stack and \
+                stack[-1]["kind"] == "switch":
+            stack[-1]["cases"].append({"kind": name.lower(), "start": index})
+        elif name in ("BREAK", "BREAKC"):
+            if stack:
+                stack[-1]["breaks"].append(index)
+            else:
+                unmatched.append(index)
+        elif name in ("CONTINUE", "CONTINUEC"):
+            loop = next((block for block in reversed(stack)
+                         if block["kind"] == "loop"), None)
+            if loop is None:
+                unmatched.append(index)
+            else:
+                loop["continues"].append(index)
+        elif name in ("ENDIF", "ENDLOOP", "ENDSWITCH"):
+            if not stack or {"ENDIF": "if", "ENDLOOP": "loop",
+                             "ENDSWITCH": "switch"}[name] != stack[-1]["kind"]:
+                unmatched.append(index)
+                continue
+            block = stack.pop()
+            block["end"] = index
+            blocks.append(block)
+    unmatched.extend(block["start"] for block in stack)
+    return {"blocks": blocks, "unmatched": unmatched}
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -609,7 +653,8 @@ def report_text(data):
         "version 0x%02x" %
         (instructions,
          sum(item["declaration_count"] for item in code),
-         sum(len(op) for item in code for op in item["operands"]),
+         sum(len(ins["operands"]) for item in code
+             for ins in item["instructions"]),
          min(item["version"] for item in code)),
     ])
 
