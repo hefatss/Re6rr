@@ -58,6 +58,33 @@ def parse_dxbc(raw, offset):
     }
 
 
+def parse_signature(raw, chunk):
+    start = chunk["data_offset"]
+    if chunk["size"] < 8:
+        raise ValueError("short signature chunk %r" % chunk["tag"])
+    count, marker = struct.unpack_from("<2I", raw, start)
+    entries = []
+    for index in range(count):
+        position = start + 8 + index * 24
+        if position + 24 > start + chunk["size"]:
+            raise ValueError("signature entry outside %r" % chunk["tag"])
+        name_offset, semantic_index, unknown, type_field, register, mask = \
+            struct.unpack_from("<6I", raw, position)
+        name_start = start + name_offset
+        end = raw.find(b"\0", name_start, start + chunk["size"])
+        if end < 0 or name_start < start:
+            raise ValueError("bad signature name in %r" % chunk["tag"])
+        entries.append({
+            "name": raw[name_start:end].decode("ascii", "replace"),
+            "semantic_index": semantic_index,
+            "unknown": unknown,
+            "type_field": type_field,
+            "register": register,
+            "mask": mask,
+        })
+    return {"marker": marker, "entries": entries}
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -81,6 +108,9 @@ def parse_nsh(path):
         if blob["size"] != dxbc_size:
             raise ValueError("NSXR[%d] size %d, DXBC %d: %s" %
                              (index, dxbc_size, blob["size"], path))
+        for chunk in blob["chunks"]:
+            if chunk["tag"] in ("ISGN", "OSGN"):
+                chunk["signature"] = parse_signature(raw, chunk)
         records.append({
             "index": index,
             "offset": offset,

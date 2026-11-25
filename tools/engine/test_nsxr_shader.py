@@ -24,6 +24,24 @@ def check(dump):
         assert [chunk["tag"] for chunk in record["dxbc"]["chunks"]] == \
             expected
 
+    def signature(record, tag):
+        return next(chunk["signature"]
+                    for chunk in record["dxbc"]["chunks"]
+                    if chunk["tag"] == tag)
+
+    vertex_input = signature(body["records"][0], "ISGN")
+    vertex_output = signature(body["records"][0], "OSGN")
+    pixel_input = signature(body["records"][1], "ISGN")
+    pixel_output = signature(body["records"][1], "OSGN")
+    assert [entry["name"] for entry in vertex_input["entries"]] == \
+        ["POSITION", "NORMAL", "COLOR", "TEXCOORD"]
+    assert [(entry["name"], entry["semantic_index"])
+            for entry in vertex_output["entries"]] == \
+        [(entry["name"], entry["semantic_index"])
+         for entry in pixel_input["entries"]]
+    assert {entry["name"] for entry in pixel_output["entries"]} == \
+        {"SV_TARGET"}
+
     data = nsxr_shader.collect(dump)
     shaders = data["shaders"]
     assert len(shaders) == 223
@@ -33,6 +51,11 @@ def check(dump):
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)
+    signatures = [chunk for record in records
+                  for chunk in record["dxbc"]["chunks"]
+                  if chunk["tag"] in ("ISGN", "OSGN")]
+    assert len(signatures) == 892
+    assert all(chunk["signature"]["entries"] for chunk in signatures)
 
     with tempfile.TemporaryDirectory() as directory:
         output = os.path.join(directory, "body.dxbc")

@@ -50,7 +50,8 @@ must come from imports, string references, RTTI and pattern matching.
 Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
 `NTWD`, `XMD` and `NDWD` have per-format parsers. `NSXR` is now decoded too:
 223 `.nsh` files wrap two DXBC blobs each, with `RDEF`, `ISGN`, `OSGN`, `SHDR`
-and `STAT` chunks; `tools/engine/nsxr_shader.py` inventories and extracts them.
+and `STAT` chunks; `tools/engine/nsxr_shader.py` inventories, extracts and parses
+signature semantics. Shader record 0 is vertex, record 1 pixel; varyings match.
 
 `.nub` is now decoded: 32-byte header, tone-record offsets, 208-byte records with
 PCM length/offset and WAV format, then raw interleaved PCM. All 149 banks parse
