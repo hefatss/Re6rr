@@ -98,6 +98,28 @@ def run(dump, failures):
           dispatch["key_on_defaults"]["pan"] == 0.0 and
           dispatch["key_on_defaults"]["flags"] == 0,
           "KeyOn defaults", failures)
+    cfg3d = sections["config_3d"]
+    check(cfg3d["version"] == (1, 2, 3) and cfg3d["count"] == 5 and
+          cfg3d["stride"] == 0x130 and len(cfg3d["sections"]) == 5,
+          "config_3d header", failures)
+    check(abs(cfg3d["floats"][0] - 10.0) < 0.001 and
+          abs(cfg3d["floats"][1] - 315.0) < 0.001 and
+          abs(cfg3d["floats"][2] - 3.0) < 0.001 and
+          abs(cfg3d["floats"][3] - 1.0) < 0.001, "config_3d globals",
+          failures)
+    check(all(len(section["records"]) == 10 and len(section["tail"]) == 6
+              for section in cfg3d["sections"]), "config_3d sections",
+          failures)
+    record = cfg3d["sections"][0]["records"][0]
+    check(all(len(record["raw"]) == 3 and
+              -180.0 <= record["angle"] <= 180.0
+              for section in cfg3d["sections"]
+              for record in section["records"]), "config_3d records",
+          failures)
+    check(audio_events.decibels_to_amplitude(-96.0, -96.0) == 0.0 and
+          abs(audio_events.decibels_to_amplitude(0.0, -96.0) - 1.0) < 0.001,
+          "config_3d dB amplitude", failures)
+
     mixer = sections["mixer"]
     check(mixer["bus_count"] == 0x44 and mixer["bus_stride"] == 0x48 and
           mixer["fields"] == {"mode": 0x10, "volume": 0x00,

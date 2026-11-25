@@ -29,6 +29,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
   0x18001cbc0  68 mixer buses of 0x48; nuSound2BusFade fades over N frames
   0x180020290  piecewise dB -> volume; 0x1800201b0 inverse, calibration at
                instance +0x1c20/+0x1c28/+0x1c2c
+  0x18034fc0  nuSound2_3DSetConfig parses config_3d.bin: 5 sections of 0x130,
+               10 records of 0x1c, dB -> amplitude at 0x1800274d0
 
 No shipped table maps arbitrary game events to (bank, tone); those pairs stay
 native call-site constants, not invented data. No shipped Lua file calls any of
@@ -167,6 +169,53 @@ def bus_fade(state, target, frames):
         state["frames"] = frames
         state["mode"] = BUS_FADE_MODE
     return state
+
+
+CONFIG_3D_VERSION = (1, 2, 3)
+CONFIG_3D_SECTION_STRIDE = 0x130
+CONFIG_3D_RECORD_STRIDE = 0x1C
+CONFIG_3D_RECORD_COUNT = 10
+CONFIG_3D_TAIL_OFFSET = 0x118
+CONFIG_3D_TAIL_COUNT = 6
+DB_TO_AMPLITUDE_SCALE = 0.115129255  # ln(10)/20, from FUN_1800274d0
+
+
+def decibels_to_amplitude(db, zero_db):
+    """FUN_1800274d0: 10^(db/20) above the runtime zero-dB floor."""
+    if db <= zero_db:
+        return 0.0
+    return 10.0 ** (db * DB_TO_AMPLITUDE_SCALE)
+
+
+def parse_config_3d(raw):
+    """nuSound2_3DSetConfig / FUN_180032520: parse config_3d.bin."""
+    if len(raw) < 0x20:
+        raise ValueError("short config_3d header")
+    if tuple(raw[4:7]) != CONFIG_3D_VERSION:
+        raise ValueError("config_3d version")
+    count, stride = struct.unpack_from("<ii", raw, 8)
+    if stride != CONFIG_3D_SECTION_STRIDE or not 0 <= count <= 0x20:
+        raise ValueError("config_3d layout")
+    if 0x20 + count * stride > len(raw):
+        raise ValueError("config_3d size")
+    floats = struct.unpack_from("<4f", raw, 0x10)
+    sections = []
+    for index in range(count):
+        base = 0x20 + index * stride
+        records = []
+        for record in range(CONFIG_3D_RECORD_COUNT):
+            offset = base + record * CONFIG_3D_RECORD_STRIDE
+            values = struct.unpack_from("<I3f3I", raw, offset)
+            records.append({
+                "flags": values[0], "db_start": values[1],
+                "angle": values[2] + 90.0, "db_end": values[3],
+                "raw": list(values[4:]),
+            })
+        tail = struct.unpack_from("<%dI" % CONFIG_3D_TAIL_COUNT, raw,
+                                  base + CONFIG_3D_TAIL_OFFSET)
+        sections.append({"records": records, "tail": list(tail)})
+    return {"version": CONFIG_3D_VERSION, "count": count,
+            "stride": stride, "floats": floats, "sections": sections}
 
 
 def mixer_facts():
@@ -328,6 +377,8 @@ def build(dump):
         "bindings": resolved_bindings(dump),
         "dispatch": dispatch_facts(dump),
         "mixer": mixer_facts(),
+        "config_3d": parse_config_3d(open(os.path.join(dump, "data", "sound",
+                                                "config_3d.bin"), "rb").read()),
     }
 
 

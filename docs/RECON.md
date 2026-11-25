@@ -96,6 +96,9 @@ triples and enters the same 0xa0 voice request through
 slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
 `FUN_18002eb80` uses 0x804-byte slots and returns distinct errors for bad index,
 bad format, null data, already-set banks and voice/stream failures.
+`config_3d.bin` is parsed by `nuSound2_3DSetConfig`: version bytes `1,2,3`,
+5 sections of `0x130` bytes, each with ten `0x1c`-byte records and six trailing
+dwords; record dB fields convert to amplitude with `10^(db/20)`.
 Mixer ABI: 68 buses of 0x48 bytes with fade target/step/frames fields, plus
 piecewise-linear dB ↔ volume conversion calibrated at instance
 `+0x1c20/+0x1c28/+0x1c2c`. The 0xa0 voice request layout is known from
