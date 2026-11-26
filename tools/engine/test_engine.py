@@ -600,7 +600,8 @@ def test_nut_decode(dll, dump, failures):
         raw = nut_texture.read_nut(path)
         for index, entry in enumerate(nut_texture.parse_entries(raw)):
             name = entry["format_name"]
-            if name is None or entry["cube"] or \
+            if name not in ("BC1", "BC2", "BC3", "A8R8G8B8") or \
+                    entry["cube"] or \
                     entry["width"] * entry["height"] > 65536 or \
                     quota[name] >= 32:
                 continue

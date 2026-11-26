@@ -1,8 +1,9 @@
 #include "core/internal.h"
 #include "r6/r6_asset.h"
 
-/* CPU reconstruction of the four .nut pixel formats identified from the
- * shipped corpus. No files, allocation, CRT or libm: caller owns all bytes. */
+/* CPU reconstruction of the four RGBA8-decodable .nut formats. Format 0x0e
+ * (G16R16) has a known 4-byte-per-pixel size but no RGBA conversion here.
+ * No files, allocation, CRT or libm: caller owns all bytes. */
 
 static int r6_nut_cube(const r6_ntwd_texture *texture) {
     return ((texture->flags >> 9) & 1u) != 0 ||

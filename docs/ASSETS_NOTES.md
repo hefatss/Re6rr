@@ -106,7 +106,7 @@ Texture header (relative to its start):
 | `+0x08` | `u32` pixel byte count |
 | `+0x0c` | `u16` header stride (`0x50`) |
 | `+0x11` | `u8` mip-level count (also drives the eXt/GIDX table skip) |
-| `+0x13` | `u8` format: `0` = BC1, `1` = BC2, `2` = BC3, `0x15` = A8R8G8B8 |
+| `+0x13` | `u8` format: `0` = BC1, `1` = BC2, `2` = BC3, `0x0e` = G16R16, `0x15` = A8R8G8B8 |
 | `+0x14` | `u16` width, `u16` height |
 | `+0x1c` | `u32` flags; bit 9 shifts the `eXt`/`GIDX` chunks by `0x10`, bit 17 marks cube maps |
 | `+0x20` | `u32` type-2 pixel offset from header start |
@@ -118,8 +118,8 @@ NTWD streams from 683 `.tex` files (8 files were not gzip members), checked by
 `python tools/assets/ntwd_validate.py DIR`. Payload size is the sum of
 `+0x11` mip levels, each rounded to 16 bytes; cube flags multiply the chain by
 six. Size ratios of 5.33/10.67 bpp come from full mip chains (`4/3` of the base
-size). The same model validates 50,176 type-2 `.nut` entries in
-`tools/engine/test_nut_texture.py`.
+size). The same model validates 50,177 type-2 `.nut` entries in
+`tools/engine/test_nut_texture.py`; three NPOT BC3 entries are short one mip.
 `GIDX` value is a texture id: `FUN_140c8f7d0` formats it as `"0x%08x"` and
 uses that string as a lookup key, not a name hash.
 
@@ -148,5 +148,5 @@ other layouts, not padding.
 - Which subrecord layout selects each section-2 vertex format.
 - Meaning of the `u32` values at subrecord `+0x20`/`+0x24` (chain records and
   texture hashes are decoded; their role in geometry is not).
-- Channel order of the single format `0x0e` texture and the three NPOT BC3
-  entries that store one mip level fewer than declared.
+- 16-bit G/R to RGBA8 conversion for the single format `0x0e` texture; its
+  4-byte-per-pixel payload size is validated.

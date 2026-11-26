@@ -109,6 +109,21 @@ def check_pixels(dump, failures):
     check(len(rgba) == 512 * 512 * 4 and len(set(rgba[::4])) > 1 and
           rgba[3::4] == b"\xff" * (512 * 512), "BC1 decode", failures)
 
+    g16 = load(dump, "data_jp/flash/DRIVE/ghost_battle/"
+                     "B073_02_01_DRESSUP_SEL00.nut")
+    entries = [item for item in nut_texture.parse_entries(g16)
+               if item["format_name"] == "G16R16"]
+    check(len(entries) == 1 and entries[0]["width"] == 336 and
+          entries[0]["height"] == 336 and entries[0]["levels"] == 1 and
+          nut_texture.expected_size(entries[0]) == 336 * 336 * 4,
+          "G16R16 header", failures)
+    try:
+        nut_texture.decode_entry(g16, entries[0])
+    except ValueError:
+        pass
+    else:
+        failures.append("G16R16 RGBA decode must stay explicit")
+
 
 def check_formats(dump, failures):
     stats = collections.Counter()
@@ -135,8 +150,8 @@ def check_formats(dump, failures):
                                                                  name), dump),
                                     entry["index"], entry["format_name"],
                                     entry["data_size"]))
-    check(stats["match"] == 50176 and stats["short-mips"] == 3 and
-          stats["unknown"] == 1 and stats["bad"] == 0,
+    check(stats["match"] == 50177 and stats["short-mips"] == 3 and
+          stats["unknown"] == 0 and stats["bad"] == 0,
           "payload size model %s %s" % (dict(stats), bad), failures)
 
 
@@ -154,7 +169,8 @@ def main():
             print("FAIL " + item)
         return 1
     print("11151 .nut files, 11008 NTWD (5431 gzip) / 143 NTLX "
-          "(140 exact), 36 cut-ins, 50176 payload sizes, 4 CPU formats: OK")
+          "(140 exact), 36 cut-ins, 50177 payload sizes, 4 CPU formats, "
+          "G16R16 size only: OK")
     return 0
 
 

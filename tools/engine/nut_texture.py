@@ -6,9 +6,10 @@
 
 Containers are either gzip-wrapped or raw NTWD/NTLX. Both start with a 0x10
 prefix; the descriptor size at +0x1c is 0x50..0x80. Format bytes come from the
-wmn6r.exe NTWD loader: 0 = BC1, 1 = BC2, 2 = BC3, 0x15 = A8R8G8B8. Byte +0x11
-is the mip-level count for the payload, not a cube-face count. Payload layout
-is validated by `test_nut_texture.py`; pixel decode here is CPU-only.
+wmn6r.exe NTWD loader: 0 = BC1, 1 = BC2, 2 = BC3, 0x15 = A8R8G8B8 and
+0x0e = G16R16 (D3DFMT numeric value 14). Byte +0x11 is the mip-level count for
+the payload, not a cube-face count. Payload layout is validated by
+`test_nut_texture.py`; RGBA8 decode here covers four formats, not G16R16.
 
 """
 
@@ -24,7 +25,8 @@ NTLX = b"NTLX"
 GZIP = b"\x1f\x8b"
 PREFIX_SIZE = 0x10
 GIDX_OFFSET = 0x30
-FORMAT_NAMES = {0: "BC1", 1: "BC2", 2: "BC3", 0x15: "A8R8G8B8"}
+FORMAT_NAMES = {0: "BC1", 1: "BC2", 2: "BC3", 0x0e: "G16R16",
+                0x15: "A8R8G8B8"}
 BLOCK_BYTES = {0: 8, 1: 16, 2: 16}
 
 
@@ -108,7 +110,7 @@ def parse_entries(raw):
 
 def level_size(fmt, width, height):
     """Size of one mip level, rounded to the 16-byte container alignment."""
-    if fmt == 0x15:
+    if fmt in (0x0e, 0x15):
         size = width * height * 4
     elif fmt in BLOCK_BYTES:
         size = ((width + 3) // 4) * ((height + 3) // 4) * BLOCK_BYTES[fmt]
@@ -236,6 +238,8 @@ def decode_entry(raw, entry, level=0, face=0):
         raise ValueError("mip level %d outside %d levels" % (level,
                                                              len(layout)))
     offset, width, height, size = layout[level]
+    if fmt == 0x0e:
+        raise ValueError("G16R16 decode not implemented")
     if fmt == 0x15:
         payload = raw[offset:offset + size]
         out = bytearray(width * height * 4)
