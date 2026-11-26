@@ -145,8 +145,13 @@ floats with defaults from `FUN_1800011b0`. `FUN_18001a4e0` is `memcpy`;
 `FUN_180026a60` activates the extended path only when both extension pointers
 are non-null, and `FUN_1800237d0` copies `0x34` bytes to request `+0x34` and
 `0x1c` bytes to `+0x68`. The six-argument game wrappers pass null pointers;
-`play3DSeLoop` passes three vectors through `nuSound2_3DKeySetOnHandle` and its
-Chgrp variant, so the shipped extended users are 3D voices. Plain
+`play3DSeLoop` (`0x140c50d80`) is the only game xref to the
+`nuSound2_3DKeySetOnHandle` import thunk (`0x140dee20a`): it supplies an internal
+position at `Sound::Impl +0x60`, copies two 12-byte caller vectors and a chgrp
+scalar into one `0x1c`-byte block, and passes the voice-slot output with it. The
+DLL wrapper copies the same two vectors and chgrp into a contiguous block before
+calling `0x180029cc0`, so the `0x34`-byte blob starts at that block and the
+`0x1c`-byte blob starts at the voice-key record. Plain
 `nuSound2KeySetOnHandle`/`KeyOnHandle` and their ID variants reach
 `FUN_180029e00`/`0x18002a490` with null extension pointers. Point 3D wrappers
 (`0x1800363b0`, `0x1800361f0`, `0x180036900`, `0x180036740`) pass a three-float

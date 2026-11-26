@@ -109,6 +109,21 @@ def run(dump, failures):
     check(users["line"]["get_position"] == 0x180034E70 and
           users["line"]["position_floats"] == 4 and
           users["line"]["extended"], "line 3D extension users", failures)
+    site = audio_events.GAME_PLAY_3D
+    check(site["site"] == 0x140C50D80 and
+          site["log_name"] == "sys::Sound::Impl::play3DSeLoop" and
+          site["thunk"] == 0x140DEE20A and
+          site["import"] == "nuSound2_3DKeySetOnHandle",
+          "game play3DSeLoop call site", failures)
+    check(site["position_offset"] == 0x60 and
+          site["caller_vectors"] == 2 and site["vector_bytes"] == 0xC and
+          site["copied_block_bytes"] == 0x1C and
+          site["voice_slot_stride"] == 8,
+          "game play3DSeLoop vector sources", failures)
+    check(site["blob_a_size"] == ext["blobs"]["a"]["size"] and
+          site["blob_b_size"] == ext["blobs"]["b"]["size"] and
+          site["blob_b_source"] == "voice key output record",
+          "extended blob origins", failures)
     bgm = sections["dispatch"]["bgm_playback"]
     check(bgm["play"] == 0x1407D6940 and bgm["start"] == 0x140C52100 and
           bgm["stop"] == 0x140C52110 and

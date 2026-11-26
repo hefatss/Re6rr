@@ -162,8 +162,9 @@ SOUND_INIT = {
 # FUN_18001a4e0 is memcpy. FUN_180026a60 sets its extended flag only when both
 # extension pointers are non-null; FUN_1800237d0 then copies them into the voice
 # request at +0x34 (0x34 bytes) and +0x68 (0x1c bytes). The 6-argument game
-# wrappers pass null pointers; play3DSeLoop passes three vectors through
-# nuSound2_3DKeySetOnHandle -> ...Chgrp, so the shipped extended users are 3D.
+# wrappers pass null pointers; play3DSeLoop passes an internal position plus two
+# caller vectors through nuSound2_3DKeySetOnHandle -> ...Chgrp, so the shipped
+# extended users are 3D.
 EXTENDED_KEY_ON = {
     "memcpy": 0x18001A4E0,
     "layer": 0x1800237D0,
@@ -194,6 +195,28 @@ EXTENDED_KEY_ON = {
                  "get_position": 0x180034E70, "position_floats": 4,
                  "extended": True},
     },
+}
+
+
+# Game-side source of the extended blobs. FUN_140c50d80 is the only xref to
+# the nuSound2_3DKeySetOnHandle import thunk. It copies two 12-byte caller
+# vectors and the chgrp scalar into one contiguous 0x1c-byte block; the DLL
+# wrapper passes that block and the voice-key output pointer into 0x180029cc0.
+# FUN_1800237d0 copies 0x34 bytes from the block and 0x1c bytes from the key
+# record when mode 1 is active. These are 3D/voice plumbing, not envelope data.
+GAME_PLAY_3D = {
+    "site": 0x140C50D80,
+    "log_name": "sys::Sound::Impl::play3DSeLoop",
+    "thunk": 0x140DEE20A,
+    "import": "nuSound2_3DKeySetOnHandle",
+    "position_offset": 0x60,
+    "caller_vectors": 2,
+    "vector_bytes": 0xC,
+    "copied_block_bytes": 0x1C,
+    "voice_slot_stride": 8,
+    "blob_a_size": 0x34,
+    "blob_b_size": 0x1C,
+    "blob_b_source": "voice key output record",
 }
 
 
