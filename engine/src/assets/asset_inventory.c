@@ -203,6 +203,64 @@ int r6_asset_inventory_folder(const void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+static int asset_find(const void *data, size_t size, const char *name,
+                      uint32_t count, uint32_t stride, uint32_t base,
+                      uint32_t *index) {
+    uint32_t at;
+    size_t wanted;
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < count; at++) {
+        const unsigned char *bytes = NULL;
+        uint32_t row_off = 0;
+        uint32_t strings_off = 0;
+        char found[R6_ASSET_INVENTORY_NAME_CAP];
+        int result = asset_rows(data, size, at, stride, count, base, &bytes,
+                                &row_off, &strings_off);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        result = asset_name(bytes, size, strings_off,
+                            r6_u32(bytes, row_off + 4u), found,
+                            sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
+int r6_asset_inventory_find_ext(const void *data, size_t size,
+                                const char *name, uint32_t *index) {
+    return asset_find(data, size, name, R6_ASSET_INVENTORY_EXTS, 48u, 60u,
+                      index);
+}
+
+int r6_asset_inventory_find_folder(const void *data, size_t size,
+                                   const char *name, uint32_t *index) {
+    return asset_find(data, size, name, R6_ASSET_INVENTORY_FOLDERS, 20u,
+                      60u + R6_ASSET_INVENTORY_EXTS * 48u +
+                          R6_ASSET_INVENTORY_MAGICS * 12u, index);
+}
+
 int r6_asset_inventory_shader(const void *data, size_t size, uint32_t index,
                               char *path, size_t capacity,
                               uint32_t *file_size, unsigned char *head) {

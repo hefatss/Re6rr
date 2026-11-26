@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 NAME_CAP = 0x80
 U32 = ctypes.c_uint32
 PU32 = ctypes.POINTER(U32)
@@ -47,6 +48,12 @@ def configure(lib):
     lib.r6_asset_inventory_folder.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, ctypes.c_char_p,
         ctypes.c_size_t, PU32, PU32, PU32, PU32]
+    lib.r6_asset_inventory_find_ext.restype = ctypes.c_int
+    lib.r6_asset_inventory_find_ext.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
+    lib.r6_asset_inventory_find_folder.restype = ctypes.c_int
+    lib.r6_asset_inventory_find_folder.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
     lib.r6_asset_inventory_shader.restype = ctypes.c_int
     lib.r6_asset_inventory_shader.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, ctypes.c_char_p,
@@ -116,6 +123,19 @@ def check(lib):
         assert count.value == expected["size"]
         assert head.raw[:16] == expected["head"]
 
+    found = U32()
+    assert lib.r6_asset_inventory_find_ext(
+        source, len(blob), exts[0]["name"].encode("ascii"),
+        ctypes.byref(found)) == R6_OK
+    assert found.value == 0
+    assert lib.r6_asset_inventory_find_folder(
+        source, len(blob), folders[0]["name"].encode("ascii"),
+        ctypes.byref(found)) == R6_OK
+    assert found.value == 0
+    assert lib.r6_asset_inventory_find_ext(
+        source, len(blob), b"R6_NO_SUCH_EXT",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
+
     assert lib.r6_asset_inventory_ext(
         source, len(blob), 32, name, len(name), ctypes.byref(root),
         ctypes.byref(files), ctypes.byref(lo), ctypes.byref(hi),
@@ -162,8 +182,8 @@ def check(lib):
         ctypes.byref(files), ctypes.byref(lo), ctypes.byref(hi),
         kinds) == R6_ERR_FORMAT
     print("asset inventory: 2 roots, 32 extensions, 7 magics, 27 folders "
-          "and 40 shader samples match assets.json; bad blob, index and "
-          "capacity rejected")
+          "and 40 shader samples match assets.json; find, bad blob, index "
+          "and capacity rejected")
 
 
 def main():

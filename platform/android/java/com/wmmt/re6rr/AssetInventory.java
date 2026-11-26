@@ -43,6 +43,15 @@ public final class AssetInventory {
         return nativeFolderName(blob, index);
     }
 
+    /** row index for an exact extension or folder name; -1 if absent. */
+    public static long findExt(byte[] blob, String name) {
+        return nativeFindExt(blob, name);
+    }
+
+    public static long findFolder(byte[] blob, String name) {
+        return nativeFindFolder(blob, name);
+    }
+
     public static String shaderPath(byte[] blob, int index) {
         return nativeShaderPath(blob, index);
     }
@@ -66,6 +75,10 @@ public final class AssetInventory {
     private static native String nativeMagicName(byte[] blob, int index);
 
     private static native String nativeFolderName(byte[] blob, int index);
+
+    private static native long nativeFindExt(byte[] blob, String name);
+
+    private static native long nativeFindFolder(byte[] blob, String name);
 
     private static native String nativeShaderPath(byte[] blob, int index);
 
