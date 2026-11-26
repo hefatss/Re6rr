@@ -33,6 +33,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_lua_inventory.h"
 #include "r6/r6_asset_inventory.h"
 #include "r6/r6_pe_inventory.h"
+#include "r6/r6_name_runs.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -1527,6 +1528,146 @@ Java_com_wmmt_re6rr_PeInventory_nativePdbPath(JNIEnv *env, jclass cls,
     }
     free(bytes);
     return (*env)->NewStringUTF(env, path);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeHeader(JNIEnv *env, jclass cls,
+                                          jbyteArray blob) {
+    r6_name_runs_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    (void)cls;
+    if (!bytes ||
+        r6_name_runs_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.run_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.user_count;
+    values[4] = (jlong)header.strings_size;
+    return pe_new_longs(env, values, 5);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeRun(JNIEnv *env, jclass cls,
+                                       jbyteArray blob, jint index) {
+    uint32_t rva = 0;
+    uint32_t size = 0;
+    uint32_t stride = 0;
+    uint32_t count = 0;
+    uint32_t name_first = 0;
+    uint32_t user_first = 0;
+    uint32_t user_count = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    (void)cls;
+    if (!bytes ||
+        r6_name_runs_run(bytes, length, (uint32_t)index, &rva, &size,
+                         &stride, &count, &name_first, &user_first,
+                         &user_count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)rva;
+    values[1] = (jlong)size;
+    values[2] = (jlong)stride;
+    values[3] = (jlong)count;
+    values[4] = (jlong)name_first;
+    values[5] = (jlong)user_first;
+    values[6] = (jlong)user_count;
+    return pe_new_longs(env, values, 7);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeName(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    char name[R6_NAME_RUNS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_name_runs_name(bytes, length, (uint32_t)index, name,
+                          sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeRunName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint run_index,
+                                           jint local_index) {
+    char name[R6_NAME_RUNS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_name_runs_run_name(bytes, length, (uint32_t)run_index,
+                              (uint32_t)local_index, name,
+                              sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeUser(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    uint32_t rva = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_name_runs_user(bytes, length, (uint32_t)index, &rva) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)rva;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeFind(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jstring name) {
+    uint32_t run = 0;
+    uint32_t local = 0;
+    uint32_t global = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    const char *text = NULL;
+    jlong values[3];
+    (void)cls;
+    if (!bytes || !name) {
+        free(bytes);
+        return NULL;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_name_runs_find(bytes, length, text, &run, &local,
+                          &global) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return NULL;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    values[0] = (jlong)run;
+    values[1] = (jlong)local;
+    values[2] = (jlong)global;
+    return pe_new_longs(env, values, 3);
 }
 
 JNIEXPORT jlongArray JNICALL

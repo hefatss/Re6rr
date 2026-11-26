@@ -38,6 +38,7 @@ engine/include/r6/r6_lua_xrefs.h  Lua name to native function/table reference re
 engine/include/r6/r6_lua_inventory.h  shipped Lua file and directory count reader
 engine/include/r6/r6_asset_inventory.h  shipped extension, magic, folder and shader sample counts
 engine/include/r6/r6_pe_inventory.h  shipped PE header, .pdata, import and symbol inventory reader
+engine/include/r6/r6_name_runs.h  shipped string-pointer run, name and code-reference reader
 engine/include/r6/r6_honor_schema.h  recovered unlock/honor condition schema reader
 engine/include/r6/r6_scene_env.h  shipped Environment.Lua value inventory reader
 engine/include/r6/r6_stage_effect.h  bounds-checked stage-effect sound catalog reader
@@ -235,6 +236,10 @@ platform/android/java/        Java side of the JNI bridge
   — read the derived `R6PEI` counts: 70,377 `.pdata` rows, 28 DLLs, 825
   imports, 7 sections, 2 exports and one TLS callback. RVAs are copied as
   numbers; no PE bytes are mapped or executed.
+- `r6_name_runs_parse()/run()/name()/run_name()/user()/find()` — read the
+  derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names and 888
+  code references. `find()` returns the first exact match by run, local and
+  global index; RVAs are never dereferenced.
 - `r6_context_path()` — produce one of the 12 slash-separated relative Lua
   script paths in shipped load order (tire, position, shader, specification,
   colour) from a car and model name. Existence checks and script bytes stay
@@ -306,7 +311,7 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows and 825 imports, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows and 825 imports, `NameRuns` reads 521 pointer runs with 13,283 names, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
@@ -388,7 +393,7 @@ Verified on this dump:
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; short input, bad magic and bad sizes rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `NameRuns`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -402,6 +407,7 @@ Verified on this dump:
 | EES type filter | 183600 shipped camera types across 720 files match the `FUN_1401ca060` type 0/2 rule |
 | EES car_info | all 10800 shipped ids match the `0x8c` record words; short and null inputs rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
+| Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; find, bad blob, index, row and capacity rejected |
 | PE inventory | all 70,377 `.pdata` rows, 825 imports, 28 DLLs, 7 sections, 2 exports and PDB data match `pe.json`/`pdata.json`; bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; bad blob, index and capacity rejected |
 | Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |
