@@ -324,6 +324,33 @@ int r6_pe_inventory_directory(const void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+int r6_pe_inventory_directory_find(const void *data, size_t size,
+                                   uint32_t dir_index, uint32_t *row_index) {
+    uint32_t at;
+    r6_pe_inventory_header header;
+    int result = pe_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    for (at = 0; at < header.directory_count; at++) {
+        uint32_t found = 0;
+        result = r6_pe_inventory_directory(data, size, at, &found, NULL, NULL);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (found == dir_index) {
+            if (row_index) {
+                *row_index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
                         size_t guid_capacity, uint32_t *age, char *path,
                         size_t path_capacity) {

@@ -61,6 +61,11 @@ public final class PeInventory {
         return nativeDirectory(blob, index);
     }
 
+    /** row index for a PE directory index; -1 if absent. */
+    public static long directoryFind(byte[] blob, int dirIndex) {
+        return nativeDirectoryFind(blob, dirIndex);
+    }
+
     public static String pdbGuid(byte[] blob) {
         return nativePdbGuid(blob);
     }
@@ -94,6 +99,8 @@ public final class PeInventory {
     private static native long[] nativeTls(byte[] blob, int index);
 
     private static native long[] nativeDirectory(byte[] blob, int index);
+
+    private static native long nativeDirectoryFind(byte[] blob, int dirIndex);
 
     private static native String nativePdbGuid(byte[] blob);
 

@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 U32 = ctypes.c_uint32
 PU32 = ctypes.POINTER(U32)
 BUF = ctypes.c_char_p
@@ -67,6 +68,9 @@ def configure(lib):
     lib.r6_pe_inventory_directory.restype = ctypes.c_int
     lib.r6_pe_inventory_directory.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32, PU32]
+    lib.r6_pe_inventory_directory_find.restype = ctypes.c_int
+    lib.r6_pe_inventory_directory_find.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
     lib.r6_pe_inventory_pdb.restype = ctypes.c_int
     lib.r6_pe_inventory_pdb.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, BUF, ctypes.c_size_t, PU32, BUF,
@@ -188,6 +192,15 @@ def check(lib):
         assert directory_index.value == expected["index"]
         assert directory_rva.value == int(expected["rva"], 16)
         assert directory_size.value == expected["size"]
+
+    for expected_index, expected_row in ((0, 0), (5, 4), (12, 7)):
+        assert lib.r6_pe_inventory_directory_find(
+            source, len(blob), expected_index,
+            ctypes.byref(directory_index)) == R6_OK
+        assert directory_index.value == expected_row
+    assert lib.r6_pe_inventory_directory_find(
+        source, len(blob), 4,
+        ctypes.byref(directory_index)) == R6_ERR_NOT_FOUND
 
     guid = ctypes.create_string_buffer(64)
     path = ctypes.create_string_buffer(512)

@@ -90,6 +90,11 @@ R6_API int r6_pe_inventory_directory(const void *data, size_t size,
                                      uint32_t index, uint32_t *dir_index,
                                      uint32_t *rva, uint32_t *dir_size);
 
+/* First row with the given PE data-directory index. */
+R6_API int r6_pe_inventory_directory_find(const void *data, size_t size,
+                                          uint32_t dir_index,
+                                          uint32_t *row_index);
+
 R6_API int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
                                size_t guid_capacity, uint32_t *age,
                                char *path, size_t path_capacity);

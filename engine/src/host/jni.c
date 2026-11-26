@@ -2485,6 +2485,24 @@ Java_com_wmmt_re6rr_StringXrefs_nativeFind(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeDirectoryFind(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint dir_index) {
+    uint32_t row_index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_directory_find(bytes, length, (uint32_t)dir_index,
+                                       &row_index) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)row_index;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {
