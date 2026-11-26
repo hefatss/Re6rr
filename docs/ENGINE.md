@@ -13,6 +13,7 @@ engine/include/r6/r6_audio.h  nuSound2 .nub header, tone and control structures
 engine/include/r6/r6_bgm.h  packed BGM id/name/path lookups from wmn6r.exe
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
+engine/include/r6/r6_envelope.h  pitch/volume curve evaluation with host math hooks
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
@@ -27,7 +28,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB port; no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB and envelope curve port; no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
@@ -72,7 +73,11 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_esnd_parse()` / `r6_esnd_find()` / `r6_esnd_get_layer()` — read a packed
   car/tune engine-sound mapping and its resolved 16 layer envelopes. The blob
   is built by `tools/engine/engine_sound_catalog.py` from `engmap.tbl` and
-  `emtis.tbl`; runtime pitch/volume evaluation stays in Python.
+  `emtis.tbl`.
+- `r6_envelope_eval()` — port of FUN_1407d0dc0's pitch/volume curve. `pow` and
+  `exp2` are supplied by host callbacks, so the core stays freestanding while
+  the host can use libm for bit-faithful results. Full 16-layer state
+  evaluation stays in Python.
 - `r6_gles_program_count()/program()` and
   `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
   — pair stage records by shader name (223 programs from 446 records), then
@@ -169,6 +174,7 @@ Verified on this dump:
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
+| envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
