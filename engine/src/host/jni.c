@@ -10,6 +10,7 @@
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
 #include "r6/r6_audio.h"
+#include "r6/r6_bgm.h"
 #include "r6/r6_car.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
@@ -2355,6 +2356,97 @@ Java_com_wmmt_re6rr_VertexLayout_nativeName(JNIEnv *env, jclass cls,
         name = r6_vertex_name(&view, (uint32_t)offset);
         if (name) {
             out = (*env)->NewStringUTF(env, name);
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+/* BGM catalog bridge: packed blob in, plain id/name/path values out. */
+static jintArray bgm_record_values(JNIEnv *env, const r6_bgm_record *record) {
+    jint values[4];
+    values[0] = record->id;
+    values[1] = record->flags;
+    values[2] = (jint)record->name_off;
+    values[3] = (jint)record->path_off;
+    return glsl_ints(env, values, 4);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_BgmCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_bgm_header header;
+    jint values[5];
+    jintArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_bgm_parse(bytes, length, &header) == R6_OK) {
+        values[0] = (jint)header.version;
+        values[1] = (jint)header.count;
+        values[2] = (jint)header.id_first;
+        values[3] = (jint)header.strings_off;
+        values[4] = (jint)header.strings_size;
+        out = glsl_ints(env, values, 5);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_BgmCatalog_nativeFindId(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint id) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_bgm_record record;
+    jintArray out = NULL;
+    (void)cls;
+    if (id >= 0 && id <= 0xffff &&
+        raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_bgm_find_id(bytes, length, (uint16_t)id, &record) == R6_OK) {
+        out = bgm_record_values(env, &record);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_BgmCatalog_nativeFindName(JNIEnv *env, jclass cls,
+                                              jbyteArray data, jstring name) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_bgm_record record;
+    const char *text = NULL;
+    jintArray out = NULL;
+    (void)cls;
+    if (!name) {
+        return NULL;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK && text &&
+        r6_bgm_find_name(bytes, length, text, &record) == R6_OK) {
+        out = bgm_record_values(env, &record);
+    }
+    if (text) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_BgmCatalog_nativeString(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint offset) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK) {
+        text = r6_bgm_string(bytes, length, (uint32_t)offset);
+        if (text) {
+            out = (*env)->NewStringUTF(env, text);
         }
     }
     free(bytes);
