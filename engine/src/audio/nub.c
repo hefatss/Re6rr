@@ -179,3 +179,47 @@ int r6_nub_pcm(const void *data, size_t size, const r6_nub_header *header,
     *out_size = tone->length;
     return R6_OK;
 }
+
+int r6_bank_setup_init(r6_bank_setup_view *view, const void *data,
+                       size_t size, r6_bank_setup_tone *tones,
+                       size_t capacity) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t count;
+    uint32_t table;
+    uint32_t index;
+    if (!view) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(view, 0, sizeof(*view));
+    if (!bytes || size < NUB_HEADER_SIZE) {
+        return R6_ERR_BUFFER;
+    }
+    if (r6_u32(data, 0) != NUB_VERSION) {
+        return R6_ERR_FORMAT;
+    }
+    count = r6_u32(data, 0x0c);
+    table = r6_u32(data, 0x18);
+    r6_memcpy(view->version, bytes, sizeof(view->version));
+    view->tone_count = count;
+    view->data_offset = r6_u32(data, 0x10);
+    view->data_size = r6_u32(data, 0x14);
+    view->record_table = table;
+    if ((uint64_t)table > size ||
+        (uint64_t)count * 4u > (uint64_t)size - table) {
+        return R6_ERR_FORMAT;
+    }
+    if (count && (!tones || capacity < count)) {
+        return R6_ERR_BUFFER;
+    }
+    for (index = 0; index < count; index++) {
+        uint32_t record = r6_u32(data, (size_t)table + (size_t)index * 4u);
+        if ((uint64_t)record + 0xC4u > size) {
+            return R6_ERR_FORMAT;
+        }
+        tones[index].length = r6_u32(data, (size_t)record + 0x14u);
+        tones[index].data_offset = r6_u32(data, (size_t)record + 0x18u);
+        tones[index].formats = r6_u32(data, (size_t)record + 0x1Cu);
+    }
+    view->tones = count ? tones : NULL;
+    return R6_OK;
+}

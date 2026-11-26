@@ -57,6 +57,22 @@ typedef struct r6_nub_control {
     uint32_t voice_bus;
 } r6_nub_control;
 
+/* Registration view used by nuSound2BankRegister (FUN_18002eb80). */
+typedef struct r6_bank_setup_tone {
+    uint32_t length;
+    uint32_t data_offset;
+    uint32_t formats;
+} r6_bank_setup_tone;
+
+typedef struct r6_bank_setup_view {
+    unsigned char version[3];
+    uint32_t tone_count;
+    uint32_t data_offset;
+    uint32_t data_size;
+    uint32_t record_table;
+    const r6_bank_setup_tone *tones;
+} r6_bank_setup_view;
+
 /* Parse the header and every tone record. capacity is a tone count; on
  * R6_ERR_BUFFER, header->tone_count holds the required count. */
 R6_API int r6_nub_parse(const void *data, size_t size, r6_nub_header *header,
@@ -70,6 +86,12 @@ R6_API int r6_nub_tone_control(const void *data, size_t size,
 R6_API int r6_nub_pcm(const void *data, size_t size,
                       const r6_nub_header *header, const r6_nub_tone *tone,
                       const void **out, size_t *out_size);
+
+/* Read the bank registration view into caller-owned tone storage. On
+ * R6_ERR_BUFFER, view->tone_count holds the required tone count. */
+R6_API int r6_bank_setup_init(r6_bank_setup_view *view, const void *data,
+                              size_t size, r6_bank_setup_tone *tones,
+                              size_t capacity);
 
 #ifdef __cplusplus
 }

@@ -9,7 +9,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 ```
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
-engine/include/r6/r6_audio.h  nuSound2 .nub header, tone and control structures
+engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control and bank-registration view structures
 engine/include/r6/r6_bgm.h  packed BGM id/name/path lookups from wmn6r.exe
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
@@ -31,7 +31,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder and config_3d.bin reader; no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
@@ -65,6 +65,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_pcm()` — bounds-checked
   nuSound2 bank parse, playback control fields and a zero-copy PCM view over
   host-owned bytes. No mixer, resampling or audio device.
+- `r6_bank_setup_init()` — read the bank-registration view used by
+  nuSound2BankRegister (FUN_18002eb80): version, tone count, data window,
+  record table and per-tone length/offset/format count into caller storage.
+  On a short tone array, `tone_count` reports the required capacity.
 - `r6_mixer_bus_read()/bus_write()/bus_fade()` and
   `r6_mixer_db_to_volume()/volume_to_db()` — access the recovered 68 buses at
   a 0x48 stride and port nuSound2 linear fade and piecewise dB conversions.
@@ -193,6 +197,7 @@ Verified on this dump:
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
+| bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |
