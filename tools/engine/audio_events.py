@@ -30,6 +30,8 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
   0x18002f1c0  bank register: 64 slots of 0x804, state pointer at slot +0x42
   0x18002e1b0  tone record = bank + *(u32 *)(bank + 0x18 + tone*4); +0x18 is
                the offset-table base (0x20), +0x1c the first record offset
+  0x180026a60  chained KeyOn: up to 32 voices, 0xd0-byte state records at
+               instance +0x21c (0x180025b80 builds, 0x180029220 applies)
   0x180035b80  stream byte reservation at instance +0x80508, cap 0x20000000
   0x18001cbc0  68 mixer buses of 0x48; nuSound2BusFade fades over N frames
   0x180020290  piecewise dB -> volume; 0x1800201b0 inverse, calibration at
@@ -375,6 +377,45 @@ def stream_reserve(total, size):
     return total + size
 
 
+# FUN_180026a60 builds up to 32 chained voices. FUN_180025b80 fills one
+# 0xd0-byte record per voice at instance +0x21c + index*0xd0 (0x180020370);
+# FUN_180029220 applies it to the core voice after KeyOn.
+CHAIN_VOICE_STATE = {
+    "builder": 0x180025B80, "applier": 0x180029220,
+    "slot": 0x21C, "stride": 0xD0, "count": 0x20, "floats": 0x34,
+    "fields": {"volume": 0x00, "volume_db": 0x01, "pitch_cents": 0x02,
+               "fx_volume": 0x03, "mix_volume": 0x04, "filter_a": 0x05,
+               "filter_b": 0x06, "speaker_matrix": 0x07,
+               "speaker_floats": 0x24, "reserved": 0x2B, "mode": 0x2C,
+               "channel": 0x2D, "param_a": 0x2E, "param_b": 0x2F,
+               "bus": 0x30, "bank": 0x31, "tone": 0x32, "voice": 0x33},
+    "appliers": {"volume": 0x18001BF00, "fx_volume": 0x18001B1B0,
+                 "pitch": 0x18001BE70, "filter_a": 0x18001B670,
+                 "filter_b": 0x18001B520, "speaker": 0x18001BD30,
+                 "bus": 0x18001B180, "mode": 0x18001C220},
+    "voice_fields": {"volume": 0x2C, "fx_volume": 0x30, "pitch": 0x48,
+                     "filter_a": 0x08, "filter_b": 0x44, "bus": 0x38,
+                     "channel": 0x14, "core_voice": 0x08},
+    "core_voice_table": {"lookup": 0x18001ED00, "offset": 0x44,
+                         "stride": 0x178, "count": 0xC0},
+    "modes": (1, 2, 7), "pitch_base": 2.0, "pitch_divisor": 1200.0,
+    "db_scale": 20.0,
+}
+
+
+def clamp_unit(value):
+    """FUN_18001bf00/b1b0/bd30: NaN or negative -> 0, above one -> 1."""
+    if value != value or value < 0.0:
+        return 0.0
+    return 1.0 if value > 1.0 else value
+
+
+def cents_to_pitch(cents):
+    """FUN_18001be70: 2^(cents/1200), passed to bnusCoreVoiceSetPitch."""
+    return CHAIN_VOICE_STATE["pitch_base"] ** \
+        (cents / CHAIN_VOICE_STATE["pitch_divisor"])
+
+
 def mixer_facts():
     return {
         "bus_count": BUS_COUNT, "bus_stride": BUS_STRIDE,
@@ -471,6 +512,7 @@ def dispatch_facts(dump):
             "voice_meta_stride": VOICE_META_STRIDE,
             "bank_set_errors": BANK_SET_ERRORS,
             "bank_setup": BANK_REGISTER,
+            "chain_voice": CHAIN_VOICE_STATE,
             "request_fields": VOICE_REQUEST_FIELDS,
             "float_defaults": VOICE_FLOAT_DEFAULTS,
         },

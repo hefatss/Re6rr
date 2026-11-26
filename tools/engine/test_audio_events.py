@@ -165,6 +165,31 @@ def run(dump, failures):
     check(audio_events.stream_reserve(0, 0x20000000) == 0x20000000 and
           audio_events.stream_reserve(0x20000000, 1) == -1,
           "stream reserve cap", failures)
+
+    chain = playback["chain_voice"]
+    check(chain["builder"] == 0x180025B80 and
+          chain["applier"] == 0x180029220 and
+          (chain["slot"], chain["stride"], chain["count"],
+           chain["floats"]) == (0x21C, 0xD0, 0x20, 0x34) and
+          chain["modes"] == (1, 2, 7), "chain voice records", failures)
+    check(chain["fields"]["speaker_matrix"] == 7 and
+          chain["fields"]["speaker_floats"] == 0x24 and
+          chain["fields"]["reserved"] == 0x2B and
+          chain["fields"]["voice"] == 0x33 and
+          len(chain["fields"]) == 18, "chain voice field map", failures)
+    check(chain["voice_fields"]["volume"] == 0x2C and
+          chain["voice_fields"]["pitch"] == 0x48 and
+          chain["core_voice_table"]["stride"] == 0x178 and
+          chain["core_voice_table"]["count"] == 0xC0,
+          "chain voice appliers", failures)
+    check(audio_events.clamp_unit(float("nan")) == 0.0 and
+          audio_events.clamp_unit(-0.5) == 0.0 and
+          audio_events.clamp_unit(2.0) == 1.0 and
+          audio_events.clamp_unit(0.25) == 0.25, "unit clamping", failures)
+    check(abs(audio_events.cents_to_pitch(1200.0) - 2.0) < 1e-9 and
+          abs(audio_events.cents_to_pitch(0.0) - 1.0) < 1e-9 and
+          abs(audio_events.cents_to_pitch(-1200.0) - 0.5) < 1e-9,
+          "cents to pitch", failures)
     bank_count = tone_count = 0
     sound_dir = os.path.join(dump, "data", "sound")
     for directory, _, names in os.walk(sound_dir):

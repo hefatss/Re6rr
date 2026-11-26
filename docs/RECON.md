@@ -121,6 +121,13 @@ instance `+0x80508` under a `0x20000000` cap. Cleanup (`0x18002e7d0`) reads the
 same slot records at `0x108 + slot*0x2010` and releases each voice id.
 `audio_events.bank_setup_view()` mirrors those native reads; all 149 shipped
 banks match the independently parsed header/tone records (781 tones).
+Chained KeyOn (`0x180026a60`) builds up to 32 voices; `0x180025b80` fills a
+52-float state record at instance `0x21c + index*0xd0`, and `0x180029220`
+applies it to the core voice: volume and FX volume clamped to `0..1`, pitch
+`2^(cents/1200)`, two filter parameters, a 6x6 speaker-volume matrix and 3D
+mode/channel/bus/bank/tone/voice ids. Core voice ids come from a 192-entry
+table at instance `+0x44` with stride `0x178`. These are runtime records, not
+shipped data; attack/decay envelope fields remain unproven.
 `config_3d.bin` is parsed by `nuSound2_3DSetConfig`: version bytes `1,2,3`,
 5 sections of `0x130` bytes, each with ten `0x1c`-byte records and six trailing
 dwords; record dB fields convert to amplitude with `10^(db/20)`.
