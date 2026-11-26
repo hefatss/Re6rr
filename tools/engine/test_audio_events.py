@@ -69,7 +69,7 @@ def run(dump, failures):
           play_3d["slot_stride"] == 8 and play_3d["flag_offset"] == 0 and
           play_3d["tone_offset"] == 4 and play_3d["vectors"] == 2 and
           play_3d["vector_floats"] == 3, "3D SE loop ABI", failures)
-    check(play_3d["wrapper"] == 0x180363B0 and
+    check(play_3d["wrapper"] == 0x1800363B0 and
           play_3d["wrapper_errors"] == {"null_secondary": 0x80000031,
                                         "null_third": 0x80000032,
                                         "null_position": 0x80000033},
@@ -87,14 +87,28 @@ def run(dump, failures):
     check(ext["chain"]["last_tone_offset"] == 0x2C and
           ext["chain"]["error"] == 0x8000004B and
           ext["chain"]["modes"] == (1, 2, 3), "chained tone ABI", failures)
-    check(ext["3d"]["key_set"] == 0x180363B0 and
-          ext["3d"]["chgrp"] == 0x180361F0 and
+    check(ext["3d"]["key_set"] == 0x1800363B0 and
+          ext["3d"]["chgrp"] == 0x1800361F0 and
           ext["3d"]["vector_bytes"] == 0xC and
           ext["3d"]["vectors"] == 3 and
           ext["3d"]["null_errors"] == {"secondary": 0x80000031,
                                        "third": 0x80000032,
                                        "position": 0x80000033},
           "3D extension vectors", failures)
+    users = ext["users"]
+    check(users["plain"]["chain"] == 0x180029E00 and
+          users["plain"]["id_chain"] == 0x18002A490 and
+          not users["plain"]["extended"], "plain KeyOn has no extension",
+          failures)
+    check(users["point"]["chain"] == 0x180029CC0 and
+          users["point"]["id_chain"] == 0x180029EB0 and
+          users["point"]["extended"] and
+          users["point"]["position_floats"] == 3 and
+          users["point"]["secondary_bytes"] == 0xC,
+          "point 3D extension users", failures)
+    check(users["line"]["get_position"] == 0x180034E70 and
+          users["line"]["position_floats"] == 4 and
+          users["line"]["extended"], "line 3D extension users", failures)
     bgm = sections["dispatch"]["bgm_playback"]
     check(bgm["play"] == 0x1407D6940 and bgm["start"] == 0x140C52100 and
           bgm["stop"] == 0x140C52110 and

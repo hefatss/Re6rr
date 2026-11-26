@@ -146,8 +146,15 @@ floats with defaults from `FUN_1800011b0`. `FUN_18001a4e0` is `memcpy`;
 are non-null, and `FUN_1800237d0` copies `0x34` bytes to request `+0x34` and
 `0x1c` bytes to `+0x68`. The six-argument game wrappers pass null pointers;
 `play3DSeLoop` passes three vectors through `nuSound2_3DKeySetOnHandle` and its
-Chgrp variant, so the shipped extended users are 3D voices. Envelope semantics
-inside those blobs remain unproven. `tools/engine/audio_events.py` reads
+Chgrp variant, so the shipped extended users are 3D voices. Plain
+`nuSound2KeySetOnHandle`/`KeyOnHandle` and their ID variants reach
+`FUN_180029e00`/`0x18002a490` with null extension pointers. Point 3D wrappers
+(`0x1800363b0`, `0x1800361f0`, `0x180036900`, `0x180036740`) pass a three-float
+position pointer plus a 12-byte vector copy through `0x180029cc0`/`0x180029eb0`;
+line variants (`0x1800365e0`, `0x180036a10`) first derive a four-float position
+with `nuSound2_3DLineGetPosition` (`0x180034e70`). No exported envelope API
+exists; the extended blob bytes remain 3D vector plumbing, not proven envelope
+stages. `tools/engine/audio_events.py` reads
 these tables, models the mixer and voice request, and checks the dispatch ABI. No shipped Lua file calls any sound binding, but
 three stage-effect parameter files declare symbolic `NUD_TONE_RACE_HANABI1/2`
 names; those resolve to RACE bank 3, tones `0xe`/`0xf` and match the literals in

@@ -124,7 +124,7 @@ PLAY_3D_SE_LOOP = {
     "function": 0x140C50D80, "request": 0, "volume": 0.0, "pan": 0.0,
     "slot_stride": 8, "flag_offset": 0, "tone_offset": 4,
     "vectors": 2, "vector_floats": 3,
-    "wrapper": 0x180363B0,
+    "wrapper": 0x1800363B0,
     "wrapper_errors": {"null_secondary": 0x80000031,
                        "null_third": 0x80000032, "null_position": 0x80000033},
 }
@@ -173,10 +173,27 @@ EXTENDED_KEY_ON = {
               "b": {"request_offset": 0x68, "size": 0x1C}},
     "chain": {"last_tone_offset": 0x2C, "error": 0x8000004B,
               "modes": (1, 2, 3)},
-    "3d": {"key_set": 0x180363B0, "chgrp": 0x180361F0,
+    "3d": {"key_set": 0x1800363B0, "chgrp": 0x1800361F0,
            "vector_bytes": 0xC, "vectors": 3,
            "null_errors": {"secondary": 0x80000031, "third": 0x80000032,
                            "position": 0x80000033}},
+    # FUN_180029e00 / 0x18002a490 pass null extension pointers for plain
+    # KeyOn; point 3D wrappers pass a position pointer plus a 12-byte vector
+    # copy, and line wrappers derive a four-float position first.
+    "users": {
+        "plain": {"handle": 0x18002A380, "id": 0x18002A650,
+                  "handle_key_on": 0x18002A410, "id_key_on": 0x18002A6E0,
+                  "chain": 0x180029E00, "id_chain": 0x18002A490,
+                  "extended": False},
+        "point": {"handle": 0x1800363B0, "handle_chgrp": 0x1800361F0,
+                  "id": 0x180036900, "id_chgrp": 0x180036740,
+                  "chain": 0x180029CC0, "id_chain": 0x180029EB0,
+                  "position_floats": 3, "secondary_bytes": 0xC,
+                  "extended": True},
+        "line": {"handle": 0x1800365E0, "id": 0x180036A10,
+                 "get_position": 0x180034E70, "position_floats": 4,
+                 "extended": True},
+    },
 }
 
 
