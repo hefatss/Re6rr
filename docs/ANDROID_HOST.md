@@ -72,7 +72,7 @@ copied extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
 `SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
 stream fade state, `BgmManager` applies playBGM id dispatch, `SoundDispatch`
-copies bank/loop/positional SE records, and
+copies bank/loop/positional SE records, `SoundConfig` parses config.bin, and
 `SceneBridge` copies camid and resolves camera containers/records, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The

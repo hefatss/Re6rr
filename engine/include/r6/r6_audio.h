@@ -101,6 +101,26 @@ R6_API int r6_sound_positional_record(const void *data, size_t size,
                                       uint32_t index,
                                       r6_sound_positional_record_t *out);
 
+/* Header of data/sound/config.bin: six (count, offset) pairs after 0x18,
+ * with the float block offset at 0x14. Section payloads stay in the blob. */
+enum {
+    R6_SOUND_BIN_HEADER_SIZE = 0x50,
+    R6_SOUND_BIN_SECTIONS = 6,
+    R6_SOUND_BIN_FLOAT_OFFSET = 0x14,
+    R6_SOUND_BIN_PAIRS_OFFSET = 0x18
+};
+
+typedef struct r6_sound_bin {
+    uint32_t size;
+    uint32_t header_size;
+    uint32_t float_offset;
+    uint32_t counts[R6_SOUND_BIN_SECTIONS];
+    uint32_t offsets[R6_SOUND_BIN_SECTIONS];
+} r6_sound_bin;
+
+R6_API int r6_sound_bin_parse(const void *data, size_t size,
+                              r6_sound_bin *out);
+
 typedef struct r6_nub_header {
     uint32_t version;
     uint32_t bank_id;

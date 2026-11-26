@@ -3168,6 +3168,37 @@ Java_com_wmmt_re6rr_SoundDispatch_nativePositional(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SoundConfig_nativeParse(JNIEnv *env, jclass cls,
+                                            jbyteArray data) {
+    r6_sound_bin config;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3 + 2 * R6_SOUND_BIN_SECTIONS];
+    jlongArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_sound_bin_parse(bytes, length, &config) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)config.size;
+    values[1] = (jlong)config.header_size;
+    values[2] = (jlong)config.float_offset;
+    for (i = 0; i < R6_SOUND_BIN_SECTIONS; i++) {
+        values[3 + i] = (jlong)config.counts[i];
+        values[3 + R6_SOUND_BIN_SECTIONS + i] = (jlong)config.offsets[i];
+    }
+    out = (*env)->NewLongArray(env, 3 + 2 * R6_SOUND_BIN_SECTIONS);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0,
+                                   3 + 2 * R6_SOUND_BIN_SECTIONS, values);
+    }
+    return out;
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_SceneBridge_nativeWriteCamid(JNIEnv *env, jclass cls,
                                                  jbyteArray scene,

@@ -308,3 +308,35 @@ int r6_sound_positional_record(const void *data, size_t size, uint32_t index,
     out->z = nub_f32(data, at + 0x14u);
     return R6_OK;
 }
+
+int r6_sound_bin_parse(const void *data, size_t size, r6_sound_bin *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t i;
+    if (!out) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    if (!bytes || size < R6_SOUND_BIN_HEADER_SIZE ||
+        r6_u32(bytes, 0) != 0x6373756Eu || /* "nusc" */
+        r6_u32(bytes, 4) != 0x00030201u) {
+        return R6_ERR_FORMAT;
+    }
+    out->size = r6_u32(bytes, 8);
+    out->header_size = r6_u32(bytes, 0x0cu);
+    out->float_offset = r6_u32(bytes, R6_SOUND_BIN_FLOAT_OFFSET);
+    if (out->size != size || out->header_size != R6_SOUND_BIN_HEADER_SIZE ||
+        out->float_offset > size) {
+        r6_memset(out, 0, sizeof(*out));
+        return R6_ERR_FORMAT;
+    }
+    for (i = 0; i < R6_SOUND_BIN_SECTIONS; i++) {
+        size_t at = R6_SOUND_BIN_PAIRS_OFFSET + (size_t)i * 8u;
+        out->counts[i] = r6_u32(bytes, at);
+        out->offsets[i] = r6_u32(bytes, at + 4u);
+        if (out->offsets[i] > size) {
+            r6_memset(out, 0, sizeof(*out));
+            return R6_ERR_FORMAT;
+        }
+    }
+    return R6_OK;
+}
