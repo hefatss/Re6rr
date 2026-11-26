@@ -219,7 +219,8 @@ are typeless: writes to one shadow mirror into the other through
 `floatBitsToInt`/`intBitsToFloat`. `MOVC` follows the documented SM4 order
 `dest, src0, src1, src2`: any bit set in `src0` selects `src1`, otherwise
 `src2` (Microsoft SM4 assembly reference, `movc (sm4 - asm)`).
-`nsxr_shader.py --glsl Copy.nsh --stage 1` prints one example.
+`nsxr_shader.py --glsl Copy.nsh --stage 1` prints one example;
+`--glsl-dir DIR` writes all 446 files plus a SHA-256 manifest.
 Details in `recon/RENDER_NSXR.md`.
 
 ## Lua

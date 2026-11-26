@@ -1,6 +1,8 @@
 """Self-check for the NSXR/DXBC shader container parser."""
 
 import argparse
+import hashlib
+import json
 import os
 import re
 import sys
@@ -318,9 +320,25 @@ def check(dump):
         raw = open(output, "rb").read()
         assert len(raw) == record["dxbc_size"] == 0x9a8
         assert raw[:4] == b"DXBC"
+        glsl_dir = os.path.join(directory, "glsl")
+        manifest = nsxr_shader.export_glsl(data, glsl_dir)
+        assert manifest == json.load(open(os.path.join(glsl_dir,
+                                                       "manifest.json"),
+                                          encoding="utf8"))["shaders"]
+        assert len(manifest) == 446
+        assert sum(item["stage_kind"] == "vertex" for item in manifest) == 223
+        assert sum(item["stage_kind"] == "pixel" for item in manifest) == 223
+        for item in manifest:
+            source = open(os.path.join(glsl_dir, item["file"]),
+                          encoding="utf8").read()
+            assert source.startswith("#version 300 es") and \
+                hashlib.sha256(source.encode("utf8")).hexdigest() == \
+                item["sha256"] and len(source.encode("utf8")) == \
+                item["bytes"]
+        assert any(item["file"] == "Body.stage1.glsl" for item in manifest)
     print("  223 .nsh files, 446 DXBC blobs, 20563 instructions, "
-          "43827 decoded operands, one extract round-trip: "
-          "all shader checks passed")
+          "43827 decoded operands, one extract and one GLSL export "
+          "round-trip: all shader checks passed")
 
 
 def main():

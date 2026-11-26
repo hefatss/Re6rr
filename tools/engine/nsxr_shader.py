@@ -6,6 +6,8 @@
         --extract Body.nsh --stage 0 --out build/tmp/body_dxbc.bin
     python tools/engine/nsxr_shader.py --dump D:\\Games\\W6W-05 \
         --glsl Copy.nsh --stage 1
+    python tools/engine/nsxr_shader.py --dump D:\\Games\\W6W-05 \
+        --glsl-dir build/tmp/glsl
 
 `.nsh` files are raw `NSXR` containers. Each has two records; a record points
 0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
@@ -20,6 +22,7 @@ repository.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -1311,6 +1314,38 @@ def extract(dump, name, index, output):
     return record
 
 
+def export_glsl(data, directory):
+    """Write emitted GLSL for every record; return a deterministic manifest."""
+    os.makedirs(directory, exist_ok=True)
+    manifest = []
+    for name, shader in sorted(data["shaders"].items()):
+        stem = os.path.splitext(name)[0]
+        for record in shader["records"]:
+            source = glsl_es_source(record)
+            encoded = source.encode("utf8")
+            relative = "%s.stage%d.glsl" % (stem, record["index"])
+            with open(os.path.join(directory, relative), "w", encoding="utf8",
+                      newline="\n") as stream:
+                stream.write(source)
+            reflection = next(chunk["reflection"] for chunk
+                              in record["dxbc"]["chunks"]
+                              if chunk["tag"] == "RDEF")
+            manifest.append({
+                "shader": name,
+                "stage": record["index"],
+                "stage_kind": reflection["stage"],
+                "file": relative,
+                "bytes": len(encoded),
+                "sha256": hashlib.sha256(encoded).hexdigest(),
+            })
+    manifest.sort(key=lambda item: (item["shader"], item["stage"]))
+    with open(os.path.join(directory, "manifest.json"), "w",
+              encoding="utf8") as stream:
+        json.dump({"count": len(manifest), "shaders": manifest}, stream,
+                  indent=2, ensure_ascii=False)
+    return manifest
+
+
 def report_text(data):
     shaders = data["shaders"]
     coverage = glsl_coverage(data)
@@ -1362,9 +1397,16 @@ def main():
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--extract")
     parser.add_argument("--glsl")
+    parser.add_argument("--glsl-dir")
     parser.add_argument("--stage", type=int, default=0)
     parser.add_argument("--out")
     args = parser.parse_args()
+
+    if args.glsl_dir:
+        manifest = export_glsl(collect(args.dump), args.glsl_dir)
+        print("exported %d GLSL ES records to %s" %
+              (len(manifest), args.glsl_dir))
+        return 0
 
     if args.glsl:
         header = parse_nsh(os.path.join(args.dump, SHADER_DIR, args.glsl))

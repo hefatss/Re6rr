@@ -62,6 +62,9 @@ Details in `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md`,
     python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
     python tools/recon/enma_api.py --dump D:\Games\W6W-05  # Enma exports/enums/layouts
     python tools/recon/enma_sim.py --dump D:\Games\W6W-05  # CGameInput offsets
+    python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 --list
+    python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 \
+        --glsl-dir build/tmp/glsl                 # 446 GLSL ES records + manifest
     python tools/engine/build_host.py --test           # build C core + JNI checks
     python tools/engine/test_engine.py --corpus        # all data scripts via C
     python tools/engine/test_physics.py               # vehicle dynamics checks
