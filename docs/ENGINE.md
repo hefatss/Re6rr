@@ -31,6 +31,7 @@ engine/include/r6/r6_race.h   race rules and EPlayState state machine
 engine/include/r6/r6_game.h   game flow, SConfigPlay byte bridge, scene camid/name bridge and named EES camera/car records
 engine/include/r6/r6_context.h  ordered per-car Lua script path templates
 engine/include/r6/r6_lua_globals.h  shipped Lua global call-site inventory reader
+engine/include/r6/r6_honor_schema.h  recovered unlock/honor condition schema reader
 engine/include/r6/r6_stage_effect.h  bounds-checked stage-effect sound catalog reader
 engine/include/r6/r6_car.h    packed car catalog parser
 engine/include/r6/r6_custom.h packed customization catalog parser
@@ -232,6 +233,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_car_catalog_parse()` and `r6_car_catalog_find_model/find_id()` — parse a
   packed `.r6car` blob built by `tools/engine/car_catalog.py`; see
   `docs/P5_CARS.md`.
+- `r6_honor_schema_parse()` / `r6_honor_schema_type()` /
+  `r6_honor_schema_field()` — read the derived `R6HON` schema with 13 condition
+  types and 60 ordered field labels. No per-episode predicate instances are
+  present in the shipped dump, so none are inferred.
 - `r6_stage_effect_parse()` / `r6_stage_effect_get()` /
   `r6_stage_effect_find_symbol()` / `r6_stage_effect_string()` — read the
   `R6STG` blob built by `tools/engine/stage_effect_catalog.py` from the two
@@ -269,7 +274,7 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
@@ -351,7 +356,7 @@ Verified on this dump:
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; short input, bad magic and bad sizes rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `EnvironmentLua`, `NativeNames`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -365,6 +370,7 @@ Verified on this dump:
 | EES type filter | 183600 shipped camera types across 720 files match the `FUN_1401ca060` type 0/2 rule |
 | EES car_info | all 10800 shipped ids match the `0x8c` record words; short and null inputs rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
+| honor schema | all 13 type names match the exe pointer table and 60 ordered fields match `STORY_NATIVE.md`; bad blob, type, field and capacity rejected |
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; bad blob, index and capacity rejected |
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |

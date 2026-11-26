@@ -23,6 +23,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_emtis.h"
 #include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
+#include "r6/r6_honor_schema.h"
 #include "r6/r6_lua_globals.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
@@ -220,6 +221,90 @@ Java_com_wmmt_re6rr_LuaGlobals_nativeRow(JNIEnv *env, jclass cls,
     if (out) {
         (*env)->SetLongArrayRegion(env, out, 0, 2, values);
     }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_honor_schema_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_honor_schema_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.type_count;
+    values[1] = (jlong)header.strings_off;
+    values[2] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeType(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint type) {
+    char name[R6_HONOR_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_honor_schema_type(bytes, length, (uint32_t)type, name,
+                             sizeof(name), NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeFieldCount(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint type) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    char name[R6_HONOR_NAME_CAP];
+    uint32_t count = 0;
+    jint out = -1;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_honor_schema_type(bytes, length, (uint32_t)type, name,
+                             sizeof(name), &count) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    out = (jint)count;
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeField(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint type,
+                                            jint field) {
+    char name[R6_HONOR_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_honor_schema_field(bytes, length, (uint32_t)type,
+                              (uint32_t)field, name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
     return out;
 }
 

@@ -10,6 +10,7 @@ set(R6_CORE
     engine/src/core/lua_host.c
     engine/src/core/context.c
     engine/src/core/lua_globals.c
+    engine/src/game/honor_schema.c
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
