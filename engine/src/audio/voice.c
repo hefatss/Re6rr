@@ -248,3 +248,15 @@ void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out) {
     out->addresses[6] = 0x140C50D80ull;
     out->addresses[7] = 0x140DEE20Aull;
 }
+
+void r6_voice_core_table_facts(r6_voice_core_table_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->count = 0xC0u;
+    out->offset = 0x44u;
+    out->stride = 0x178u;
+    out->mode = 7u;
+    out->lookup_address = 0x18001ED00ull;
+}

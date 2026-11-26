@@ -3798,6 +3798,25 @@ Java_com_wmmt_re6rr_VoiceDispatchFacts_nativeAll(JNIEnv *env, jclass cls) {
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VoiceCoreTableFacts_nativeAll(JNIEnv *env, jclass cls) {
+    r6_voice_core_table_facts_t facts;
+    jlong values[5];
+    jlongArray out = NULL;
+    (void)cls;
+    r6_voice_core_table_facts(&facts);
+    values[0] = (jlong)facts.count;
+    values[1] = (jlong)facts.offset;
+    values[2] = (jlong)facts.stride;
+    values[3] = (jlong)facts.mode;
+    values[4] = (jlong)facts.lookup_address;
+    out = (*env)->NewLongArray(env, 5);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 5, values);
+    }
+    return out;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {

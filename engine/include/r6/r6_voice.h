@@ -143,6 +143,18 @@ typedef struct r6_voice_dispatch_facts_t {
 
 R6_API void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out);
 
+/* FUN_18001ed00 core-voice lookup table facts; instance storage stays host
+ * owned and no lookup result is computed here. */
+typedef struct r6_voice_core_table_facts_t {
+    uint32_t count;
+    uint32_t offset;
+    uint32_t stride;
+    uint32_t mode;
+    uint64_t lookup_address;
+} r6_voice_core_table_facts_t;
+
+R6_API void r6_voice_core_table_facts(r6_voice_core_table_facts_t *out);
+
 #ifdef __cplusplus
 }
 #endif
