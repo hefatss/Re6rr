@@ -25,5 +25,13 @@ public final class EesCamera {
         return nativeFields(raw, offset);
     }
 
+    /** Last non-empty record covering a frame, or -1; -1 also on bad input. */
+    public static int atFrame(byte[] raw, int offset, int count, int frame) {
+        return nativeAtFrame(raw, offset, count, frame);
+    }
+
     private static native double[] nativeFields(byte[] raw, int offset);
+
+    private static native int nativeAtFrame(byte[] raw, int offset, int count,
+                                            int frame);
 }

@@ -176,6 +176,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_ees_camera_fields()` — copy the 31 fields named by `FUN_1401e0330` from
   one `0x160`-byte `.EES` camera record. Native names and declared types are
   preserved, including the f32 members printed with `%d`.
+- `r6_ees_camera_at_frame()` — return the last non-empty `0x160` camera record
+  covering a frame, matching `FUN_1401c8f60`; `exact=1` compares start only and
+  otherwise the end is `trunc(start + duration)`. This is distinct from the
+  first-match runtime record lookup in `r6_scene_runtime_camera()`.
 - `r6_ees_car_effect_copy()` — copy the 40 fields of a `0xa0` EES `car_effect`
   record into the `0xe0` runtime layout recovered from `FUN_1401cc390`.
 - `r6_ees_car_disp()` — read one `0x180` display record: car id, flag byte,
@@ -220,7 +224,8 @@ and applies core fields, `SoundInit` validates the Sound::Initialize config,
 config.bin, `BankSlots` finds free registration slots, `SoundStrings` reads
 bank/tone names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding
 rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
-resolves camera records, `EesCamera` reads the 31 named camera fields, `EesCarEffect` copies the 40
+resolves camera records, `EesCamera` reads the 31 named camera fields and resolves frames with last-match
+semantics, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `VoiceDispatchFacts` exposes recovered status codes and call
 sites, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect`
@@ -305,6 +310,7 @@ Verified on this dump:
 | road surface | 558 shipped FUKUOKA LOADLIST labels and 7 precedence cases match `course_surface.classify()`; 405 road, 2 grass, 2 gravel, 156 unknown; null name rejected |
 | scene bridge | 5 camid values and all 59 shipped episodes copy to config +0x70 and resolve 0x2d78 + slot*0x1b0; runtime first-match camera equals `scene_bridge.py` and invalid buffers rejected |
 | EES camera fields | all 31 named fields match `ees_fields.camera_fields()` on 255 shipped `CamData.EES` records; sentinel, short offset and null arguments rejected |
+| EES frame lookup | all 14 shipped frame values match the `FUN_1401c8f60` last-match oracle; short buffer, overlong count and null input rejected |
 | EES car_effect copy | all 40 native field copies match `ees_fields.CAR_EFFECT_COPY` on 32 records; short source/destination and null arguments rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
 | scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |

@@ -348,6 +348,42 @@ int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
     return R6_OK;
 }
 
+int r6_ees_camera_at_frame(const void *data, size_t size, uint32_t offset,
+                           uint32_t count, int32_t frame) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint64_t base = offset;
+    uint32_t index;
+    int found = -1;
+    if (!bytes ||
+        (uint64_t)offset + (uint64_t)count * R6_EES_CAMERA_STRIDE > size) {
+        return R6_ERR_ARG;
+    }
+    for (index = 0; index < count; index++) {
+        size_t at = (size_t)(base + (uint64_t)index * R6_EES_CAMERA_STRIDE);
+        int32_t type = (int32_t)read_u32(bytes, at);
+        int32_t start = (int32_t)read_u32(bytes, at + 4u);
+        float duration = ees_f32(bytes, at + 8u);
+        uint32_t duration_bits;
+        if (type == -1) {
+            continue;
+        }
+        if (read_u8(bytes, at + 0x0Cu) == 1u) {
+            if (start == frame) {
+                found = (int)index;
+            }
+            continue;
+        }
+        r6_memcpy(&duration_bits, &duration, sizeof(duration_bits));
+        if ((duration_bits & 0x7F800000u) == 0x7F800000u) {
+            continue;
+        }
+        if (start <= frame && frame <= (int32_t)((double)start + duration)) {
+            found = (int)index;
+        }
+    }
+    return found;
+}
+
 static void ees_copy_field(const unsigned char *source, unsigned char *out,
                            size_t source_at, size_t out_at, size_t width) {
     size_t index;

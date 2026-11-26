@@ -3508,6 +3508,23 @@ Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_EesCamera_nativeAtFrame(JNIEnv *env, jclass cls,
+                                            jbyteArray raw, jint offset,
+                                            jint count, jint frame) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jint result;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK) {
+        return -1;
+    }
+    result = (jint)r6_ees_camera_at_frame(bytes, length, (uint32_t)offset,
+                                          (uint32_t)count, (int32_t)frame);
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_EesCarEffect_nativeCopy(JNIEnv *env, jclass cls,
                                             jbyteArray record) {

@@ -150,6 +150,12 @@ typedef struct r6_ees_camera_fields_t {
 R6_API int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
                                 r6_ees_camera_fields_t *out);
 
+/* FUN_1401c8f60: last non-empty 0x160 camera record covering `frame`, or -1.
+ * exact=1 compares the start frame only; otherwise end=trunc(start+duration). */
+R6_API int r6_ees_camera_at_frame(const void *data, size_t size,
+                                  uint32_t offset, uint32_t count,
+                                  int32_t frame);
+
 /* FUN_1401cc390 copies 40 fields from a 0xa0 car_effect record into the
  * 0xe0-byte runtime SInfoCarEffectCopy record. */
 enum {
