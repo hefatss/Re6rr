@@ -32,6 +32,7 @@ SOURCES = [
     "engine/src/assets/nut_texture.c",
     "engine/src/render/glsl_ubo.c",
     "engine/src/render/glsl_manifest.c",
+    "engine/src/render/gles_host.c",
     "engine/src/assets/inflate.c",
     "engine/src/audio/nub.c",
     "engine/src/audio/engine_sound.c",

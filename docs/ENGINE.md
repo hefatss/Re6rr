@@ -13,6 +13,7 @@ engine/include/r6/r6_audio.h  nuSound2 .nub header, tone and control structures
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
+engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
 engine/include/r6/r6_course.h road polyline projection and surface flags
 engine/include/r6/r6_physics.h  vehicle config, state and simulation API
@@ -24,7 +25,7 @@ engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
 engine/src/audio/             bounds-checked .nub bank parser, no audio device
-engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader; no renderer or GPU calls
+engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
@@ -61,6 +62,9 @@ platform/android/java/        Java side of the JNI bridge
   car/tune engine-sound mapping and its resolved 16 layer envelopes. The blob
   is built by `tools/engine/engine_sound_catalog.py` from `engmap.tbl` and
   `emtis.tbl`; runtime pitch/volume evaluation stays in Python.
+- `r6_gles_emit_shader/emit_uniforms/emit_texture/emit_draw()` — validate
+  GLSL ES version, reflected regions, UBO packing and RGBA8 descriptors, then
+  forward calls through a host-provided sink. The core has no GL symbols.
 - `r6_vehicle_init/reset/step/get_state()`, `r6_vehicle_set_surface()`,
   `r6_vehicle_clamp_to_course()` and `r6_vehicle_config_from_lua()` —
   deterministic car dynamics driven by the loaded spec/tire context, with
@@ -143,6 +147,7 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
+| GLES host sink | vertex/pixel stages, 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio` and `EngineSound` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
