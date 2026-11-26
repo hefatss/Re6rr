@@ -387,6 +387,35 @@ int r6_ees_car_effect_copy(const void *source, size_t size,
     return R6_OK;
 }
 
+int r6_ees_car_disp(const void *data, size_t size, uint32_t offset,
+                    r6_ees_car_disp_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t base = offset;
+    uint32_t yaw_bits;
+    uint32_t index;
+    double scaled;
+    if (!bytes || !out || base > size ||
+        size - base < R6_EES_CAR_DISP_STRIDE) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->car_id = (int32_t)read_u32(bytes, base);
+    out->flags = (uint8_t)read_u8(bytes, base + 4u);
+    for (index = 0; index < R6_EES_CAR_DISP_MATRIX_FLOATS; index++) {
+        r6_memcpy(&out->matrix[index], bytes + base +
+                  R6_EES_CAR_DISP_MATRIX_OFFSET + index * 4u, 4u);
+    }
+    r6_memcpy(&out->yaw, bytes + base + R6_EES_CAR_DISP_YAW_OFFSET, 4u);
+    r6_memcpy(&yaw_bits, bytes + base + R6_EES_CAR_DISP_YAW_OFFSET, 4u);
+    if ((yaw_bits & 0x7F800000u) == 0x7F800000u) {
+        return R6_OK;
+    }
+    scaled = (double)out->yaw * 65536.0 /
+             6.283185307179586476925286766559 + 0.5;
+    out->yaw_units = (int64_t)scaled;
+    return R6_OK;
+}
+
 int r6_scene_pack(const r6_scene_values_t *values, void *out, size_t size) {
     unsigned char *bytes = (unsigned char *)out;
     uint32_t index;

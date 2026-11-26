@@ -161,6 +161,28 @@ enum {
 R6_API int r6_ees_car_effect_copy(const void *source, size_t size,
                                   void *out, size_t out_size);
 
+/* One 0x180-byte car_disp record: id, flags, 16-f32 matrix and yaw. The yaw
+ * unit count mirrors the native round(yaw * 65536 / 2pi) quantisation. */
+enum {
+    R6_EES_CAR_DISP_STRIDE = 0x180,
+    R6_EES_CAR_DISP_MATRIX_OFFSET = 0x10,
+    R6_EES_CAR_DISP_YAW_OFFSET = 0x150,
+    R6_EES_CAR_DISP_MATRIX_FLOATS = 16
+};
+
+typedef struct r6_ees_car_disp_t {
+    int32_t car_id;
+    uint8_t flags;
+    uint8_t reserved[11];
+    float matrix[R6_EES_CAR_DISP_MATRIX_FLOATS];
+    uint8_t reserved2[0x100];
+    float yaw;
+    int64_t yaw_units;
+} r6_ees_car_disp_t;
+
+R6_API int r6_ees_car_disp(const void *data, size_t size, uint32_t offset,
+                           r6_ees_car_disp_t *out);
+
 /* FUN_1401e3640 packs eight int32 environment slots into a 0x28 scene. */
 typedef struct r6_scene_values_t {
     int32_t stage;

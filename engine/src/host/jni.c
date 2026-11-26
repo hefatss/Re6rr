@@ -3531,6 +3531,36 @@ Java_com_wmmt_re6rr_EesCarEffect_nativeCopy(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_EesCarDisp_nativeRead(JNIEnv *env, jclass cls,
+                                          jbyteArray raw, jint offset) {
+    r6_ees_car_disp_t record;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jdouble values[20];
+    jdoubleArray out = NULL;
+    uint32_t index;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_ees_car_disp(bytes, length, (uint32_t)offset, &record) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jdouble)record.car_id;
+    values[1] = (jdouble)record.flags;
+    for (index = 0; index < R6_EES_CAR_DISP_MATRIX_FLOATS; index++) {
+        values[2u + index] = (jdouble)record.matrix[index];
+    }
+    values[18] = (jdouble)record.yaw;
+    values[19] = (jdouble)record.yaw_units;
+    out = (*env)->NewDoubleArray(env, 20);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 20, values);
+    }
+    return out;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
                                            jint stage, jint stage_root,

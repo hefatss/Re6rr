@@ -80,7 +80,7 @@ copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
 camera containers/records, `EesCamera` reads named camera fields, `EesCarEffect` copies the 40 runtime
-fields, `VoiceDispatchFacts` exposes recovered status codes and call sites,
+fields, `EesCarDisp` reads display records, `VoiceDispatchFacts` exposes recovered status codes and call sites,
 `SceneConfig` packs scenes and resolves native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
