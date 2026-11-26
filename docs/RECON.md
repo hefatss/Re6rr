@@ -223,7 +223,9 @@ are typeless: writes to one shadow mirror into the other through
 `--glsl-dir DIR` writes all 446 files plus a SHA-256 manifest. The manifest
 also carries the host-facing interface for each stage: 1,590 inputs, 1,457
 outputs, 797 cbuffers with 2,029 reflected std140 member offsets, 526 samplers
-and the UBO/array-mode flag. Details in `recon/RENDER_NSXR.md`.
+and the UBO/array-mode flag. `glsl_ubo.py` packs scalar, vec4 and mat4 values
+into those reflected offsets as a Python reference; the runtime host packer is
+still open. Details in `recon/RENDER_NSXR.md`.
 
 ## Lua
 

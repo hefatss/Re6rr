@@ -5,12 +5,14 @@ import hashlib
 import json
 import os
 import re
+import struct
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import glsl_ubo  # noqa: E402
 import nsxr_shader  # noqa: E402
 
 
@@ -261,6 +263,30 @@ def check(dump):
         shaders["StarPass00.nsh"]["records"][1])
     assert not star_bindings["ubo"] and \
         star_bindings["cbuffers"][0]["slots"] == 12
+
+    alpha = glsl_ubo.pack_ubo(bindings, "AlphaTest", {
+        "AlphaTestRef": 0.25, "AlphaTestFunc": 7})
+    assert len(alpha) == 16 and \
+        alpha[:4] == struct.pack("<f", 0.25) and \
+        alpha[4:8] == struct.pack("<I", 7) and alpha[8:] == b"\0" * 8
+    custom = glsl_ubo.pack_ubo(bindings, "CustomParameter", {
+        "cPSLightDir": (1, 2, 3, 4)})
+    assert len(custom) == 224 and \
+        custom[:16] == struct.pack("<4f", 1, 2, 3, 4) and \
+        custom[16:32] == b"\0" * 16
+    vertex_bindings = nsxr_shader.glsl_bindings(
+        shaders["Body.nsh"]["records"][0])
+    per_draw = glsl_ubo.pack_ubo(vertex_bindings, "PerDraw", {
+        "LocalToProjectionMatrix": tuple(range(16))})
+    assert len(per_draw) == 192 and \
+        per_draw[128:192] == struct.pack("<16f", *range(16))
+    try:
+        glsl_ubo.pack_ubos(star_bindings)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("dynamic cbuffer must not pack as std140")
+
     vertex_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][0])
     assert "vec4 LocalToProjectionMatrix[4];" in vertex_source and \
         "PerDraw.LocalToProjectionMatrix[1].xyzw" in vertex_source
@@ -376,6 +402,11 @@ def check(dump):
             totals[4] += bool(bindings["ubo"])
             totals[5] += sum(len(value["regions"])
                              for value in bindings["cbuffers"])
+            if bindings["ubo"]:
+                packed = glsl_ubo.pack_ubos(bindings)
+                assert len(packed) == len(bindings["cbuffers"])
+                assert sum(len(item) for item in packed.values()) == \
+                    sum(item["size"] for item in bindings["cbuffers"])
         assert totals == [1590, 1457, 797, 526, 442, 2029]
         assert any(item["file"] == "Body.stage1.glsl" for item in manifest)
     print("  223 .nsh files, 446 DXBC blobs, 20563 instructions, "
