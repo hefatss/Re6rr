@@ -68,8 +68,9 @@ copied extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` handles fade timing and stream
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
 `SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
-stream fade state, and `SoundDispatch` copies bank/loop/positional SE records;
-none makes GL or audio-device calls. The
+stream fade state, `SoundDispatch` copies bank/loop/positional SE records, and
+`SceneBridge` copies camid and resolves camera containers/records; none makes
+GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 

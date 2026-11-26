@@ -242,3 +242,59 @@ int r6_game_read_config(r6_game *game, const void *buffer, size_t size) {
     r6_memcpy(&game->config.goal_odo, &value, sizeof(value));
     return R6_OK;
 }
+
+static void scene_put_i32(unsigned char *bytes, size_t offset, int32_t value) {
+    uint32_t bits = (uint32_t)value;
+    bytes[offset] = (unsigned char)bits;
+    bytes[offset + 1] = (unsigned char)(bits >> 8);
+    bytes[offset + 2] = (unsigned char)(bits >> 16);
+    bytes[offset + 3] = (unsigned char)(bits >> 24);
+}
+
+int r6_scene_write_camid(const void *scene, size_t scene_size, void *config,
+                         size_t config_size, int32_t *out) {
+    const unsigned char *source = (const unsigned char *)scene;
+    unsigned char *target = (unsigned char *)config;
+    int32_t camid;
+    if (!source || !target || !out ||
+        scene_size < R6_SCENE_SIZE ||
+        config_size < R6_SCENE_CONFIG_CAMID_OFFSET + 4u) {
+        return R6_ERR_ARG;
+    }
+    camid = (int32_t)read_u32(source, R6_SCENE_CAMID_OFFSET);
+    scene_put_i32(target, R6_SCENE_CONFIG_CAMID_OFFSET, camid);
+    *out = camid;
+    return R6_OK;
+}
+
+int r6_scene_container_offset(uint32_t slot, size_t *out) {
+    if (!out || slot >= R6_SCENE_CONTAINER_COUNT) {
+        return R6_ERR_ARG;
+    }
+    *out = R6_SCENE_CONTAINER_BASE + (size_t)slot * R6_SCENE_CONTAINER_STRIDE;
+    return R6_OK;
+}
+
+int r6_scene_runtime_camera(const void *records, size_t size, int32_t frame) {
+    const unsigned char *bytes = (const unsigned char *)records;
+    size_t count;
+    size_t index;
+    if (!bytes) {
+        return -1;
+    }
+    count = size / R6_SCENE_RECORD_SIZE;
+    for (index = 0; index < count; index++) {
+        size_t at = index * R6_SCENE_RECORD_SIZE;
+        int32_t type = (int32_t)read_u32(bytes, at);
+        int32_t start = (int32_t)read_u32(bytes, at + 4u);
+        int32_t end = (int32_t)read_u32(bytes, at + 8u);
+        int32_t exact = (int32_t)read_u32(bytes, at + 12u);
+        if (type == -1 || end < 0) {
+            continue;
+        }
+        if (exact == 1 ? start == frame : start <= frame && frame <= end) {
+            return (int)index;
+        }
+    }
+    return -1;
+}

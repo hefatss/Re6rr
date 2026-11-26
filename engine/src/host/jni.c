@@ -3114,6 +3114,63 @@ Java_com_wmmt_re6rr_SoundDispatch_nativePositional(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeWriteCamid(JNIEnv *env, jclass cls,
+                                                 jbyteArray scene,
+                                                 jbyteArray config) {
+    unsigned char *scene_bytes = NULL;
+    unsigned char *config_bytes = NULL;
+    size_t scene_size = 0;
+    size_t config_size = 0;
+    int32_t camid = 0;
+    jint result;
+    (void)cls;
+    if (raw_from_blob(env, scene, &scene_bytes, &scene_size) != R6_OK) {
+        return -1;
+    }
+    if (raw_from_blob(env, config, &config_bytes, &config_size) != R6_OK) {
+        free(scene_bytes);
+        return -1;
+    }
+    result = r6_scene_write_camid(scene_bytes, scene_size, config_bytes,
+                                  config_size, &camid) == R6_OK ? camid : -1;
+    if (result >= 0) {
+        (*env)->SetByteArrayRegion(env, config, 0, (jsize)config_size,
+                                   (const jbyte *)config_bytes);
+    }
+    free(config_bytes);
+    free(scene_bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeContainerOffset(JNIEnv *env, jclass cls,
+                                                      jint slot) {
+    size_t offset = 0;
+    (void)env;
+    (void)cls;
+    if (r6_scene_container_offset((uint32_t)slot, &offset) != R6_OK) {
+        return -1;
+    }
+    return (jint)offset;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeRuntimeCamera(JNIEnv *env, jclass cls,
+                                                    jbyteArray records,
+                                                    jint frame) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jint result;
+    (void)cls;
+    if (raw_from_blob(env, records, &bytes, &length) != R6_OK) {
+        return -1;
+    }
+    result = (jint)r6_scene_runtime_camera(bytes, length, (int32_t)frame);
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {

@@ -76,6 +76,34 @@ R6_API int r6_game_write_config(const r6_game *game, void *buffer,
                                 size_t size);
 R6_API int r6_game_read_config(r6_game *game, const void *buffer, size_t size);
 
+/* Environment.Lua camid bridge: scene +0x24 -> SConfigPlay +0x70, then the
+ * five camera containers at scene +0x2d78 with a 0x1b0 stride. */
+enum {
+    R6_SCENE_CAMID_OFFSET = 0x24,
+    R6_SCENE_SIZE = 0x28,
+    R6_SCENE_CONFIG_CAMID_OFFSET = 0x70,
+    R6_SCENE_CONFIG_OFFSET = 0x740,
+    R6_SCENE_CONTAINER_BASE = 0x2D78,
+    R6_SCENE_CONTAINER_STRIDE = 0x1B0,
+    R6_SCENE_CONTAINER_COUNT = 5,
+    R6_SCENE_LOADER_CAMID = 0x48,
+    R6_SCENE_RECORD_SIZE = 0x10
+};
+
+/* Copy the signed camid from a scene slot into a caller-owned config buffer. */
+R6_API int r6_scene_write_camid(const void *scene, size_t scene_size,
+                                void *config, size_t config_size,
+                                int32_t *out);
+
+/* 0x1401f1f20: camera container byte offset for a slot below five. */
+R6_API int r6_scene_container_offset(uint32_t slot, size_t *out);
+
+/* 0x1401e1ff0: first non-empty camera record covering frame, else -1.
+ * Records are 0x10 bytes: type, start, end, exact, all signed i32, with a
+ * negative end meaning no interval. */
+R6_API int r6_scene_runtime_camera(const void *records, size_t size,
+                                   int32_t frame);
+
 #ifdef __cplusplus
 }
 #endif
