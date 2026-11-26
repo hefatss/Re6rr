@@ -19,6 +19,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_config_3d.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
+#include "r6/r6_emtis.h"
 #include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
 #include "r6/r6_nsh.h"
@@ -3488,6 +3489,57 @@ Java_com_wmmt_re6rr_EesContainer_nativeParse(JNIEnv *env, jclass cls,
     out = (*env)->NewIntArray(env, 22);
     if (out) {
         (*env)->SetIntArrayRegion(env, out, 0, 22, values);
+    }
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_EmtisTable_nativeParse(JNIEnv *env, jclass cls,
+                                           jbyteArray raw) {
+    r6_emtis_t table;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jdouble values[258];
+    jdoubleArray out = NULL;
+    uint32_t index;
+    uint32_t part;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_emtis_parse(bytes, length, &table) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (index = 0; index < 258u; index++) {
+        values[index] = 0.0;
+    }
+    values[0] = (jdouble)table.version_count;
+    for (index = 0; index < table.version_count; index++) {
+        values[1u + index] = (jdouble)table.version[index];
+    }
+    values[9] = (jdouble)table.header_count;
+    for (index = 0; index < table.header_count; index++) {
+        values[10u + index] = table.header[index];
+    }
+    values[74] = (jdouble)table.token_count;
+    values[75] = (jdouble)table.section_count;
+    for (index = 0; index < table.section_count; index++) {
+        at = 76u + index * 11u;
+        values[at] = (jdouble)table.sections[index].marker;
+        values[at + 1u] = (jdouble)table.sections[index].start;
+        values[at + 2u] = (jdouble)table.sections[index].length;
+        for (part = 0; part < R6_EMTIS_SECTION_HEAD; part++) {
+            values[at + 3u + part] = table.sections[index].head[part];
+        }
+    }
+    values[252] = (jdouble)table.name_count;
+    for (index = 0; index < R6_EMTIS_NAME_PREFIXES; index++) {
+        values[253u + index] = (jdouble)table.name_counts[index];
+    }
+    out = (*env)->NewDoubleArray(env, 258);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 258, values);
     }
     return out;
 }
