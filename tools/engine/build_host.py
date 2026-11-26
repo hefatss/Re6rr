@@ -30,6 +30,7 @@ SOURCES = [
     "engine/src/assets/ndwd.c",
     "engine/src/assets/ntwd.c",
     "engine/src/assets/nut_texture.c",
+    "engine/src/render/glsl_ubo.c",
     "engine/src/assets/inflate.c",
     "engine/src/physics/vehicle.c",
     "engine/src/physics/lua_config.c",

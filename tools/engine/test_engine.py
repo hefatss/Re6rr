@@ -28,12 +28,15 @@ sys.path.insert(0, os.path.join(ROOT, "tools", "lua"))
 sys.path.insert(0, os.path.join(ROOT, "tools", "assets"))
 
 from lua_host import LuaHost  # noqa: E402
+import glsl_ubo  # noqa: E402
 import ndwd_records  # noqa: E402
+import nsxr_shader  # noqa: E402
 import ntwd_texture  # noqa: E402
 import nut_texture  # noqa: E402
 from xmd_streams import load, parse as xmd_parse  # noqa: E402
 
 R6_OK = 0
+R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
 R6_ERR_NOT_FOUND = -7
@@ -92,6 +95,24 @@ class NtwdTexture(ctypes.Structure):
         ("header_stride", ctypes.c_uint16),
         ("faces", ctypes.c_uint8),
         ("format", ctypes.c_uint8),
+    ]
+
+
+class GlslRegion(ctypes.Structure):
+    _fields_ = [
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("kind", ctypes.c_uint8),
+        ("type", ctypes.c_uint8),
+    ]
+
+
+class GlslValue(ctypes.Union):
+    _fields_ = [
+        ("f", ctypes.c_float),
+        ("u", ctypes.c_uint32),
+        ("v", ctypes.c_float * 4),
+        ("m", ctypes.c_float * 16),
     ]
 
 
@@ -622,6 +643,90 @@ def test_nut_decode(dll, dump, failures):
           (len(cases) + sum(quota.values())))
 
 
+def test_glsl_ubo(dll, dump, failures):
+    """C std140 packing must match the Python reference byte-for-byte."""
+    lib = load_core(dll, dump)
+    lib.r6_glsl_pack_ubo.restype = ctypes.c_int
+    lib.r6_glsl_pack_ubo.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(GlslRegion),
+        ctypes.POINTER(GlslValue), ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_size_t)]
+    body = nsxr_shader.parse_nsh(
+        os.path.join(dump, nsxr_shader.SHADER_DIR, "Body.nsh"))
+    pixel = nsxr_shader.glsl_bindings(body["records"][1])
+    vertex = nsxr_shader.glsl_bindings(body["records"][0])
+    kinds = {"scalar": 0, "vector": 1, "matrix": 2}
+    types = {"float": 0, "uint": 1}
+
+    def compare(bindings, block_name, values, label):
+        block = next(item for item in bindings["cbuffers"]
+                     if item["name"] == block_name)
+        regions = (GlslRegion * len(block["regions"]))()
+        packed = (GlslValue * len(block["regions"]))()
+        for index, region in enumerate(block["regions"]):
+            regions[index] = GlslRegion(
+                offset=region["offset"], size=region["size"],
+                kind=kinds[region["kind"]], type=types[region["type"]])
+            value = values.get(region["name"])
+            if region["kind"] == "scalar":
+                if region["type"] == "uint":
+                    packed[index].u = int(value or 0)
+                else:
+                    packed[index].f = float(value or 0)
+            else:
+                count = 16 if region["kind"] == "matrix" else 4
+                source = value or (0,) * count
+                target = packed[index].m if count == 16 else packed[index].v
+                for part in range(count):
+                    target[part] = float(source[part])
+        output = ctypes.create_string_buffer(block["size"])
+        written = ctypes.c_size_t()
+        rc = lib.r6_glsl_pack_ubo(output, block["size"], regions, packed,
+                                  len(regions), ctypes.byref(written))
+        expected = glsl_ubo.pack_ubo(bindings, block_name, values)
+        if rc != R6_OK or written.value != block["size"] or \
+                output.raw != expected:
+            failures.append("glsl ubo: %s rc=%d size=%d" %
+                            (label, rc, written.value))
+        return regions, packed
+
+    alpha_values = {"AlphaTestRef": 0.25, "AlphaTestFunc": 7}
+    alpha_regions, alpha_packed = compare(pixel, "AlphaTest", alpha_values,
+                                          "AlphaTest")
+    custom_values = {
+        region["name"]: tuple(index + part for part in range(4))
+        for index, region in enumerate(next(
+            item for item in pixel["cbuffers"]
+            if item["name"] == "CustomParameter")["regions"])
+    }
+    compare(pixel, "CustomParameter", custom_values, "CustomParameter")
+    per_draw_values = {
+        region["name"]: tuple(index * 16 + part for part in range(16))
+        for index, region in enumerate(next(
+            item for item in vertex["cbuffers"]
+            if item["name"] == "PerDraw")["regions"])
+    }
+    compare(vertex, "PerDraw", per_draw_values, "PerDraw")
+
+    short = ctypes.create_string_buffer(4)
+    written = ctypes.c_size_t()
+    rc = lib.r6_glsl_pack_ubo(short, 4, alpha_regions, alpha_packed,
+                              len(alpha_regions), ctypes.byref(written))
+    if rc != R6_ERR_BUFFER or written.value != 8:
+        failures.append("glsl ubo buffer: rc=%d size=%d" %
+                        (rc, written.value))
+
+    bad = (GlslRegion * 1)(GlslRegion(offset=0, size=8, kind=0, type=0))
+    value = (GlslValue * 1)(GlslValue(f=1.0))
+    output = ctypes.create_string_buffer(8)
+    written = ctypes.c_size_t()
+    rc = lib.r6_glsl_pack_ubo(output, 8, bad, value, 1,
+                              ctypes.byref(written))
+    if rc != R6_ERR_ARG:
+        failures.append("glsl ubo invalid region: rc=%d" % rc)
+    print("  glsl std140 pack: scalar, uint, vec4, mat4, buffer checks")
+
+
 def test_corpus(dll, dump, failures):
     """Load every data script through the C host, as lua_probe does in Python."""
     bootstrap = os.path.join(dump, "data", "car", "tire", "script",
@@ -688,6 +793,7 @@ def main():
         print("assets")
         test_assets(args.dll, args.dump, failures, args.limit)
         test_nut_decode(args.dll, args.dump, failures)
+        test_glsl_ubo(args.dll, args.dump, failures)
     if failures:
         print("\nFAILURES (%d)" % len(failures))
         for line in failures:
