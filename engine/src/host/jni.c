@@ -32,6 +32,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_lua_xrefs.h"
 #include "r6/r6_lua_inventory.h"
 #include "r6/r6_asset_inventory.h"
+#include "r6/r6_pe_inventory.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -1217,6 +1218,315 @@ Java_com_wmmt_re6rr_AssetInventory_nativeShaderHead(JNIEnv *env, jclass cls,
         (*env)->SetByteArrayRegion(env, out, 0, 16, (const jbyte *)head);
     }
     return out;
+}
+
+static unsigned char *pe_copy_blob(JNIEnv *env, jbyteArray blob,
+                                   size_t *length) {
+    unsigned char *bytes = NULL;
+    *length = 0;
+    if (raw_from_blob(env, blob, &bytes, length) != R6_OK) {
+        return NULL;
+    }
+    return bytes;
+}
+
+static jlongArray pe_new_longs(JNIEnv *env, const jlong *values, jsize count) {
+    jlongArray out = (*env)->NewLongArray(env, count);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, count, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_pe_inventory_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[28];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_size;
+    values[2] = (jlong)header.machine;
+    values[3] = (jlong)header.pe_magic;
+    values[4] = (jlong)header.timestamp;
+    values[5] = (jlong)header.image_base_lo;
+    values[6] = (jlong)header.image_base_hi;
+    values[7] = (jlong)header.entry_rva;
+    values[8] = (jlong)header.size_of_image;
+    values[9] = (jlong)header.directory_count;
+    values[10] = (jlong)header.pdata_count;
+    values[11] = (jlong)header.unique_unwind;
+    values[12] = (jlong)header.code_bytes;
+    values[13] = (jlong)header.text_bytes;
+    values[14] = (jlong)header.leaf;
+    values[15] = (jlong)header.chained;
+    values[16] = (jlong)header.with_eh;
+    values[17] = (jlong)header.reloc_blocks;
+    values[18] = (jlong)header.reloc_entries;
+    values[19] = (jlong)header.dll_count;
+    values[20] = (jlong)header.import_count;
+    values[21] = (jlong)header.export_count;
+    values[22] = (jlong)header.tls_count;
+    values[23] = (jlong)header.section_count;
+    values[24] = (jlong)header.strings_size;
+    values[25] = (jlong)header.guid_off;
+    values[26] = (jlong)header.pdb_age;
+    values[27] = (jlong)header.path_off;
+    return pe_new_longs(env, values, 28);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeFunc(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    uint32_t rva = 0;
+    uint32_t end = 0;
+    uint32_t length = 0;
+    uint32_t leaf = 0;
+    size_t blob_length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &blob_length);
+    jlong values[4];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_func(bytes, blob_length, (uint32_t)index, &rva, &end,
+                             &length, &leaf) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)rva;
+    values[1] = (jlong)end;
+    values[2] = (jlong)length;
+    values[3] = (jlong)leaf;
+    return pe_new_longs(env, values, 4);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeDllName(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_dll(bytes, length, (uint32_t)index, name,
+                            sizeof(name), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeDllRange(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char name[128];
+    uint32_t first = 0;
+    uint32_t count = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_dll(bytes, length, (uint32_t)index, name,
+                            sizeof(name), &first, &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)first;
+    values[1] = (jlong)count;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeImp(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    char name[256];
+    uint32_t kind = 0;
+    uint32_t ordinal = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_import(bytes, length, (uint32_t)index, &kind,
+                               &ordinal, name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)kind;
+    values[1] = (jlong)ordinal;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeImportName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char name[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_import(bytes, length, (uint32_t)index, NULL, NULL,
+                               name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeSectionName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_section(bytes, length, (uint32_t)index, name,
+                                sizeof(name), NULL, NULL, NULL, NULL,
+                                NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeSection(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char name[128];
+    uint32_t vsize = 0;
+    uint32_t vaddr = 0;
+    uint32_t raw_size = 0;
+    uint32_t raw_ptr = 0;
+    uint32_t characteristics = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_section(bytes, length, (uint32_t)index, name,
+                                sizeof(name), &vsize, &vaddr, &raw_size,
+                                &raw_ptr, &characteristics) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)vsize;
+    values[1] = (jlong)vaddr;
+    values[2] = (jlong)raw_size;
+    values[3] = (jlong)raw_ptr;
+    values[4] = (jlong)characteristics;
+    return pe_new_longs(env, values, 5);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeExportName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_export(bytes, length, (uint32_t)index, name,
+                               sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeTls(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    uint32_t lo = 0;
+    uint32_t hi = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_tls(bytes, length, (uint32_t)index, &lo,
+                            &hi) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)lo;
+    values[1] = (jlong)hi;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativePdbGuid(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    char guid[64];
+    uint32_t age = 0;
+    char path[512];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_pdb(bytes, length, guid, sizeof(guid), &age, path,
+                            sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, guid);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativePdbAge(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    char guid[64];
+    uint32_t age = 0;
+    char path[512];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_pdb(bytes, length, guid, sizeof(guid), &age, path,
+                            sizeof(path)) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)age;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativePdbPath(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    char guid[64];
+    uint32_t age = 0;
+    char path[512];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_pdb(bytes, length, guid, sizeof(guid), &age, path,
+                            sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, path);
 }
 
 JNIEXPORT jlongArray JNICALL
