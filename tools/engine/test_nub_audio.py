@@ -27,6 +27,13 @@ def check(dump):
                row["format_channels"] == row["channels"]
                for row in bgm["tone_records"])
 
+    control = nub_audio.tone_control(os.path.join(root, "BGM.nub"), first)
+    assert control == {"three_d_float_a": 30.0, "three_d_float_b": 0.0,
+                       "three_d_param_no": 0, "volume_cap": 1.0,
+                       "pan_cap": 1.0, "bus_id": 1, "voice_bus": 0}
+    assert set(nub_audio.TONE_CONTROL_FIELDS) == \
+        set(nub_audio.TONE_CONTROL_READERS)
+
     system = nub_audio.parse_nub(os.path.join(root, "SYSTEM.nub"))
     assert system["tone_count"] == 120
     assert system["tone_records"][1]["data_offset"] == 0x2a6f0
@@ -49,6 +56,16 @@ def check(dump):
     assert len(data["banks"]) == 149 and len(data["strings"]) == 9
     assert sum(len(bank["tone_records"])
                for bank in data["banks"].values()) == 781
+    buses = set()
+    for name, bank in data["banks"].items():
+        path = os.path.join(root, name.replace("/", os.sep))
+        for tone in bank["tone_records"]:
+            fields = nub_audio.tone_control(path, tone)
+            assert fields["volume_cap"] == fields["pan_cap"] == 1.0
+            assert fields["three_d_param_no"] in (0, 2)
+            assert fields["voice_bus"] == 0
+            buses.add(fields["bus_id"])
+    assert buses == {0, 1, 2, 4, 5}
 
     with tempfile.TemporaryDirectory() as directory:
         output = os.path.join(directory, "bgm_01.wav")

@@ -7,7 +7,8 @@
 Only shipped data is read. The .nub header locates a tone-record table; each
 record carries a PCM length, offset relative to the header block, and WAV
 format fields. Extraction writes a standard RIFF/WAVE file with the original
-PCM bytes, no resampling or decoding.
+PCM bytes, no resampling or decoding. `tone_control()` reports the additional
+record fields that nuSound2 playback reads, without storing audio data.
 """
 
 import argparse
@@ -22,6 +23,27 @@ TONE_RECORD_SIZE = 0xd0
 STRING_NAME_SIZE = 0x40
 STRING_PATH_SIZE = 0x40
 SOUND_DIR = os.path.join("data", "sound")
+
+# Tone-record control fields read by nuSound2. FUN_180025b80 passes +0x44/+0x50
+# to nuSound2_3DGetParameterChNum with +0x54 as the channel number, clamps the
+# requested volume/pan against +0x58/+0x5c, and reads the bus chain at +0x60.
+# The chain-state record copies +0x68 into the voice's bus-id field.
+TONE_CONTROL_FIELDS = {
+    "three_d_float_a": 0x44, "three_d_float_b": 0x50,
+    "three_d_param_no": 0x54, "volume_cap": 0x58, "pan_cap": 0x5C,
+    "bus_id": 0x60, "voice_bus": 0x68,
+}
+TONE_CONTROL_FLOATS = {"three_d_float_a", "three_d_float_b",
+                       "volume_cap", "pan_cap"}
+TONE_CONTROL_READERS = {
+    "three_d_param_no": "nuSound2_3DGetParameterChNum param_4",
+    "three_d_float_a": "nuSound2_3DGetParameterChNum param_5",
+    "three_d_float_b": "nuSound2_3DGetParameterChNum param_7",
+    "volume_cap": "FUN_180025b80 min(requested, record)",
+    "pan_cap": "FUN_180025b80 min(requested, record)",
+    "bus_id": "FUN_18001cd90 bus chain",
+    "voice_bus": "FUN_18001b180 via chain-state +0x30",
+}
 
 
 def header(path):
@@ -114,6 +136,20 @@ def parse_nub(path):
     meta = header(path)
     meta["tone_records"] = tones(path, meta)
     return meta
+
+
+def tone_control(path, tone):
+    """Control fields native playback reads from one tone record."""
+    with open(path, "rb") as stream:
+        stream.seek(tone["record_offset"])
+        raw = stream.read(TONE_RECORD_SIZE)
+    if len(raw) != TONE_RECORD_SIZE:
+        raise ValueError("short tone record: %s" % path)
+    result = {}
+    for name, offset in TONE_CONTROL_FIELDS.items():
+        code = "f" if name in TONE_CONTROL_FLOATS else "I"
+        result[name] = struct.unpack_from("<" + code, raw, offset)[0]
+    return result
 
 
 def parse_string_table(path, kind):

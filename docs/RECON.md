@@ -121,6 +121,12 @@ instance `+0x80508` under a `0x20000000` cap. Cleanup (`0x18002e7d0`) reads the
 same slot records at `0x108 + slot*0x2010` and releases each voice id.
 `audio_events.bank_setup_view()` mirrors those native reads; all 149 shipped
 banks match the independently parsed header/tone records (781 tones).
+Tone records also carry playback control fields: `+0x44`/`+0x50` and `+0x54`
+feed `nuSound2_3DGetParameterChNum`, `+0x58`/`+0x5c` cap requested volume and
+pan at `1.0` in all 781 tones, `+0x60` selects a bus chain read by
+`FUN_18001cd90` (ids `0,1,2,4,5` in the dump), and `+0x68` supplies the chain
+record's voice-bus id (zero throughout). `nub_audio.tone_control()` reports
+these fields without storing audio bytes.
 Chained KeyOn (`0x180026a60`) builds up to 32 voices; `0x180025b80` fills a
 52-float state record at instance `0x21c + index*0xd0`, and `0x180029220`
 applies it to the core voice: volume and FX volume clamped to `0..1`, pitch
