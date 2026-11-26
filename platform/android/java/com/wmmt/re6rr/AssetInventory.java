@@ -52,6 +52,10 @@ public final class AssetInventory {
         return nativeFindFolder(blob, name);
     }
 
+    public static long findMagic(byte[] blob, String name) {
+        return nativeFindMagic(blob, name);
+    }
+
     public static String shaderPath(byte[] blob, int index) {
         return nativeShaderPath(blob, index);
     }
@@ -79,6 +83,8 @@ public final class AssetInventory {
     private static native long nativeFindExt(byte[] blob, String name);
 
     private static native long nativeFindFolder(byte[] blob, String name);
+
+    private static native long nativeFindMagic(byte[] blob, String name);
 
     private static native String nativeShaderPath(byte[] blob, int index);
 

@@ -51,6 +51,9 @@ def configure(lib):
     lib.r6_asset_inventory_find_ext.restype = ctypes.c_int
     lib.r6_asset_inventory_find_ext.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
+    lib.r6_asset_inventory_find_magic.restype = ctypes.c_int
+    lib.r6_asset_inventory_find_magic.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
     lib.r6_asset_inventory_find_folder.restype = ctypes.c_int
     lib.r6_asset_inventory_find_folder.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
@@ -130,6 +133,10 @@ def check(lib):
     assert found.value == 0
     assert lib.r6_asset_inventory_find_folder(
         source, len(blob), folders[0]["name"].encode("ascii"),
+        ctypes.byref(found)) == R6_OK
+    assert found.value == 0
+    assert lib.r6_asset_inventory_find_magic(
+        source, len(blob), magics[0]["name"].encode("ascii"),
         ctypes.byref(found)) == R6_OK
     assert found.value == 0
     assert lib.r6_asset_inventory_find_ext(

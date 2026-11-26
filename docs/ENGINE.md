@@ -235,7 +235,7 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_lua_inventory_parse()/name()/dir()/find()` — read the derived `R6LSI`
   counts for 4,885 + 167 Lua files across 158 directories. Only counts and
   directory names are packed; noisy undefined/native name guesses are not.
-- `r6_asset_inventory_parse()/ext()/magic()/folder()/find_ext()/find_folder()/shader()` — read the
+- `r6_asset_inventory_parse()/ext()/magic()/folder()/find_ext()/find_magic()/find_folder()/shader()` — read the
   derived `R6AIV` counts: 32 extension rows, 7 inner-magic rows, 27 top-folder
   rows and 40 shader samples with copied paths and 16-byte prefixes.
 - `r6_pe_inventory_parse()/func()/dll()/import()/section()/export()/tls()/directory()/directory_find()/pdb()`

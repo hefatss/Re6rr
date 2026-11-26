@@ -59,6 +59,9 @@ R6_API int r6_asset_inventory_find_ext(const void *data, size_t size,
 R6_API int r6_asset_inventory_find_folder(const void *data, size_t size,
                                           const char *name, uint32_t *index);
 
+R6_API int r6_asset_inventory_find_magic(const void *data, size_t size,
+                                         const char *name, uint32_t *index);
+
 R6_API int r6_asset_inventory_shader(const void *data, size_t size,
                                      uint32_t index, char *path,
                                      size_t capacity, uint32_t *file_size,
