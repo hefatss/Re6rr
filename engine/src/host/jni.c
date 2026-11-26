@@ -39,6 +39,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_enma_sim.h"
 #include "r6/r6_ref_words.h"
 #include "r6/r6_pdata_stats.h"
+#include "r6/r6_string_xrefs.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -2356,6 +2357,132 @@ Java_com_wmmt_re6rr_PeInventory_nativeDirectory(JNIEnv *env, jclass cls,
     values[1] = (jlong)rva;
     values[2] = (jlong)size;
     return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_string_xref_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    (void)cls;
+    if (!bytes || r6_string_xref_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.instructions;
+    values[2] = (jlong)header.string_refs;
+    values[3] = (jlong)header.strings;
+    values[4] = (jlong)header.names_requested;
+    values[5] = (jlong)header.names_found;
+    values[6] = (jlong)header.name_count;
+    values[7] = (jlong)header.rva_count;
+    values[8] = (jlong)header.strings_size;
+    values[9] = (jlong)header.strings_off;
+    return pe_new_longs(env, values, 10);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    char name[R6_STRING_XREF_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_string_xref_name(bytes, length, (uint32_t)index, name,
+                             sizeof(name), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeNameRange(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char name[R6_STRING_XREF_NAME_CAP];
+    uint32_t first = 0;
+    uint32_t count = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    (void)cls;
+    if (!bytes ||
+        r6_string_xref_name(bytes, length, (uint32_t)index, name,
+                             sizeof(name), &first, &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)first;
+    values[1] = (jlong)count;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeRva(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    uint32_t rva = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_string_xref_rva(bytes, length, (uint32_t)index, &rva) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)rva;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeNameRva(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint name_index,
+                                              jint local_index) {
+    uint32_t rva = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_string_xref_name_rva(bytes, length, (uint32_t)name_index,
+                                 (uint32_t)local_index, &rva) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)rva;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeFind(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jstring name) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    const char *text = NULL;
+    (void)cls;
+    if (!bytes || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_string_xref_find(bytes, length, text, &index) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jlong)index;
 }
 
 JNIEXPORT jlongArray JNICALL

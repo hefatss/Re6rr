@@ -43,6 +43,7 @@ SOURCES = [
     "engine/src/core/enma_sim.c",
     "engine/src/core/ref_words.c",
     "engine/src/core/pdata_stats.c",
+    "engine/src/core/string_xrefs.c",
     "engine/src/assets/ndwd.c",
     "engine/src/assets/ntwd.c",
     "engine/src/assets/nut_texture.c",
@@ -173,7 +174,7 @@ def check_jni(dump):
                                 "SoundDispatch.java", "SceneBridge.java",
                                 "StageEffect.java", "BgmManager.java",
                                 "SoundConfig.java", "BankSlots.java",
-                                "CourseSurface.java", "SoundStrings.java", "LuaAudioBindings.java", "EesCamera.java", "SceneConfig.java", "EesCarEffect.java", "EesCarDisp.java", "EesContainer.java", "EesCarInfo.java", "VoiceDispatchFacts.java", "VoiceCoreTableFacts.java", "AudioLayoutFacts.java", "NshContainer.java", "EnvironmentLua.java", "EngmapTable.java", "EmtisTable.java", "NativeNames.java", "ContextPaths.java", "LuaGlobals.java", "LuaXrefs.java", "HonorSchema.java", "EnmaEnums.java", "EnmaDefaults.java", "EnmaExports.java", "SceneEnvStats.java", "LuaInventory.java", "AssetInventory.java", "PeInventory.java", "NameRuns.java", "LuaRegTables.java", "PathStrings.java", "EnmaSimFacts.java", "RefWords.java", "PdataStats.java")]
+                                "CourseSurface.java", "SoundStrings.java", "LuaAudioBindings.java", "EesCamera.java", "SceneConfig.java", "EesCarEffect.java", "EesCarDisp.java", "EesContainer.java", "EesCarInfo.java", "VoiceDispatchFacts.java", "VoiceCoreTableFacts.java", "AudioLayoutFacts.java", "NshContainer.java", "EnvironmentLua.java", "EngmapTable.java", "EmtisTable.java", "NativeNames.java", "ContextPaths.java", "LuaGlobals.java", "LuaXrefs.java", "HonorSchema.java", "EnmaEnums.java", "EnmaDefaults.java", "EnmaExports.java", "SceneEnvStats.java", "LuaInventory.java", "AssetInventory.java", "PeInventory.java", "NameRuns.java", "LuaRegTables.java", "PathStrings.java", "EnmaSimFacts.java", "RefWords.java", "PdataStats.java", "StringXrefs.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"
