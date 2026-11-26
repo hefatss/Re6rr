@@ -150,6 +150,40 @@ typedef struct r6_ees_camera_fields_t {
 R6_API int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
                                 r6_ees_camera_fields_t *out);
 
+/* FUN_1401e3640 packs eight int32 environment slots into a 0x28 scene. */
+typedef struct r6_scene_values_t {
+    int32_t stage;
+    int32_t stage_root;
+    int32_t stage_day;
+    int32_t cam_id;
+    int32_t actors[4];
+} r6_scene_values_t;
+
+R6_API int r6_scene_pack(const r6_scene_values_t *values, void *out,
+                         size_t size);
+
+/* Packed native name tables (R6SCN) used by the scene debug logger. */
+enum {
+    R6_SCENE_CAR_NAMES = 0,
+    R6_SCENE_STAGE_NAMES = 1,
+    R6_SCENE_DAY_NAMES = 2,
+    R6_SCENE_NAMES_KINDS = 3
+};
+
+typedef struct r6_scene_names_header {
+    uint32_t counts[R6_SCENE_NAMES_KINDS];
+    uint32_t strings_off;
+    uint32_t strings_size;
+} r6_scene_names_header;
+
+R6_API int r6_scene_names_parse(const void *data, size_t size,
+                                r6_scene_names_header *out);
+
+/* Copy the resolved name into caller storage. Car ids -1 or out of range give
+ * "PLC_NON"; stage and day ids outside the table report not found. */
+R6_API int r6_scene_names_get(const void *data, size_t size, int kind,
+                              int32_t value, char *out, size_t capacity);
+
 #ifdef __cplusplus
 }
 #endif

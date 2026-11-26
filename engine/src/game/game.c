@@ -347,3 +347,130 @@ int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
     out->m_EndConnection = (int32_t)read_u32(bytes, base + 0x10C);
     return R6_OK;
 }
+
+int r6_scene_pack(const r6_scene_values_t *values, void *out, size_t size) {
+    unsigned char *bytes = (unsigned char *)out;
+    uint32_t index;
+    if (!values || !bytes || size < R6_SCENE_SIZE) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(bytes, 0, R6_SCENE_SIZE);
+    write_u32(bytes, 0x08, (uint32_t)values->stage);
+    write_u32(bytes, 0x0C, (uint32_t)values->stage_root);
+    write_u32(bytes, 0x10, (uint32_t)values->stage_day);
+    write_u32(bytes, R6_SCENE_CAMID_OFFSET, (uint32_t)values->cam_id);
+    for (index = 0; index < 4u; index++) {
+        write_u32(bytes, 0x14u + index * 4u,
+                  (uint32_t)values->actors[index]);
+    }
+    return R6_OK;
+}
+
+static const unsigned char scene_names_magic[8] = {
+    'R', '6', 'S', 'C', 'N', 0, 1, 0
+};
+
+int r6_scene_names_parse(const void *data, size_t size,
+                         r6_scene_names_header *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t total = 0;
+    uint32_t strings_off;
+    uint32_t index;
+    if (!bytes || !out || size < 40u ||
+        r6_memcmp(bytes, scene_names_magic, sizeof(scene_names_magic)) != 0 ||
+        read_u32(bytes, 8) != 1u) {
+        return R6_ERR_FORMAT;
+    }
+    for (index = 0; index < R6_SCENE_NAMES_KINDS; index++) {
+        out->counts[index] = read_u32(bytes, 12u + index * 4u);
+        total += out->counts[index];
+    }
+    strings_off = 40u + total * 4u;
+    if (strings_off >= size) {
+        return R6_ERR_FORMAT;
+    }
+    for (index = 0; index < R6_SCENE_NAMES_KINDS; index++) {
+        if (read_u32(bytes, 24u + index * 4u) != strings_off) {
+            return R6_ERR_FORMAT;
+        }
+    }
+    out->strings_off = strings_off;
+    out->strings_size = read_u32(bytes, 36u);
+    if (out->strings_size < 1u ||
+        (uint64_t)strings_off + out->strings_size != size) {
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+static int scene_copy_name(const unsigned char *bytes, size_t size,
+                           uint32_t offset, char *out, size_t capacity) {
+    size_t length = 0;
+    if (!capacity || offset >= size) {
+        return R6_ERR_ARG;
+    }
+    while (offset + length < size && bytes[offset + length]) {
+        length++;
+    }
+    if (!length) {
+        return R6_ERR_NOT_FOUND;
+    }
+    if (length >= capacity) {
+        return R6_ERR_BUFFER;
+    }
+    r6_memset(out, 0, capacity);
+    r6_memcpy(out, bytes + offset, length);
+    return R6_OK;
+}
+
+int r6_scene_names_get(const void *data, size_t size, int kind,
+                       int32_t value, char *out, size_t capacity) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_scene_names_header header;
+    uint32_t index;
+    uint32_t offset;
+    int result;
+    if (r6_scene_names_parse(data, size, &header) != R6_OK || !out ||
+        kind < R6_SCENE_CAR_NAMES || kind > R6_SCENE_DAY_NAMES) {
+        return R6_ERR_ARG;
+    }
+    if (kind == R6_SCENE_CAR_NAMES) {
+        if (value == -1 || value < 0 ||
+            (uint32_t)value >= header.counts[R6_SCENE_CAR_NAMES]) {
+            if (capacity < 9u) {
+                return R6_ERR_BUFFER;
+            }
+            r6_memcpy(out, "PLC_NON", 8u);
+            return R6_OK;
+        }
+        index = (uint32_t)value;
+    } else if (kind == R6_SCENE_STAGE_NAMES) {
+        if (value <= 0 || (uint32_t)(value - 1) >=
+            header.counts[R6_SCENE_STAGE_NAMES]) {
+            return R6_ERR_NOT_FOUND;
+        }
+        index = (uint32_t)(value - 1);
+    } else {
+        if (value < 0 || (uint32_t)value >= header.counts[R6_SCENE_DAY_NAMES]) {
+            return R6_ERR_NOT_FOUND;
+        }
+        index = (uint32_t)value;
+    }
+    offset = read_u32(bytes, 40u + index * 4u);
+    if (kind == R6_SCENE_CAR_NAMES) {
+        /* later table arrays follow the car offsets */
+    } else if (kind == R6_SCENE_STAGE_NAMES) {
+        offset = read_u32(bytes, 40u + header.counts[R6_SCENE_CAR_NAMES] * 4u +
+                                index * 4u);
+    } else {
+        offset = read_u32(bytes, 40u +
+                          (header.counts[R6_SCENE_CAR_NAMES] +
+                           header.counts[R6_SCENE_STAGE_NAMES]) * 4u +
+                          index * 4u);
+    }
+    if (offset < header.strings_off || offset >= size) {
+        return R6_ERR_FORMAT;
+    }
+    result = scene_copy_name(bytes, size, offset, out, capacity);
+    return result == R6_ERR_ARG ? R6_ERR_FORMAT : result;
+}

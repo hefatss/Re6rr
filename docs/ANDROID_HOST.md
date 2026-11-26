@@ -34,6 +34,8 @@ tree to app external files:
         --out <dump>/engine_runtime.r6ers
     python tools/engine/stage_effect_catalog.py --dump D:\Games\W6W-05 \
         --out <dump>/stage_effect.r6stg
+    python tools/engine/scene_config_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/scene_config.r6scn
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
@@ -41,7 +43,8 @@ CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 `story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
 through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`,
 `engine_sound.r6esnd` through `EngineSound`, `bgm.r6bgm` through
-`BgmCatalog`, `stage_effect.r6stg` through `StageEffect`, and
+`BgmCatalog`, `stage_effect.r6stg` through `StageEffect`,
+`scene_config.r6scn` through `SceneConfig`, and
 `engine_runtime.r6ers` plus `engine_sound.r6esnd` through `EngineRuntime`.
 `AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
@@ -76,7 +79,8 @@ copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 `BankSlots` finds free registration slots, `SoundStrings` reads bank/tone
 names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
-camera containers/records, `EesCamera` reads named camera fields, and
+camera containers/records, `EesCamera` reads named camera fields, `SceneConfig` packs scenes and resolves
+native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or

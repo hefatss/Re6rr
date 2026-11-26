@@ -3508,6 +3508,94 @@ Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
+                                           jint stage, jint stage_root,
+                                           jint stage_day, jint cam_id,
+                                           jintArray actors) {
+    r6_scene_values_t values;
+    unsigned char scene[R6_SCENE_SIZE];
+    jint *source;
+    jsize count;
+    jbyteArray out = NULL;
+    jsize index;
+    (void)cls;
+    if (!actors) {
+        return NULL;
+    }
+    count = (*env)->GetArrayLength(env, actors);
+    if (count < 4) {
+        return NULL;
+    }
+    source = (*env)->GetIntArrayElements(env, actors, NULL);
+    if (!source) {
+        return NULL;
+    }
+    values.stage = (int32_t)stage;
+    values.stage_root = (int32_t)stage_root;
+    values.stage_day = (int32_t)stage_day;
+    values.cam_id = (int32_t)cam_id;
+    for (index = 0; index < 4; index++) {
+        values.actors[index] = (int32_t)source[index];
+    }
+    (*env)->ReleaseIntArrayElements(env, actors, source, JNI_ABORT);
+    if (r6_scene_pack(&values, scene, sizeof(scene)) != R6_OK) {
+        return NULL;
+    }
+    out = (*env)->NewByteArray(env, (jsize)sizeof(scene));
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)sizeof(scene),
+                                   (const jbyte *)scene);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneConfig_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_scene_names_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[4];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_scene_names_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.counts[R6_SCENE_CAR_NAMES];
+    values[1] = (jlong)header.counts[R6_SCENE_STAGE_NAMES];
+    values[2] = (jlong)header.counts[R6_SCENE_DAY_NAMES];
+    values[3] = (jlong)header.strings_off;
+    out = (*env)->NewLongArray(env, 4);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 4, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneConfig_nativeName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint kind,
+                                           jint value) {
+    char name[0x80];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_scene_names_get(bytes, length, (int)kind, (int32_t)value,
+                           name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {
