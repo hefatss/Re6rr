@@ -305,6 +305,90 @@ static float ees_f32(const unsigned char *bytes, size_t at) {
     return value;
 }
 
+int r6_ees_parse(const void *data, size_t size, r6_ees_header_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t version;
+    uint32_t count;
+    uint32_t effect_count;
+    uint32_t header;
+    uint32_t info_size;
+    uint32_t data_size;
+    uint64_t total;
+    if (!bytes || !out || size < 0x130 || size > 0xFFFFFFFFull) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    version = read_u32(bytes, 0);
+    count = read_u32(bytes, 0x104);
+    if ((version == 0x2712u || version == 0x2713u) &&
+        read_u32(bytes, 0x110) == (uint32_t)size) {
+        header = read_u32(bytes, 0x114);
+        info_size = read_u32(bytes, 0x118);
+        data_size = read_u32(bytes, 0x11C);
+        if ((header != 0x1A8u && header != 0x1B0u) ||
+            (uint64_t)count * 0x50u != info_size ||
+            (uint64_t)count * 0x160u != data_size ||
+            (uint64_t)header + info_size + data_size != size) {
+            return R6_ERR_FORMAT;
+        }
+        out->kind = R6_EES_KIND_CAM;
+        out->version = version;
+        out->count = count;
+        out->header_size = header;
+        out->array_count = 2u;
+        out->arrays[0].name = R6_EES_ARRAY_CAMERA_INFO;
+        out->arrays[0].count = count;
+        out->arrays[0].stride = 0x50u;
+        out->arrays[0].offset = header;
+        out->arrays[0].size = info_size;
+        out->arrays[1].name = R6_EES_ARRAY_CAMERA_DATA;
+        out->arrays[1].count = count;
+        out->arrays[1].stride = 0x160u;
+        out->arrays[1].offset = header + info_size;
+        out->arrays[1].size = data_size;
+    } else if (version == 0x2712u &&
+               read_u32(bytes, 0x114) == (uint32_t)size) {
+        effect_count = read_u32(bytes, 0x108);
+        header = read_u32(bytes, 0x118);
+        info_size = read_u32(bytes, 0x124);
+        total = (uint64_t)count * 0x180u +
+                (uint64_t)effect_count * 0xA0u +
+                (uint64_t)count * 0x8Cu;
+        if ((header != 0x1BCu && header != 0x1C8u) ||
+            read_u32(bytes, 0x11C) != (uint64_t)count * 0x180u ||
+            read_u32(bytes, 0x120) != (uint64_t)effect_count * 0xA0u ||
+            info_size != (uint64_t)count * 0x8Cu ||
+            (uint64_t)header + total != size) {
+            return R6_ERR_FORMAT;
+        }
+        out->kind = R6_EES_KIND_CAR;
+        out->effect_count = effect_count;
+        out->array_count = 3u;
+        out->arrays[0].name = R6_EES_ARRAY_CAR_DISP;
+        out->arrays[0].count = count;
+        out->arrays[0].stride = 0x180u;
+        out->arrays[0].offset = header;
+        out->arrays[0].size = (uint32_t)((uint64_t)count * 0x180u);
+        out->arrays[1].name = R6_EES_ARRAY_CAR_EFFECT;
+        out->arrays[1].count = effect_count;
+        out->arrays[1].stride = 0xA0u;
+        out->arrays[1].offset = header + out->arrays[0].size;
+        out->arrays[1].size = (uint32_t)((uint64_t)effect_count * 0xA0u);
+        out->arrays[2].name = R6_EES_ARRAY_CAR_INFO;
+        out->arrays[2].count = count;
+        out->arrays[2].stride = 0x8Cu;
+        out->arrays[2].offset = out->arrays[1].offset + out->arrays[1].size;
+        out->arrays[2].size = info_size;
+    } else {
+        return R6_ERR_FORMAT;
+    }
+    out->version = version;
+    out->file_size = (uint32_t)size;
+    out->count = count;
+    out->header_size = header;
+    return R6_OK;
+}
+
 int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
                          r6_ees_camera_fields_t *out) {
     const unsigned char *bytes = (const unsigned char *)data;

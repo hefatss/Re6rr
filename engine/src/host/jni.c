@@ -3453,6 +3453,43 @@ Java_com_wmmt_re6rr_SceneBridge_nativeRuntimeCamera(JNIEnv *env, jclass cls,
     return result;
 }
 
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_EesContainer_nativeParse(JNIEnv *env, jclass cls,
+                                             jbyteArray raw) {
+    r6_ees_header_t header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jint values[22];
+    jintArray out = NULL;
+    uint32_t index;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_ees_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)header.kind;
+    values[1] = (jint)header.version;
+    values[2] = (jint)header.file_size;
+    values[3] = (jint)header.count;
+    values[4] = (jint)header.effect_count;
+    values[5] = (jint)header.header_size;
+    values[6] = (jint)header.array_count;
+    for (index = 0; index < R6_EES_ARRAY_MAX; index++) {
+        values[7u + index * 5u] = (jint)header.arrays[index].name;
+        values[8u + index * 5u] = (jint)header.arrays[index].count;
+        values[9u + index * 5u] = (jint)header.arrays[index].stride;
+        values[10u + index * 5u] = (jint)header.arrays[index].offset;
+        values[11u + index * 5u] = (jint)header.arrays[index].size;
+    }
+    out = (*env)->NewIntArray(env, 22);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, 22, values);
+    }
+    return out;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
                                            jbyteArray raw, jint offset) {

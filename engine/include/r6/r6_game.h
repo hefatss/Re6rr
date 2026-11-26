@@ -104,6 +104,39 @@ R6_API int r6_scene_container_offset(uint32_t slot, size_t *out);
 R6_API int r6_scene_runtime_camera(const void *records, size_t size,
                                    int32_t frame);
 
+/* EventScene2 container layout validated by FUN_1401cd0a0 / FUN_1401cd650. */
+enum {
+    R6_EES_KIND_CAM = 0,
+    R6_EES_KIND_CAR = 1,
+    R6_EES_ARRAY_CAMERA_INFO = 0,
+    R6_EES_ARRAY_CAMERA_DATA = 1,
+    R6_EES_ARRAY_CAR_DISP = 2,
+    R6_EES_ARRAY_CAR_EFFECT = 3,
+    R6_EES_ARRAY_CAR_INFO = 4,
+    R6_EES_ARRAY_MAX = 3
+};
+
+typedef struct r6_ees_array_t {
+    uint32_t name;
+    uint32_t count;
+    uint32_t stride;
+    uint32_t offset;
+    uint32_t size;
+} r6_ees_array_t;
+
+typedef struct r6_ees_header_t {
+    uint32_t kind;
+    uint32_t version;
+    uint32_t file_size;
+    uint32_t count;
+    uint32_t effect_count;
+    uint32_t header_size;
+    uint32_t array_count;
+    r6_ees_array_t arrays[R6_EES_ARRAY_MAX];
+} r6_ees_header_t;
+
+R6_API int r6_ees_parse(const void *data, size_t size, r6_ees_header_t *out);
+
 /* FUN_1401e0330 names 31 fields in the 0x160-byte camera_data record. The
  * logger prints several f32 members with "%d"; the declared types below come
  * from the recovered struct, not the print format. */
