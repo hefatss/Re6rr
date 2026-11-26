@@ -59,6 +59,48 @@ typedef struct r6_sound_init {
 R6_API int r6_sound_init_parse(const void *data, size_t size,
                                r6_sound_init *out);
 
+/* sys::Sound::Impl dispatch arrays: bank slots, 8-byte SE loop records and
+ * 0x24-byte positional SE records. The handle is an opaque 32-bit value at
+ * +0x18; the ready state sits at +0x1c, so the two do not overlap. */
+enum {
+    R6_SOUND_BANK_HANDLE_OFFSET = 0x18,
+    R6_SOUND_BANK_STATE_OFFSET = 0x1C,
+    R6_SOUND_BANK_STATE_READY = 3,
+    R6_SOUND_REQUEST_COUNT = 0x22,
+    R6_SOUND_LOOP_SLOT_SCENE = 0x21,
+    R6_SOUND_LOOP_STRIDE = 0x08,
+    R6_SOUND_POSITIONAL_STRIDE = 0x24,
+    R6_SOUND_POSITIONAL_TONE_DISABLE = -1
+};
+
+typedef struct r6_sound_bank_slot {
+    uint32_t handle;
+    uint32_t state;
+    int ready;
+} r6_sound_bank_slot_t;
+
+typedef struct r6_sound_loop_record {
+    uint32_t flag;
+    uint32_t tone;
+} r6_sound_loop_record_t;
+
+typedef struct r6_sound_positional_record {
+    uint32_t bank;
+    int32_t tone;
+    int32_t frames;
+    float x;
+    float y;
+    float z;
+} r6_sound_positional_record_t;
+
+R6_API int r6_sound_bank_slot(const void *data, size_t size, uint32_t index,
+                              r6_sound_bank_slot_t *out);
+R6_API int r6_sound_loop_record(const void *data, size_t size, uint32_t index,
+                                r6_sound_loop_record_t *out);
+R6_API int r6_sound_positional_record(const void *data, size_t size,
+                                      uint32_t index,
+                                      r6_sound_positional_record_t *out);
+
 typedef struct r6_nub_header {
     uint32_t version;
     uint32_t bank_id;

@@ -267,3 +267,44 @@ int r6_sound_init_parse(const void *data, size_t size, r6_sound_init *out) {
     out->stream_bytes = out->stream_num * R6_SOUND_STREAM_STRIDE;
     return R6_OK;
 }
+
+int r6_sound_bank_slot(const void *data, size_t size, uint32_t index,
+                       r6_sound_bank_slot_t *out) {
+    size_t at = (size_t)index * R6_SOUND_BANK_STRIDE;
+    if (!data || !out ||
+        at + R6_SOUND_BANK_STRIDE > size) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->handle = r6_u32(data, at + R6_SOUND_BANK_HANDLE_OFFSET);
+    out->state = r6_u32(data, at + R6_SOUND_BANK_STATE_OFFSET);
+    out->ready = out->state == R6_SOUND_BANK_STATE_READY;
+    return R6_OK;
+}
+
+int r6_sound_loop_record(const void *data, size_t size, uint32_t index,
+                         r6_sound_loop_record_t *out) {
+    size_t at = (size_t)index * R6_SOUND_LOOP_STRIDE;
+    if (!data || !out || at + R6_SOUND_LOOP_STRIDE > size) {
+        return R6_ERR_ARG;
+    }
+    out->flag = r6_u32(data, at);
+    out->tone = r6_u32(data, at + 4u);
+    return R6_OK;
+}
+
+int r6_sound_positional_record(const void *data, size_t size, uint32_t index,
+                               r6_sound_positional_record_t *out) {
+    size_t at = (size_t)index * R6_SOUND_POSITIONAL_STRIDE;
+    if (!data || !out || at + R6_SOUND_POSITIONAL_STRIDE > size) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->bank = r6_u32(data, at);
+    out->tone = (int32_t)r6_u32(data, at + 4u);
+    out->frames = (int32_t)r6_u32(data, at + 8u);
+    out->x = nub_f32(data, at + 0x0cu);
+    out->y = nub_f32(data, at + 0x10u);
+    out->z = nub_f32(data, at + 0x14u);
+    return R6_OK;
+}
