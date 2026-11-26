@@ -29,6 +29,10 @@ R6_API int r6_enma_enum_parse(const void *data, size_t size,
 R6_API int r6_enma_enum_name(const void *data, size_t size, uint32_t index,
                              char *name, size_t capacity);
 
+/* First exact enum-domain name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_enma_enum_find_domain(const void *data, size_t size,
+                                    const char *name, uint32_t *index);
+
 R6_API int r6_enma_enum_count(const void *data, size_t size, uint32_t index,
                               uint32_t *count);
 

@@ -15,6 +15,11 @@ public final class EnmaEnums {
         return nativeName(blob, index);
     }
 
+    /** Domain row index for an exact name match; -1 if absent. */
+    public static long findDomain(byte[] blob, String name) {
+        return nativeFindDomain(blob, name);
+    }
+
     /** Number of values, or -1 for an invalid index. */
     public static int count(byte[] blob, int index) {
         return nativeCount(blob, index);
@@ -38,6 +43,8 @@ public final class EnmaEnums {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
+
+    private static native long nativeFindDomain(byte[] blob, String name);
 
     private static native int nativeCount(byte[] blob, int index);
 

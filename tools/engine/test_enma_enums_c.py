@@ -17,6 +17,7 @@ R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
 R6_ERR_NOT_FOUND = -7
+R6_ERR_NOT_FOUND = -7
 NAME_CAP = 0x80
 
 
@@ -34,6 +35,10 @@ def check(lib):
     lib.r6_enma_enum_name.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                       ctypes.c_uint32, ctypes.c_char_p,
                                       ctypes.c_size_t]
+    lib.r6_enma_enum_find_domain.restype = ctypes.c_int
+    lib.r6_enma_enum_find_domain.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                             ctypes.c_char_p,
+                                             ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_enma_enum_count.restype = ctypes.c_int
     lib.r6_enma_enum_count.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                        ctypes.c_uint32,
@@ -81,6 +86,16 @@ def check(lib):
             total += 1
     assert total == 1214
 
+    found = ctypes.c_uint32()
+    for index, item in enumerate(enums):
+        assert lib.r6_enma_enum_find_domain(
+            source, len(blob), item["name"].encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == index
+    assert lib.r6_enma_enum_find_domain(
+        source, len(blob), b"R6_NO_SUCH_DOMAIN",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
+
     assert lib.r6_enma_enum_name(source, len(blob), 16, name,
                                  len(name)) == R6_ERR_ARG
     assert lib.r6_enma_enum_value(source, len(blob), 0, 304,
@@ -115,7 +130,7 @@ def check(lib):
     assert lib.r6_enma_enum_name(source, len(bad), 0, name,
                                  len(name)) == R6_ERR_FORMAT
     print("Enma enums: all 16 domains and 1214 names/values match "
-          "enma_api.json; bad blob, index, value and capacity rejected")
+          "enma_api.json; find, bad blob, index, value and capacity rejected")
 
 
 def main():

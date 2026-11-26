@@ -280,7 +280,7 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_car_catalog_parse()` and `r6_car_catalog_find_model/find_id()` — parse a
   packed `.r6car` blob built by `tools/engine/car_catalog.py`; see
   `docs/P5_CARS.md`.
-- `r6_enma_enum_parse()/name()/count()/value()/find()` — read the derived
+- `r6_enma_enum_parse()/name()/find_domain()/count()/value()/find()` — read the derived
   `R6EME` inventory of 16 Enma enums and 1214 value names recovered from the
   shipped DLL exports, with ordinal and value lookups.
 - `r6_enma_defaults_parse()/struct()/find()/field()` — read the derived `R6EDF` layout
@@ -441,7 +441,7 @@ Verified on this dump:
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; find, bad blob, index and capacity rejected |
-| Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; bad blob, index, value and capacity rejected |
+| Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; find, bad blob, index, value and capacity rejected |
 | Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; bad blob, index and capacity rejected |
 | honor schema | all 13 type names match the exe pointer table and 60 ordered fields match `STORY_NATIVE.md`; find, bad blob, type, field and capacity rejected |
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; bad blob, index and capacity rejected |
