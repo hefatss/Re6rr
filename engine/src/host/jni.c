@@ -21,6 +21,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_emtis.h"
+#include "r6/r6_enma_defaults.h"
 #include "r6/r6_enma_enums.h"
 #include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
@@ -547,6 +548,133 @@ Java_com_wmmt_re6rr_EnmaEnums_nativeFind(JNIEnv *env, jclass cls,
     }
     free(bytes);
     out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_enma_defaults_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[5];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_defaults_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.count;
+    values[1] = (jlong)header.fields_off;
+    values[2] = (jlong)header.data_off;
+    values[3] = (jlong)header.strings_off;
+    values[4] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 5);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 5, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeName(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    char name[R6_ENMA_DEFAULT_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_defaults_struct(bytes, length, (uint32_t)index, name,
+                                sizeof(name), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeRow(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t written = 0;
+    uint32_t count = 0;
+    char name[R6_ENMA_DEFAULT_NAME_CAP];
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_defaults_struct(bytes, length, (uint32_t)index, name,
+                                sizeof(name), &written, &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)written;
+    values[1] = (jlong)count;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeField(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index,
+                                             jint field) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t offset = 0;
+    uint32_t count = 0;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_defaults_field(bytes, length, (uint32_t)index,
+                               (uint32_t)field, &offset, &count, NULL,
+                               0) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)offset;
+    values[1] = (jlong)count;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeBytes(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index,
+                                             jint field) {
+    unsigned char buffer[0x400];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t count = 0;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_defaults_field(bytes, length, (uint32_t)index,
+                               (uint32_t)field, NULL, &count, buffer,
+                               sizeof(buffer)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewByteArray(env, (jsize)count);
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)count,
+                                   (const jbyte *)buffer);
+    }
     return out;
 }
 
