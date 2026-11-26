@@ -49,14 +49,17 @@ still sees only bytes.
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
 3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
-blocks from reflected region order, and `Re6Texture` returns RGBA8 pixels from
-inflated NTWD/NTLX containers; neither makes GL calls. The story catalog is
-data-only; no unlock progression, renderer, audio or All.Net code exists.
+blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
+inflated NTWD/NTLX containers, and `Re6Audio` reads `.nub` bank metadata,
+tone control fields and PCM bytes; none makes GL or audio-device calls. The
+story catalog is data-only; no unlock progression, renderer, playback, mixer or
+All.Net code exists.
 
 ## Validation
 
-Desktop checks compile `Re6Engine.java`, `AssetProvider.java` and
-`GlslBindings.java` via `tools/engine/build_host.py`. `MainActivity.java` is
+Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
+`GlslBindings.java`, `Re6Texture.java` and `Re6Audio.java` via
+`tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK
 build remains unverified in this repository.

@@ -9,6 +9,7 @@
 
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
+#include "r6/r6_audio.h"
 #include "r6/r6_car.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
@@ -2015,6 +2016,162 @@ Java_com_wmmt_re6rr_Re6Texture_nativeDecodeRgba(JNIEnv *env, jclass cls,
 done:
     free(pixels);
     free(textures);
+    free(bytes);
+    return out;
+}
+
+/* Audio bridge. Java owns the .nub bytes and receives only plain values; the
+ * core parses the bank and points PCM views into the caller-owned blob. */
+static int audio_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
+                           size_t *length, r6_nub_header *header,
+                           r6_nub_tone **tones, uint32_t *count) {
+    unsigned char *raw = NULL;
+    size_t size = 0;
+    r6_nub_tone *items = NULL;
+    if (raw_from_blob(env, blob, &raw, &size) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    if (r6_nub_parse(raw, size, header, NULL, 0) != R6_ERR_BUFFER ||
+        header->tone_count == 0) {
+        free(raw);
+        return R6_ERR_FORMAT;
+    }
+    items = (r6_nub_tone *)malloc((size_t)header->tone_count * sizeof(*items));
+    if (!items) {
+        free(raw);
+        return R6_ERR_MEMORY;
+    }
+    if (r6_nub_parse(raw, size, header, items, header->tone_count) != R6_OK) {
+        free(items);
+        free(raw);
+        return R6_ERR_FORMAT;
+    }
+    *bytes = raw;
+    *length = size;
+    *tones = items;
+    *count = header->tone_count;
+    return R6_OK;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativeHeader(JNIEnv *env, jclass cls,
+                                          jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    uint32_t count = 0;
+    jint values[5];
+    jintArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK) {
+        values[0] = (jint)header.bank_id;
+        values[1] = (jint)header.tone_count;
+        values[2] = (jint)header.header_size;
+        values[3] = (jint)header.data_size;
+        values[4] = (jint)header.first_record;
+        out = glsl_ints(env, values, 5);
+    }
+    free(tones);
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativeTone(JNIEnv *env, jclass cls,
+                                        jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    uint32_t count = 0;
+    jint values[17];
+    jintArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK && (uint32_t)index < count) {
+        const r6_nub_tone *tone = &tones[index];
+        values[0] = (jint)tone->index;
+        values[1] = (jint)tone->slot;
+        values[2] = (jint)tone->group;
+        values[3] = (jint)tone->record_offset;
+        values[4] = (jint)tone->length;
+        values[5] = (jint)tone->data_offset;
+        values[6] = (jint)tone->flags;
+        values[7] = (jint)tone->format_count;
+        values[8] = (jint)tone->rate;
+        values[9] = (jint)tone->channels;
+        values[10] = (jint)tone->bits;
+        values[11] = (jint)tone->loop_flag;
+        values[12] = (jint)tone->three_d_param_no;
+        values[13] = tone->format_tag;
+        values[14] = tone->format_channels;
+        values[15] = tone->block_align;
+        values[16] = (jint)tone->byte_rate;
+        out = glsl_ints(env, values, 17);
+    }
+    free(tones);
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativeControl(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    uint32_t count = 0;
+    r6_nub_control control;
+    jdouble values[8];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK && (uint32_t)index < count &&
+        r6_nub_tone_control(bytes, length, &tones[index], &control) == R6_OK) {
+        values[0] = tones[index].volume;
+        values[1] = control.three_d_float_a;
+        values[2] = control.three_d_float_b;
+        values[3] = control.three_d_param_no;
+        values[4] = control.volume_cap;
+        values[5] = control.pan_cap;
+        values[6] = control.bus_id;
+        values[7] = control.voice_bus;
+        out = (*env)->NewDoubleArray(env, 8);
+        if (out) {
+            (*env)->SetDoubleArrayRegion(env, out, 0, 8, values);
+        }
+    }
+    free(tones);
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
+                                       jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    uint32_t count = 0;
+    const void *pcm = NULL;
+    size_t size = 0;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK && (uint32_t)index < count &&
+        r6_nub_pcm(bytes, length, &header, &tones[index], &pcm,
+                   &size) == R6_OK) {
+        out = (*env)->NewByteArray(env, (jsize)size);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, (jsize)size,
+                                       (const jbyte *)pcm);
+        }
+    }
+    free(tones);
     free(bytes);
     return out;
 }
