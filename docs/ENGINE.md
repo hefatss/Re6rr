@@ -14,6 +14,7 @@ engine/include/r6/r6_bgm.h  packed BGM id/name/path lookups from wmn6r.exe
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_envelope.h  pitch/volume curve evaluation with host math hooks
+engine/include/r6/r6_engine_runtime.h  full 16-layer state evaluation and runtime constants
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
@@ -28,7 +29,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB and envelope curve port; no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, mixer bus/fade/dB and full 16-layer engine evaluation; no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
@@ -76,8 +77,11 @@ platform/android/java/        Java side of the JNI bridge
   `emtis.tbl`.
 - `r6_envelope_eval()` — port of FUN_1407d0dc0's pitch/volume curve. `pow` and
   `exp2` are supplied by host callbacks, so the core stays freestanding while
-  the host can use libm for bit-faithful results. Full 16-layer state
-  evaluation stays in Python.
+  the host can use libm for bit-faithful results.
+- `r6_engine_runtime_init()/sound()/header()/constant()/state_init()` and
+  `r6_engine_eval_layers()` — read EMTIS runtime values from an `R6ERS` blob
+  and evaluate all 16 layers from `R6ESND` envelopes. Host callbacks supply
+  pow/exp2; no stream, voice or audio device is involved.
 - `r6_gles_program_count()/program()` and
   `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
   — pair stage records by shader name (223 programs from 446 records), then
@@ -144,6 +148,7 @@ python tools/engine/test_race.py --dump D:\Games\W6W-05
 python tools/engine/test_game.py --dump D:\Games\W6W-05
 python tools/engine/engine_sound_catalog.py --dump D:\Games\W6W-05 --out build\tmp\engine_sound.r6esnd
 python tools/engine/bgm_catalog.py --dump D:\Games\W6W-05 --out build\tmp\bgm.r6bgm
+python tools/engine/engine_runtime_catalog.py --dump D:\Games\W6W-05 --out build\tmp\engine_runtime.r6ers
 python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 --glsl-dir build\tmp\glsl
 python tools/engine/vertex_layout.py --manifest build\tmp\glsl\manifest.json --out build\tmp\glsl\vertex.r6gv
 python tools/engine/car_catalog.py --list
@@ -175,6 +180,7 @@ Verified on this dump:
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |
+| full engine layer port | 224 sounds × 2 runtime states, 7,168 layer results match `engine_sound.layer_outputs()`; `R6ERS` carries 224 lexical rows, 14 header values and 20 constants in 4,784 bytes; bad sound, capacity and hooks rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
