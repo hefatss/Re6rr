@@ -39,6 +39,18 @@ class Sink(ctypes.Structure):
 
 
 def configure(lib):
+    lib.r6_gles_program_count.restype = ctypes.c_int
+    lib.r6_gles_program_count.argtypes = [
+        ctypes.POINTER(test_glsl_manifest.View)]
+    lib.r6_gles_program.restype = ctypes.c_int
+    lib.r6_gles_program.argtypes = [
+        ctypes.POINTER(test_glsl_manifest.View), ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_gles_emit_program.restype = ctypes.c_int
+    lib.r6_gles_emit_program.argtypes = [
+        ctypes.POINTER(Sink), ctypes.POINTER(test_glsl_manifest.View),
+        ctypes.c_uint32, ctypes.c_char_p, ctypes.c_size_t,
+        ctypes.c_char_p, ctypes.c_size_t]
     lib.r6_gles_emit_shader.restype = ctypes.c_int
     lib.r6_gles_emit_shader.argtypes = [
         ctypes.POINTER(Sink), ctypes.POINTER(test_glsl_manifest.View),
@@ -114,6 +126,26 @@ def check(dump):
                                    ctypes.byref(view), 0, source,
                                    len(source)) == R6_OK
     assert recorder.calls[-1][1] == 0
+
+    assert lib.r6_gles_program_count(ctypes.byref(view)) == 1
+    vertex_index = ctypes.c_uint32()
+    pixel_index = ctypes.c_uint32()
+    assert lib.r6_gles_program(ctypes.byref(view), 0,
+                               ctypes.byref(vertex_index),
+                               ctypes.byref(pixel_index)) == R6_OK
+    assert (vertex_index.value, pixel_index.value) == (0, 1)
+    vertex_source = nsxr_shader.glsl_es_source(records[0]).encode("utf8")
+    assert lib.r6_gles_emit_program(
+        ctypes.byref(recorder.sink), ctypes.byref(view), 0,
+        vertex_source, len(vertex_source), source, len(source)) == R6_OK
+    assert recorder.calls[-2:] == [("shader", 0, vertex_source),
+                                   ("shader", 1, source)]
+    assert lib.r6_gles_emit_program(
+        ctypes.byref(recorder.sink), ctypes.byref(view), 1,
+        vertex_source, len(vertex_source), source, len(source)) == R6_ERR_ARG
+    assert lib.r6_gles_emit_program(
+        ctypes.byref(recorder.sink), ctypes.byref(view), 0,
+        vertex_source, len(vertex_source), b"bad", 3) == R6_ERR_ARG
 
     bindings = manifest["shaders"][1]["bindings"]
     block = bindings["cbuffers"][0]
@@ -192,8 +224,36 @@ def check(dump):
     assert lib.r6_gles_emit_texture(ctypes.byref(recorder.sink), 6, 0x0e,
                                     4, 4, pixels, len(pixels) - 1) == \
         R6_ERR_BUFFER
-    print("GLES host layer: 2 stages, %d-byte UBO, RGBA8 upload and draw "
-          "forwarded; sink/null/index/format errors: OK" % len(expected))
+
+    corpus = glsl_manifest.build(test_glsl_manifest.build_corpus_manifest(dump))
+    corpus_buffer = ctypes.create_string_buffer(corpus, len(corpus))
+    corpus_view = test_glsl_manifest.View()
+    assert lib.r6_glsl_bindings_init(ctypes.byref(corpus_view), corpus_buffer,
+                                     len(corpus)) == R6_OK
+    assert lib.r6_gles_program_count(ctypes.byref(corpus_view)) == 223
+    used = set()
+    for index in range(223):
+        assert lib.r6_gles_program(ctypes.byref(corpus_view), index,
+                                   ctypes.byref(vertex_index),
+                                   ctypes.byref(pixel_index)) == R6_OK
+        vertex = test_glsl_manifest.Record()
+        pixel = test_glsl_manifest.Record()
+        assert lib.r6_glsl_bindings_get_record(
+            ctypes.byref(corpus_view), vertex_index.value,
+            ctypes.byref(vertex)) == R6_OK
+        assert lib.r6_glsl_bindings_get_record(
+            ctypes.byref(corpus_view), pixel_index.value,
+            ctypes.byref(pixel)) == R6_OK
+        assert not (vertex.flags & 1) and pixel.flags & 1
+        assert lib.r6_glsl_bindings_name(
+            ctypes.byref(corpus_view), vertex.name_off) == \
+            lib.r6_glsl_bindings_name(ctypes.byref(corpus_view),
+                                      pixel.name_off)
+        used.update((vertex_index.value, pixel_index.value))
+    assert len(used) == 446
+    print("GLES host layer: 223 programs, 2 stages, %d-byte UBO, RGBA8 upload "
+          "and draw forwarded; sink/null/index/format errors: OK" %
+          len(expected))
 
 
 def main():

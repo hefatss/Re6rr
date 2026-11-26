@@ -29,6 +29,20 @@ typedef struct r6_gles_sink {
     int (*draw)(void *user, uint32_t count);
 } r6_gles_sink;
 
+/* Count shader names that have both a vertex and a pixel record. */
+R6_API int r6_gles_program_count(const r6_glsl_bindings_view *view);
+
+/* Resolve one program's vertex and pixel record indices by shader name. */
+R6_API int r6_gles_program(const r6_glsl_bindings_view *view, uint32_t index,
+                           uint32_t *vertex_index, uint32_t *pixel_index);
+
+/* Compile both stages of one program, vertex first. */
+R6_API int r6_gles_emit_program(const r6_gles_sink *sink,
+                                const r6_glsl_bindings_view *view,
+                                uint32_t program_index,
+                                const char *vertex_source, size_t vertex_size,
+                                const char *pixel_source, size_t pixel_size);
+
 /* Compile one reflected stage from emitted GLSL ES 3.00 text. */
 R6_API int r6_gles_emit_shader(const r6_gles_sink *sink,
                                const r6_glsl_bindings_view *view,

@@ -62,9 +62,12 @@ platform/android/java/        Java side of the JNI bridge
   car/tune engine-sound mapping and its resolved 16 layer envelopes. The blob
   is built by `tools/engine/engine_sound_catalog.py` from `engmap.tbl` and
   `emtis.tbl`; runtime pitch/volume evaluation stays in Python.
-- `r6_gles_emit_shader/emit_uniforms/emit_texture/emit_draw()` — validate
-  GLSL ES version, reflected regions, UBO packing and RGBA8 descriptors, then
-  forward calls through a host-provided sink. The core has no GL symbols.
+- `r6_gles_program_count()/program()` and
+  `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
+  — pair stage records by shader name (223 programs from 446 records), then
+  validate GLSL ES version, reflected regions, UBO packing and RGBA8
+  descriptors before forwarding calls through a host-provided sink. The core
+  has no GL symbols.
 - `r6_vehicle_init/reset/step/get_state()`, `r6_vehicle_set_surface()`,
   `r6_vehicle_clamp_to_course()` and `r6_vehicle_config_from_lua()` —
   deterministic car dynamics driven by the loaded spec/tire context, with
@@ -147,7 +150,7 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
-| GLES host sink | vertex/pixel stages, 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
+| GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio` and `EngineSound` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
