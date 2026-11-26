@@ -117,6 +117,7 @@ Verified on this dump:
 | ordered context bundle | reproduces the same `GetTirePos` |
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
 | 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
+| 133 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization and story catalog wrappers |
@@ -150,8 +151,8 @@ to be written must:
 
 - Recompiler (P1) still lacks indirect calls/host stubs, bounded loops and
   XMM/SIMD; 16/18 sampled functions pass.
-- NTWD parser records blob offsets; BC1/BC2/BC3/A8R8G8B8 decode exists in
-  `tools/engine/nut_texture.py` but is not ported to the C core or GPU host.
+- BC1/BC2/BC3/A8R8G8B8 decode is in the C core and in
+  `tools/engine/nut_texture.py`; GPU texture upload remains outside the core.
 - NDWD parser covers headers and groups; vertex layouts and material chains
   stay in the Python recon tools for now.
 - Physics is an original arcade model, not a trace-equivalent of Enma: the

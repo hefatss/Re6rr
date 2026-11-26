@@ -14,6 +14,7 @@ will.
 """
 
 import argparse
+import collections
 import ctypes
 import gzip
 import os
@@ -22,15 +23,18 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "tools", "lua"))
 sys.path.insert(0, os.path.join(ROOT, "tools", "assets"))
 
 from lua_host import LuaHost  # noqa: E402
 import ndwd_records  # noqa: E402
 import ntwd_texture  # noqa: E402
+import nut_texture  # noqa: E402
 from xmd_streams import load, parse as xmd_parse  # noqa: E402
 
 R6_OK = 0
+R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
 R6_ERR_NOT_FOUND = -7
 
@@ -535,6 +539,88 @@ def test_assets(dll, dump, failures, limit):
     print("  meshes: %d files, %d NDWD groups match" % (len(mdl), n_group))
 
 
+def test_nut_decode(dll, dump, failures):
+    """C BC1/BC2/BC3/RGBA8 decode must match the Python CPU decoder."""
+    lib = load_core(dll, dump)
+    lib.r6_nut_decode_rgba.restype = ctypes.c_int
+    lib.r6_nut_decode_rgba.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NtwdTexture),
+        ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_size_t)]
+
+    def compare(raw, entry, level, face, label):
+        expected = nut_texture.decode_entry(raw, entry, level, face)
+        texture = NtwdTexture(
+            header_offset=entry["header"], data_offset=entry["data_offset"],
+            data_size=entry["data_size"], flags=entry["flags"],
+            width=entry["width"], height=entry["height"],
+            faces=entry["levels"], format=entry["format"])
+        source = ctypes.create_string_buffer(raw, len(raw))
+        output = ctypes.create_string_buffer(len(expected))
+        written = ctypes.c_size_t()
+        rc = lib.r6_nut_decode_rgba(source, len(raw), ctypes.byref(texture),
+                                    level, face, output, len(expected),
+                                    ctypes.byref(written))
+        if rc != R6_OK or written.value != len(expected) or \
+                output.raw != expected:
+            failures.append("nut decode: %s rc=%d size=%d/%d" % (
+                label, rc, written.value, len(expected)))
+            return
+        short = ctypes.create_string_buffer(max(1, len(expected) - 1))
+        rc = lib.r6_nut_decode_rgba(source, len(raw), ctypes.byref(texture),
+                                    level, face, short, len(expected) - 1,
+                                    ctypes.byref(written))
+        if rc != R6_ERR_BUFFER or written.value != len(expected):
+            failures.append("nut decode buffer: %s rc=%d size=%d" % (
+                label, rc, written.value))
+
+    cases = [
+        ("data/car/numberPlate/flame/flame_illumination1_c1.nut", 0, 0, 0),
+        ("data/course/stage/A_FUKUOKA_DAY_NML/FUKUOKA/model/nut/"
+         "FUKUOKA_DAY_NML_Tex1.nut", 0, 0, 0),
+        ("data/course/stage/A_FUKUOKA_DAY_NML/FUKUOKA/model/nut/"
+         "FUKUOKA_DAY_NML_Tex1.nut", 4, 0, 1),
+        ("data/car/car_data/otherCar/OTH_NZE121.nut", 0, 0, 0),
+        ("data/car/blend/blend_system.nut", 0, 0, 0),
+    ]
+    for relative, index, level, face in cases:
+        path = os.path.join(dump, *relative.split("/"))
+        raw = nut_texture.read_nut(path)
+        compare(raw, nut_texture.parse_entries(raw)[index], level, face,
+                "%s #%d face=%d" % (relative, index, face))
+
+    quota = collections.Counter()
+    paths = []
+    for base, _, files in os.walk(dump):
+        for name in files:
+            if name.lower().endswith(".nut"):
+                paths.append(os.path.join(base, name))
+    paths.sort()
+    for path in paths:
+        raw = nut_texture.read_nut(path)
+        for index, entry in enumerate(nut_texture.parse_entries(raw)):
+            name = entry["format_name"]
+            if name is None or entry["cube"] or \
+                    entry["width"] * entry["height"] > 65536 or \
+                    quota[name] >= 32:
+                continue
+            quota[name] += 1
+            compare(raw, entry, 0, 0, "%s #%d" % (
+                os.path.relpath(path, dump), index))
+    bad_format = NtwdTexture(
+        header_offset=0, data_offset=0, data_size=16, flags=0,
+        width=4, height=4, faces=1, format=0x7f)
+    source = ctypes.create_string_buffer(16)
+    output = ctypes.create_string_buffer(64)
+    written = ctypes.c_size_t()
+    rc = lib.r6_nut_decode_rgba(source, 16, ctypes.byref(bad_format), 0, 0,
+                                output, 64, ctypes.byref(written))
+    if rc != R6_ERR_FORMAT:
+        failures.append("nut decode format: rc=%d" % rc)
+    print("  nut pixel decode: %d sampled textures, cube face, buffer checks" %
+          (len(cases) + sum(quota.values())))
+
+
 def test_corpus(dll, dump, failures):
     """Load every data script through the C host, as lua_probe does in Python."""
     bootstrap = os.path.join(dump, "data", "car", "tire", "script",
@@ -600,6 +686,7 @@ def main():
     if not args.skip_assets:
         print("assets")
         test_assets(args.dll, args.dump, failures, args.limit)
+        test_nut_decode(args.dll, args.dump, failures)
     if failures:
         print("\nFAILURES (%d)" % len(failures))
         for line in failures:

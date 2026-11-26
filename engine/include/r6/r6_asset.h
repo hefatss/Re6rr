@@ -76,6 +76,14 @@ typedef struct r6_ntwd_header {
 R6_API int r6_ntwd_parse(const void *data, size_t size, r6_ntwd_header *out,
                          r6_ntwd_texture *textures, size_t capacity);
 
+/* Decode one mip level / cube face to RGBA8. On R6_ERR_BUFFER, out_size holds
+ * the required capacity. data is an inflated NTWD/NTLX container; texture may
+ * come from r6_ntwd_parse or an equivalent host-built descriptor. */
+R6_API int r6_nut_decode_rgba(const void *data, size_t size,
+                              const r6_ntwd_texture *texture, uint32_t level,
+                              uint32_t face, void *out, size_t capacity,
+                              size_t *out_size);
+
 #ifdef __cplusplus
 }
 #endif

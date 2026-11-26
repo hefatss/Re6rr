@@ -12,6 +12,7 @@ set(R6_CORE
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
+    engine/src/assets/nut_texture.c
     engine/src/assets/inflate.c
     engine/src/physics/vehicle.c
     engine/src/physics/lua_config.c
