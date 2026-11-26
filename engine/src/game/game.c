@@ -468,6 +468,22 @@ int r6_ees_camera_at_frame(const void *data, size_t size, uint32_t offset,
     return found;
 }
 
+int r6_ees_camera_accept_type(int32_t type) {
+    return type == 0 || type == 2;
+}
+
+int r6_ees_car_info(const void *data, size_t size, uint32_t offset,
+                    int32_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t base = offset;
+    if (!bytes || !out || base > size ||
+        size - base < R6_EES_CAR_INFO_STRIDE) {
+        return R6_ERR_ARG;
+    }
+    *out = (int32_t)read_u32(bytes, base);
+    return R6_OK;
+}
+
 static void ees_copy_field(const unsigned char *source, unsigned char *out,
                            size_t source_at, size_t out_at, size_t width) {
     size_t index;

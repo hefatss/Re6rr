@@ -189,6 +189,15 @@ R6_API int r6_ees_camera_at_frame(const void *data, size_t size,
                                   uint32_t offset, uint32_t count,
                                   int32_t frame);
 
+/* FUN_1401ca060 keeps only camera records with type 0 or 2. */
+R6_API int r6_ees_camera_accept_type(int32_t type);
+
+/* car_info record (stride 0x8c): its int32 id, -1 as the native default. */
+enum { R6_EES_CAR_INFO_STRIDE = 0x8C };
+
+R6_API int r6_ees_car_info(const void *data, size_t size, uint32_t offset,
+                           int32_t *out);
+
 /* FUN_1401cc390 copies 40 fields from a 0xa0 car_effect record into the
  * 0xe0-byte runtime SInfoCarEffectCopy record. */
 enum {

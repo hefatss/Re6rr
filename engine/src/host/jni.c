@@ -3546,6 +3546,37 @@ Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_EesCamera_nativeAcceptsType(JNIEnv *env, jclass cls,
+                                                jint type) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_ees_camera_accept_type((int32_t)type);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_EesCarInfo_nativeRead(JNIEnv *env, jclass cls,
+                                          jbyteArray raw, jint offset) {
+    int32_t value = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jint values[1];
+    jintArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_ees_car_info(bytes, length, (uint32_t)offset, &value) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)value;
+    out = (*env)->NewIntArray(env, 1);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, 1, values);
+    }
+    return out;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeAtFrame(JNIEnv *env, jclass cls,
                                             jbyteArray raw, jint offset,
                                             jint count, jint frame) {

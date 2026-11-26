@@ -30,8 +30,15 @@ public final class EesCamera {
         return nativeAtFrame(raw, offset, count, frame);
     }
 
+    /** FUN_1401ca060 accepts only camera types 0 and 2. */
+    public static boolean acceptsType(int type) {
+        return nativeAcceptsType(type) != 0;
+    }
+
     private static native double[] nativeFields(byte[] raw, int offset);
 
     private static native int nativeAtFrame(byte[] raw, int offset, int count,
                                             int frame);
+
+    private static native int nativeAcceptsType(int type);
 }

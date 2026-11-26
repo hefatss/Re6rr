@@ -185,8 +185,10 @@ platform/android/java/        Java side of the JNI bridge
   first-match runtime record lookup in `r6_scene_runtime_camera()`.
 - `r6_ees_car_effect_copy()` — copy the 40 fields of a `0xa0` EES `car_effect`
   record into the `0xe0` runtime layout recovered from `FUN_1401cc390`.
+- `r6_ees_camera_accept_type()` — the `FUN_1401ca060` type 0/2 filter.
 - `r6_ees_car_disp()` — read one `0x180` display record: car id, flag byte,
   16-f32 matrix and yaw; non-finite yaw gives zero yaw units.
+- `r6_ees_car_info()` — read the int32 id of a `0x8c` car_info record.
 - `r6_scene_pack()` — write the eight environment slots into a `0x28` scene
   buffer. `r6_scene_names_parse()` / `r6_scene_names_get()` read the `R6SCN`
   blob built by `tools/engine/scene_config_catalog.py` and apply the shipped
@@ -228,7 +230,8 @@ config.bin, `BankSlots` finds free registration slots, `SoundStrings` reads
 bank/tone names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding
 rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
 resolves camera records, `EesContainer` parses the shipped headers, `EesCamera` reads the 31 named camera
-fields and resolves frames with last-match semantics, `EesCarEffect` copies the 40
+fields, filters type 0/2 and resolves frames with last-match semantics,
+`EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `VoiceDispatchFacts` exposes recovered status codes and call
 sites, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect`
@@ -305,7 +308,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarEffect`, `EesCarDisp`, `VoiceDispatchFacts`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `VoiceDispatchFacts`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -316,6 +319,8 @@ Verified on this dump:
 | EES camera fields | all 31 named fields match `ees_fields.camera_fields()` on 255 shipped `CamData.EES` records; sentinel, short offset and null arguments rejected |
 | EES frame lookup | all 14 shipped frame values match the `FUN_1401c8f60` last-match oracle; short buffer, overlong count and null input rejected |
 | EES car_effect copy | all 40 native field copies match `ees_fields.CAR_EFFECT_COPY` on 32 records; short source/destination and null arguments rejected |
+| EES type filter | 183600 shipped camera types across 720 files match the `FUN_1401ca060` type 0/2 rule |
+| EES car_info | all 10800 shipped ids match the `0x8c` record words; short and null inputs rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
 | scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |
 | stage-effect catalog | 6 shipped symbolic sounds read from the `R6STG` blob with matching set/symbol/file/tone name/wav, bank 3 tones 14/15, positions and loop flags; symbol lookup, bad magic and short blob checked |
