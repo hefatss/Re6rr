@@ -11,6 +11,11 @@ static float nub_f32(const void *data, size_t offset) {
     return value;
 }
 
+static uint64_t nub_u64(const void *data, size_t offset) {
+    return (uint64_t)r6_u32(data, offset) |
+           ((uint64_t)r6_u32(data, offset + 4u) << 32);
+}
+
 static int nub_header(const void *data, size_t size, r6_nub_header *header) {
     if (!data || !header || size < NUB_HEADER_SIZE || r6_u32(data, 0) !=
         NUB_VERSION) {
@@ -234,4 +239,31 @@ int64_t r6_audio_stream_reserve(int64_t total, int64_t size) {
         return -1;
     }
     return total + size;
+}
+
+int r6_sound_init_parse(const void *data, size_t size, r6_sound_init *out) {
+    if (!out) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    if (!data || size < R6_SOUND_CONFIG_SIZE) {
+        return R6_ERR_ARG;
+    }
+    out->bank_num = r6_u32(data, 0);
+    out->reqid_num = r6_u32(data, 4);
+    out->stream_num = r6_u32(data, 8);
+    if (out->bank_num > R6_SOUND_BANK_MAX ||
+        out->reqid_num > R6_SOUND_REQUEST_MAX ||
+        out->stream_num < R6_SOUND_STREAM_MIN ||
+        out->stream_num > R6_SOUND_STREAM_MAX) {
+        r6_memset(out, 0, sizeof(*out));
+        return R6_ERR_FORMAT;
+    }
+    out->pointers[0] = nub_u64(data, R6_SOUND_CONFIG_BIN_OFFSET);
+    out->pointers[1] = nub_u64(data, R6_SOUND_CONFIG_3D_OFFSET);
+    out->pointers[2] = nub_u64(data, R6_SOUND_CORE_INIT_OFFSET);
+    out->bank_bytes = out->bank_num * R6_SOUND_BANK_STRIDE;
+    out->request_bytes = out->reqid_num * R6_SOUND_REQUEST_STRIDE;
+    out->stream_bytes = out->stream_num * R6_SOUND_STREAM_STRIDE;
+    return R6_OK;
 }

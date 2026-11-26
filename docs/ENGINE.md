@@ -9,7 +9,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 ```
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
-engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control and bank-registration view structures
+engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control, bank-registration view and Sound::Initialize config structures
 engine/include/r6/r6_bgm.h  packed BGM id/name/path lookups from wmn6r.exe
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
@@ -68,6 +68,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_audio_fade_frames_to_ms()` / `r6_audio_stream_reserve()` — the recovered
   60 fps BGM fade conversion and the 0x20000000 stream-byte cap. Both are
   plain integer functions with no state or device.
+- `r6_sound_init_parse()` — validate the shipped 0x28 `Sound::Initialize`
+  config (bank/reqid/stream counts), copy its three opaque 64-bit pointer
+  slots and report the 0x98 Impl vector byte sizes. No pointer is dereferenced.
 - `r6_bank_setup_init()` — read the bank-registration view used by
   nuSound2BankRegister (FUN_18002eb80): version, tone count, data window,
   record table and per-tone length/offset/format count into caller storage.
@@ -154,8 +157,9 @@ layer envelopes, `VertexLayout` reads vertex locations, semantics and masks,
 from both engine blobs, `VoiceRequest` builds and reads 0xa0 KeyOn records with
 their extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` exposes fade timing and stream
-reservation, and `VoiceChain` copies chained-voice records and applies core
-fields; the JNI host supplies pow/exp2 from libm and sizes tone arrays, but
+reservation, `VoiceChain` copies chained-voice records and applies core fields,
+and `SoundInit` validates the Sound::Initialize config; the JNI host supplies
+pow/exp2 from libm and sizes tone arrays, but
 none opens an audio or GL device. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
@@ -207,6 +211,7 @@ Verified on this dump:
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
+| Sound::Initialize config | 0x28 config counts, three opaque pointer slots and 0x98 Impl vector sizes match `audio_events.sound_init_facts()` on the shipped exe; bad counts and short input rejected |
 | chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
@@ -217,7 +222,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream` and `VoiceChain` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain` and `SoundInit` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

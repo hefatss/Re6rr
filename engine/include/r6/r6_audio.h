@@ -28,6 +28,37 @@ R6_API int32_t r6_audio_fade_frames_to_ms(int32_t now_frame,
 /* FUN_180035b80: running stream-byte total, -1 past the cap. */
 R6_API int64_t r6_audio_stream_reserve(int64_t total, int64_t size);
 
+/* sys::Sound::Initialize config written at 0x1407d674d and validated by the
+ * Impl ctor 0x140c533c0. Pointer slots are copied as opaque values. */
+enum {
+    R6_SOUND_CONFIG_SIZE = 0x28,
+    R6_SOUND_BANK_MAX = 0x10,
+    R6_SOUND_REQUEST_MAX = 0x100,
+    R6_SOUND_STREAM_MIN = 1,
+    R6_SOUND_STREAM_MAX = 0x10,
+    R6_SOUND_CONFIG_BIN_OFFSET = 0x10,
+    R6_SOUND_CONFIG_3D_OFFSET = 0x18,
+    R6_SOUND_CORE_INIT_OFFSET = 0x20,
+    R6_SOUND_IMPL_SIZE = 0x98,
+    R6_SOUND_BANK_STRIDE = 0x20,
+    R6_SOUND_REQUEST_STRIDE = 0x08,
+    R6_SOUND_STREAM_STRIDE = 0x10
+};
+
+typedef struct r6_sound_init {
+    uint32_t bank_num;
+    uint32_t reqid_num;
+    uint32_t stream_num;
+    uint64_t pointers[3];
+    uint32_t bank_bytes;
+    uint32_t request_bytes;
+    uint32_t stream_bytes;
+} r6_sound_init;
+
+/* Validate the 0x28-byte config and report the three Impl vector sizes. */
+R6_API int r6_sound_init_parse(const void *data, size_t size,
+                               r6_sound_init *out);
+
 typedef struct r6_nub_header {
     uint32_t version;
     uint32_t bank_id;

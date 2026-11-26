@@ -2941,6 +2941,39 @@ Java_com_wmmt_re6rr_AudioStream_nativeReserve(JNIEnv *env, jclass cls,
     return (jlong)r6_audio_stream_reserve((int64_t)total, (int64_t)size);
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SoundInit_nativeParse(JNIEnv *env, jclass cls,
+                                          jbyteArray data) {
+    r6_sound_init config;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[10];
+    jlongArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_sound_init_parse(bytes, length, &config) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)config.bank_num;
+    values[1] = (jlong)config.reqid_num;
+    values[2] = (jlong)config.stream_num;
+    for (i = 0; i < 3; i++) {
+        values[3 + i] = (jlong)config.pointers[i];
+    }
+    values[6] = (jlong)config.bank_bytes;
+    values[7] = (jlong)config.request_bytes;
+    values[8] = (jlong)config.stream_bytes;
+    values[9] = (jlong)R6_SOUND_IMPL_SIZE;
+    out = (*env)->NewLongArray(env, 10);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 10, values);
+    }
+    return out;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {
