@@ -2940,3 +2940,70 @@ Java_com_wmmt_re6rr_AudioStream_nativeReserve(JNIEnv *env, jclass cls,
     (void)cls;
     return (jlong)r6_audio_stream_reserve((int64_t)total, (int64_t)size);
 }
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
+                                          jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_voice_chain_state state;
+    jdouble values[R6_VOICE_CHAIN_FLOATS];
+    jdoubleArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_voice_chain_read(bytes, length, (uint32_t)index, &state) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    for (i = 0; i < R6_VOICE_CHAIN_FLOATS; i++) {
+        values[i] = (jdouble)state.values[i];
+    }
+    out = (*env)->NewDoubleArray(env, R6_VOICE_CHAIN_FLOATS);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, R6_VOICE_CHAIN_FLOATS,
+                                     values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_VoiceChain_nativeWrite(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jint index,
+                                           jdoubleArray values) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_voice_chain_state state;
+    jdouble input[R6_VOICE_CHAIN_FLOATS];
+    jbyteArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (!values || (*env)->GetArrayLength(env, values) !=
+                       R6_VOICE_CHAIN_FLOATS ||
+        raw_from_blob(env, data, &bytes, &length) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    (*env)->GetDoubleArrayRegion(env, values, 0, R6_VOICE_CHAIN_FLOATS,
+                                 input);
+    if ((*env)->ExceptionCheck(env)) {
+        free(bytes);
+        return NULL;
+    }
+    for (i = 0; i < R6_VOICE_CHAIN_FLOATS; i++) {
+        state.values[i] = (float)input[i];
+    }
+    if (r6_voice_chain_write(bytes, length, (uint32_t)index, &state) !=
+        R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    out = (*env)->NewByteArray(env, (jsize)length);
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)length,
+                                   (const jbyte *)bytes);
+    }
+    free(bytes);
+    return out;
+}

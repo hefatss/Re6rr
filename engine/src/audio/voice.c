@@ -134,6 +134,36 @@ int r6_voice_request_unpack(const void *data, size_t size,
     return R6_OK;
 }
 
+int r6_voice_chain_read(const void *data, size_t size, uint32_t index,
+                        r6_voice_chain_state *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t i;
+    if (!bytes || !out || index >= R6_VOICE_CHAIN_COUNT ||
+        size < (size_t)R6_VOICE_CHAIN_COUNT * R6_VOICE_CHAIN_STRIDE) {
+        return R6_ERR_ARG;
+    }
+    bytes += (size_t)index * R6_VOICE_CHAIN_STRIDE;
+    for (i = 0; i < R6_VOICE_CHAIN_FLOATS; i++) {
+        out->values[i] = voice_f32(bytes + (size_t)i * 4u);
+    }
+    return R6_OK;
+}
+
+int r6_voice_chain_write(void *data, size_t size, uint32_t index,
+                         const r6_voice_chain_state *state) {
+    unsigned char *bytes = (unsigned char *)data;
+    uint32_t i;
+    if (!bytes || !state || index >= R6_VOICE_CHAIN_COUNT ||
+        size < (size_t)R6_VOICE_CHAIN_COUNT * R6_VOICE_CHAIN_STRIDE) {
+        return R6_ERR_ARG;
+    }
+    bytes += (size_t)index * R6_VOICE_CHAIN_STRIDE;
+    for (i = 0; i < R6_VOICE_CHAIN_FLOATS; i++) {
+        voice_put_f32(bytes + (size_t)i * 4u, state->values[i]);
+    }
+    return R6_OK;
+}
+
 float r6_voice_clamp_unit(float value) {
     if (value != value || value < 0.0f) {
         return 0.0f;

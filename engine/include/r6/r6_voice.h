@@ -25,7 +25,28 @@ enum {
     R6_VOICE_EXT_A_OFFSET = 0x34,
     R6_VOICE_EXT_B_OFFSET = 0x68,
     R6_VOICE_FLOAT_OFFSET = 0x84,
-    R6_VOICE_CENTS_DIVISOR = 1200
+    R6_VOICE_CENTS_DIVISOR = 1200,
+    R6_VOICE_CHAIN_COUNT = 0x20,
+    R6_VOICE_CHAIN_STRIDE = 0xD0,
+    R6_VOICE_CHAIN_FLOATS = 0x34,
+    R6_VOICE_CHAIN_VOLUME = 0x00,
+    R6_VOICE_CHAIN_VOLUME_DB = 0x01,
+    R6_VOICE_CHAIN_PITCH_CENTS = 0x02,
+    R6_VOICE_CHAIN_FX_VOLUME = 0x03,
+    R6_VOICE_CHAIN_MIX_VOLUME = 0x04,
+    R6_VOICE_CHAIN_FILTER_A = 0x05,
+    R6_VOICE_CHAIN_FILTER_B = 0x06,
+    R6_VOICE_CHAIN_SPEAKER_MATRIX = 0x07,
+    R6_VOICE_CHAIN_SPEAKER_FLOATS = 0x24,
+    R6_VOICE_CHAIN_RESERVED = 0x2B,
+    R6_VOICE_CHAIN_MODE = 0x2C,
+    R6_VOICE_CHAIN_CHANNEL = 0x2D,
+    R6_VOICE_CHAIN_PARAM_A = 0x2E,
+    R6_VOICE_CHAIN_PARAM_B = 0x2F,
+    R6_VOICE_CHAIN_BUS = 0x30,
+    R6_VOICE_CHAIN_BANK = 0x31,
+    R6_VOICE_CHAIN_TONE = 0x32,
+    R6_VOICE_CHAIN_VOICE = 0x33
 };
 
 typedef struct r6_voice_request {
@@ -61,6 +82,17 @@ R6_API int r6_voice_request_pack(const r6_voice_request *request, void *data,
                                  size_t size);
 R6_API int r6_voice_request_unpack(const void *data, size_t size,
                                    r6_voice_request *request);
+
+/* One 0xd0-byte chained-voice state record: 52 f32 slots. */
+typedef struct r6_voice_chain_state {
+    float values[R6_VOICE_CHAIN_FLOATS];
+} r6_voice_chain_state;
+
+/* Access the 32 host-owned chained-voice records at instance +0x21c. */
+R6_API int r6_voice_chain_read(const void *data, size_t size, uint32_t index,
+                               r6_voice_chain_state *out);
+R6_API int r6_voice_chain_write(void *data, size_t size, uint32_t index,
+                                const r6_voice_chain_state *state);
 
 /* FUN_18001bf00/b1b0/bd30: NaN or negative -> 0, above one -> 1. */
 R6_API float r6_voice_clamp_unit(float value);

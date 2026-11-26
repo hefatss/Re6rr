@@ -65,8 +65,9 @@ envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates the 16
 layers using host libm, `VoiceRequest` builds and reads 0xa0 KeyOn records with
 copied extension blobs, `Config3D` reads 3D sound sections, and `BankSetup`
-`BankSetup` reads .nub registration views, and `AudioStream` handles fade
-timing and stream reservation; none makes GL or audio-device calls. The
+`BankSetup` reads .nub registration views, `AudioStream` handles fade timing
+and stream reservation, and `VoiceChain` copies chained-voice records; none
+makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 
