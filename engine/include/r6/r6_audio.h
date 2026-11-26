@@ -1,0 +1,78 @@
+/* nuSound2 `.nub` banks: fixed-layout header, tone table and PCM views.
+ *
+ * Parsers bounds-check already-read bytes and never touch files or a CRT.
+ * Layouts were recovered from nuSound2_win64.dll and checked against the
+ * shipped banks by tools/engine/nub_audio.py.
+ */
+#ifndef R6_AUDIO_H
+#define R6_AUDIO_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "r6.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct r6_nub_header {
+    uint32_t version;
+    uint32_t bank_id;
+    uint32_t tone_count;
+    uint32_t header_size;
+    uint32_t data_size;
+    uint32_t first_record;
+} r6_nub_header;
+
+typedef struct r6_nub_tone {
+    uint32_t index;
+    uint32_t slot;
+    uint32_t group;
+    uint32_t record_offset;
+    uint32_t length;
+    uint32_t data_offset;
+    uint32_t flags;
+    uint32_t format_count;
+    uint32_t rate;
+    uint32_t channels;
+    uint32_t bits;
+    uint32_t loop_flag;
+    float volume;
+    uint32_t three_d_param_no;
+    uint16_t format_tag;
+    uint16_t format_channels;
+    uint16_t block_align;
+    uint32_t byte_rate;
+} r6_nub_tone;
+
+/* Playback control fields read from a tone record by nuSound2. */
+typedef struct r6_nub_control {
+    float three_d_float_a;
+    float three_d_float_b;
+    uint32_t three_d_param_no;
+    float volume_cap;
+    float pan_cap;
+    uint32_t bus_id;
+    uint32_t voice_bus;
+} r6_nub_control;
+
+/* Parse the header and every tone record. capacity is a tone count; on
+ * R6_ERR_BUFFER, header->tone_count holds the required count. */
+R6_API int r6_nub_parse(const void *data, size_t size, r6_nub_header *header,
+                        r6_nub_tone *tones, size_t capacity);
+
+/* Read the control fields for a parsed tone. */
+R6_API int r6_nub_tone_control(const void *data, size_t size,
+                               const r6_nub_tone *tone, r6_nub_control *out);
+
+/* Zero-copy view of the PCM bytes for a parsed tone. The caller owns `data`. */
+R6_API int r6_nub_pcm(const void *data, size_t size,
+                      const r6_nub_header *header, const r6_nub_tone *tone,
+                      const void **out, size_t *out_size);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -32,6 +32,7 @@ import glsl_ubo  # noqa: E402
 import ndwd_records  # noqa: E402
 import nsxr_shader  # noqa: E402
 import ntwd_texture  # noqa: E402
+import nub_audio  # noqa: E402
 import nut_texture  # noqa: E402
 from xmd_streams import load, parse as xmd_parse  # noqa: E402
 
@@ -95,6 +96,52 @@ class NtwdTexture(ctypes.Structure):
         ("header_stride", ctypes.c_uint16),
         ("faces", ctypes.c_uint8),
         ("format", ctypes.c_uint8),
+    ]
+
+
+class NubHeader(ctypes.Structure):
+    _fields_ = [
+        ("version", ctypes.c_uint32),
+        ("bank_id", ctypes.c_uint32),
+        ("tone_count", ctypes.c_uint32),
+        ("header_size", ctypes.c_uint32),
+        ("data_size", ctypes.c_uint32),
+        ("first_record", ctypes.c_uint32),
+    ]
+
+
+class NubTone(ctypes.Structure):
+    _fields_ = [
+        ("index", ctypes.c_uint32),
+        ("slot", ctypes.c_uint32),
+        ("group", ctypes.c_uint32),
+        ("record_offset", ctypes.c_uint32),
+        ("length", ctypes.c_uint32),
+        ("data_offset", ctypes.c_uint32),
+        ("flags", ctypes.c_uint32),
+        ("format_count", ctypes.c_uint32),
+        ("rate", ctypes.c_uint32),
+        ("channels", ctypes.c_uint32),
+        ("bits", ctypes.c_uint32),
+        ("loop_flag", ctypes.c_uint32),
+        ("volume", ctypes.c_float),
+        ("three_d_param_no", ctypes.c_uint32),
+        ("format_tag", ctypes.c_uint16),
+        ("format_channels", ctypes.c_uint16),
+        ("block_align", ctypes.c_uint16),
+        ("byte_rate", ctypes.c_uint32),
+    ]
+
+
+class NubControl(ctypes.Structure):
+    _fields_ = [
+        ("three_d_float_a", ctypes.c_float),
+        ("three_d_float_b", ctypes.c_float),
+        ("three_d_param_no", ctypes.c_uint32),
+        ("volume_cap", ctypes.c_float),
+        ("pan_cap", ctypes.c_float),
+        ("bus_id", ctypes.c_uint32),
+        ("voice_bus", ctypes.c_uint32),
     ]
 
 
@@ -812,6 +859,102 @@ def test_glsl_texture(dll, dump, failures):
     print("  glsl texture upload: 5 formats, unit/size parity and error checks")
 
 
+def test_nub_banks(dll, dump, failures):
+    """C .nub parser must match the Python parser on every shipped bank."""
+    lib = load_core(dll, dump)
+    lib.r6_nub_parse.restype = ctypes.c_int
+    lib.r6_nub_parse.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NubHeader),
+        ctypes.POINTER(NubTone), ctypes.c_size_t]
+    lib.r6_nub_tone_control.restype = ctypes.c_int
+    lib.r6_nub_tone_control.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NubTone),
+        ctypes.POINTER(NubControl)]
+    lib.r6_nub_pcm.restype = ctypes.c_int
+    lib.r6_nub_pcm.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NubHeader),
+        ctypes.POINTER(NubTone), ctypes.POINTER(ctypes.c_void_p),
+        ctypes.POINTER(ctypes.c_size_t)]
+
+    fields = ("index", "slot", "group", "record_offset", "length",
+              "data_offset", "flags", "format_count", "rate", "channels",
+              "bits", "loop_flag", "three_d_param_no", "format_tag",
+              "format_channels", "block_align", "byte_rate")
+    controls = ("three_d_float_a", "three_d_float_b", "three_d_param_no",
+                "volume_cap", "pan_cap", "bus_id", "voice_bus")
+    banks = nub_audio.collect(dump)["banks"]
+    tone_count = 0
+    pcm_count = 0
+    for name, parsed in sorted(banks.items()):
+        path = os.path.join(dump, nub_audio.SOUND_DIR, name)
+        raw = open(path, "rb").read()
+        source = ctypes.create_string_buffer(raw, len(raw))
+        want = parsed["tone_records"]
+        header = NubHeader()
+        rc = lib.r6_nub_parse(source, len(raw), ctypes.byref(header), None, 0)
+        if rc != R6_ERR_BUFFER or header.tone_count != len(want) or \
+                header.bank_id != parsed["bank_id"] or \
+                header.header_size != parsed["header_size"] or \
+                header.data_size != parsed["data_size"] or \
+                header.first_record != parsed["first_record"]:
+            failures.append("nub header: %s rc=%d" % (name, rc))
+            continue
+        tones = (NubTone * len(want))()
+        rc = lib.r6_nub_parse(source, len(raw), ctypes.byref(header), tones,
+                              len(want))
+        if rc != R6_OK:
+            failures.append("nub tones: %s rc=%d" % (name, rc))
+            continue
+        for index, row in enumerate(want):
+            got = tones[index]
+            bad = [key for key in fields if getattr(got, key) != row[key]]
+            if abs(got.volume - row["volume"]) > 1e-6:
+                bad.append("volume")
+            control = NubControl()
+            rc = lib.r6_nub_tone_control(source, len(raw), ctypes.byref(got),
+                                         ctypes.byref(control))
+            expected = nub_audio.tone_control(path, row)
+            for key in controls:
+                value = getattr(control, key)
+                if rc != R6_OK or (isinstance(value, float) and
+                                   abs(value - expected[key]) > 1e-6) or \
+                        (isinstance(value, int) and value != expected[key]):
+                    bad.append("control." + key)
+            if bad:
+                failures.append("nub tone: %s[%d] %s" %
+                                (name, index, ",".join(bad)))
+            tone_count += 1
+            if index == 0:
+                pointer = ctypes.c_void_p()
+                size = ctypes.c_size_t()
+                rc = lib.r6_nub_pcm(source, len(raw), ctypes.byref(header),
+                                    ctypes.byref(got), ctypes.byref(pointer),
+                                    ctypes.byref(size))
+                start = parsed["header_size"] + row["data_offset"]
+                want_pcm = raw[start:start + row["length"]]
+                if rc != R6_OK or size.value != len(want_pcm) or \
+                        ctypes.string_at(pointer, size.value) != want_pcm:
+                    failures.append("nub pcm: %s[%d] rc=%d" %
+                                    (name, index, rc))
+                else:
+                    pcm_count += 1
+
+    bgm = os.path.join(dump, nub_audio.SOUND_DIR, "BGM.nub")
+    raw = open(bgm, "rb").read()
+    header = NubHeader()
+    bad = bytearray(raw)
+    bad[0] = 0
+    if lib.r6_nub_parse(ctypes.create_string_buffer(bytes(bad), len(bad)),
+                        len(bad), ctypes.byref(header), None, 0) != \
+            R6_ERR_FORMAT:
+        failures.append("nub: bad version accepted")
+    if lib.r6_nub_parse(ctypes.create_string_buffer(raw, len(raw)), 8,
+                        ctypes.byref(header), None, 0) != R6_ERR_FORMAT:
+        failures.append("nub: short header accepted")
+    print("  .nub banks: %d banks, %d tones, %d PCM views match; bad-version "
+          "and short-header rejected" % (len(banks), tone_count, pcm_count))
+
+
 def test_corpus(dll, dump, failures):
     """Load every data script through the C host, as lua_probe does in Python."""
     bootstrap = os.path.join(dump, "data", "car", "tire", "script",
@@ -880,6 +1023,7 @@ def main():
         test_nut_decode(args.dll, args.dump, failures)
         test_glsl_ubo(args.dll, args.dump, failures)
         test_glsl_texture(args.dll, args.dump, failures)
+        test_nub_banks(args.dll, args.dump, failures)
     if failures:
         print("\nFAILURES (%d)" % len(failures))
         for line in failures:
