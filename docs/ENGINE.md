@@ -283,7 +283,7 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_enma_enum_parse()/name()/count()/value()/find()` — read the derived
   `R6EME` inventory of 16 Enma enums and 1214 value names recovered from the
   shipped DLL exports, with ordinal and value lookups.
-- `r6_enma_defaults_parse()/struct()/field()` — read the derived `R6EDF` layout
+- `r6_enma_defaults_parse()/struct()/find()/field()` — read the derived `R6EDF` layout
   of 32 `SetDefault` structs, 89 constant writes and 2642 bytes recovered from
   the shipped DLL. Byte arrays are copied; no struct or DLL is instantiated.
 - `r6_enma_exports_parse()/name()/find()` — read the derived `R6EEX` export-name
@@ -440,7 +440,7 @@ Verified on this dump:
 | Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
-| Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; bad blob, index and capacity rejected |
+| Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; find, bad blob, index and capacity rejected |
 | Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; bad blob, index, value and capacity rejected |
 | Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; bad blob, index and capacity rejected |
 | honor schema | all 13 type names match the exe pointer table and 60 ordered fields match `STORY_NATIVE.md`; bad blob, type, field and capacity rejected |

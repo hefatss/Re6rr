@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 NAME_CAP = 0x80
 BYTE_CAP = 0x400
 
@@ -38,6 +39,10 @@ def check(lib):
                                             ctypes.c_size_t,
                                             ctypes.POINTER(ctypes.c_uint32),
                                             ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_enma_defaults_find.restype = ctypes.c_int
+    lib.r6_enma_defaults_find.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                           ctypes.c_char_p,
+                                           ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_enma_defaults_field.restype = ctypes.c_int
     lib.r6_enma_defaults_field.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                            ctypes.c_uint32, ctypes.c_uint32,
@@ -83,6 +88,16 @@ def check(lib):
             byte_total += length.value
     assert (fields, byte_total) == (89, 2642)
 
+    found = ctypes.c_uint32()
+    for index, item in enumerate(structs):
+        assert lib.r6_enma_defaults_find(
+            source, len(blob), item["name"].encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == index
+    assert lib.r6_enma_defaults_find(
+        source, len(blob), b"R6_NO_SUCH_STRUCT",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
+
     assert lib.r6_enma_defaults_struct(source, len(blob), 32, name,
                                        len(name), None, None) == R6_ERR_ARG
     assert lib.r6_enma_defaults_field(source, len(blob), 0, 1,
@@ -121,7 +136,7 @@ def check(lib):
                                       ctypes.byref(length),
                                       payload, len(payload)) == R6_ERR_FORMAT
     print("Enma defaults: all 32 structs, 89 fields and 2642 constant bytes "
-          "match enma_api.json; bad blob, index and capacity rejected")
+          "match enma_api.json; find, bad blob, index and capacity rejected")
 
 
 def main():

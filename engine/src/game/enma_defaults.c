@@ -105,6 +105,43 @@ int r6_enma_defaults_struct(const void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+int r6_enma_defaults_find(const void *data, size_t size, const char *name,
+                          uint32_t *index) {
+    r6_enma_defaults_header header;
+    size_t wanted;
+    uint32_t at;
+    int result = defaults_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.count; at++) {
+        char found[R6_ENMA_DEFAULT_NAME_CAP];
+        result = r6_enma_defaults_struct(data, size, at, found,
+                                         sizeof(found), NULL, NULL);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 int r6_enma_defaults_field(const void *data, size_t size, uint32_t index,
                            uint32_t field, uint32_t *offset,
                            uint32_t *byte_count, void *out, size_t capacity) {

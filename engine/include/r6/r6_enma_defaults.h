@@ -33,6 +33,10 @@ R6_API int r6_enma_defaults_struct(const void *data, size_t size,
                                    size_t capacity, uint32_t *max_written,
                                    uint32_t *field_count);
 
+/* First exact struct-name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_enma_defaults_find(const void *data, size_t size,
+                                 const char *name, uint32_t *index);
+
 R6_API int r6_enma_defaults_field(const void *data, size_t size,
                                   uint32_t index, uint32_t field,
                                   uint32_t *offset, uint32_t *byte_count,

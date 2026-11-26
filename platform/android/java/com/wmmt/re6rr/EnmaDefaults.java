@@ -19,6 +19,11 @@ public final class EnmaDefaults {
         return nativeRow(blob, index);
     }
 
+    /** struct row index for an exact name match; -1 if absent. */
+    public static long findStruct(byte[] blob, String name) {
+        return nativeFindStruct(blob, name);
+    }
+
     /** field offset and byte count, or null for invalid index/field. */
     public static long[] field(byte[] blob, int index, int field) {
         return nativeField(blob, index, field);
@@ -34,6 +39,8 @@ public final class EnmaDefaults {
     private static native String nativeName(byte[] blob, int index);
 
     private static native long[] nativeRow(byte[] blob, int index);
+
+    private static native long nativeFindStruct(byte[] blob, String name);
 
     private static native long[] nativeField(byte[] blob, int index, int field);
 
