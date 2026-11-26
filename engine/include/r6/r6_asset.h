@@ -72,7 +72,8 @@ typedef struct r6_ntwd_header {
     uint16_t texture_count;
 } r6_ntwd_header;
 
-/* Parses every texture header in one NTWD stream. capacity is a texture count. */
+/* Parses every texture header in one NTWD/NTLX stream. capacity is a texture
+ * count; on R6_ERR_BUFFER, out->texture_count holds the required count. */
 R6_API int r6_ntwd_parse(const void *data, size_t size, r6_ntwd_header *out,
                          r6_ntwd_texture *textures, size_t capacity);
 

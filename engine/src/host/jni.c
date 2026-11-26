@@ -1870,3 +1870,151 @@ done:
     free(bytes);
     return out;
 }
+
+/* Texture bridge. The core parses NTWD/NTLX headers and decodes RGBA8; Java
+ * owns the compressed container bytes and the returned pixel array. */
+static int raw_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
+                         size_t *length) {
+    jsize size;
+    *bytes = NULL;
+    *length = 0;
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    size = (*env)->GetArrayLength(env, blob);
+    if ((*env)->ExceptionCheck(env)) {
+        return R6_ERR_ARG;
+    }
+    *bytes = (unsigned char *)malloc((size_t)size ? (size_t)size : 1);
+    if (!*bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, size, (jbyte *)*bytes);
+    if ((*env)->ExceptionCheck(env)) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_ARG;
+    }
+    *length = (size_t)size;
+    return R6_OK;
+}
+
+static int nut_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
+                         size_t *length, r6_ntwd_texture **textures,
+                         uint16_t *count) {
+    unsigned char *raw = NULL;
+    size_t size = 0;
+    r6_ntwd_header header;
+    r6_ntwd_texture *items = NULL;
+    if (raw_from_blob(env, blob, &raw, &size) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    if (r6_ntwd_parse(raw, size, &header, NULL, 0) != R6_ERR_BUFFER ||
+        header.texture_count == 0) {
+        free(raw);
+        return R6_ERR_FORMAT;
+    }
+    items = (r6_ntwd_texture *)malloc(
+        (size_t)header.texture_count * sizeof(*items));
+    if (!items) {
+        free(raw);
+        return R6_ERR_MEMORY;
+    }
+    if (r6_ntwd_parse(raw, size, &header, items,
+                      header.texture_count) != R6_OK) {
+        free(items);
+        free(raw);
+        return R6_ERR_FORMAT;
+    }
+    *bytes = raw;
+    *length = size;
+    *textures = items;
+    *count = header.texture_count;
+    return R6_OK;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Texture_nativeCount(JNIEnv *env, jclass cls,
+                                            jbyteArray data) {
+    unsigned char *bytes;
+    size_t length;
+    r6_ntwd_texture *textures;
+    uint16_t count;
+    jint result;
+    (void)cls;
+    if (nut_from_blob(env, data, &bytes, &length, &textures, &count) !=
+        R6_OK) {
+        return -1;
+    }
+    result = (jint)count;
+    free(textures);
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Texture_nativeInfo(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ntwd_texture *textures = NULL;
+    uint16_t count = 0;
+    jint values[6];
+    jintArray out = NULL;
+    (void)cls;
+    if (nut_from_blob(env, data, &bytes, &length, &textures, &count) !=
+        R6_OK || (uint32_t)index >= count) {
+        goto done;
+    }
+    values[0] = textures[index].width;
+    values[1] = textures[index].height;
+    values[2] = textures[index].format;
+    values[3] = textures[index].faces;
+    values[4] = (jint)textures[index].flags;
+    values[5] = (jint)textures[index].data_size;
+    out = glsl_ints(env, values, 6);
+done:
+    free(textures);
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Texture_nativeDecodeRgba(JNIEnv *env, jclass cls,
+                                                 jbyteArray data, jint index,
+                                                 jint level, jint face) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ntwd_texture *textures = NULL;
+    uint16_t count = 0;
+    size_t needed = 0;
+    unsigned char *pixels = NULL;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (nut_from_blob(env, data, &bytes, &length, &textures, &count) !=
+        R6_OK || (uint32_t)index >= count) {
+        goto done;
+    }
+    if (r6_nut_decode_rgba(bytes, length, &textures[index], (uint32_t)level,
+                           (uint32_t)face, NULL, 0, &needed) !=
+        R6_ERR_BUFFER || needed == 0) {
+        goto done;
+    }
+    pixels = (unsigned char *)malloc(needed);
+    if (!pixels) {
+        goto done;
+    }
+    if (r6_nut_decode_rgba(bytes, length, &textures[index], (uint32_t)level,
+                           (uint32_t)face, pixels, needed, &needed) == R6_OK) {
+        out = (*env)->NewByteArray(env, (jsize)needed);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, (jsize)needed,
+                                       (jbyte *)pixels);
+        }
+    }
+done:
+    free(pixels);
+    free(textures);
+    free(bytes);
+    return out;
+}

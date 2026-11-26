@@ -49,7 +49,8 @@ still sees only bytes.
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
 3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
-blocks from reflected region order; it makes no GL calls. The story catalog is
+blocks from reflected region order, and `Re6Texture` returns RGBA8 pixels from
+inflated NTWD/NTLX containers; neither makes GL calls. The story catalog is
 data-only; no unlock progression, renderer, audio or All.Net code exists.
 
 ## Validation

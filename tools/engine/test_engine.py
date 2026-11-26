@@ -580,6 +580,9 @@ def test_nut_decode(dll, dump, failures):
         ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NtwdTexture),
         ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_size_t,
         ctypes.POINTER(ctypes.c_size_t)]
+    lib.r6_ntwd_parse.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(NtwdHeader),
+        ctypes.POINTER(NtwdTexture), ctypes.c_size_t]
 
     def compare(raw, entry, level, face, label):
         expected = nut_texture.decode_entry(raw, entry, level, face)
@@ -624,6 +627,41 @@ def test_nut_decode(dll, dump, failures):
         compare(raw, nut_texture.parse_entries(raw)[index], level, face,
                 "%s #%d face=%d" % (relative, index, face))
 
+    ntlx = os.path.join(dump, "data_jp", "menu", "menuTex", "dressup_parts",
+                        "cmn_dressup_aero_s.nut")
+    raw = nut_texture.read_nut(ntlx)
+    expected_entries = nut_texture.parse_entries(raw)
+    source = ctypes.create_string_buffer(raw, len(raw))
+    header = NtwdHeader()
+    rc = lib.r6_ntwd_parse(source, len(raw), ctypes.byref(header), None, 0)
+    textures = (NtwdTexture * header.texture_count)()
+    rc = lib.r6_ntwd_parse(source, len(raw), ctypes.byref(header), textures,
+                           header.texture_count)
+    if rc != R6_OK or header.texture_count != len(expected_entries) or \
+            header.type != 1:
+        failures.append("ntlx parse: rc=%d count=%d" %
+                        (rc, header.texture_count))
+    else:
+        for index, entry in enumerate(expected_entries):
+            item = textures[index]
+            if item.width != entry["width"] or \
+                    item.height != entry["height"] or \
+                    item.format != entry["format"] or \
+                    item.data_offset != entry["data_offset"] or \
+                    item.data_size != entry["data_size"] or \
+                    item.faces != entry["levels"]:
+                failures.append("ntlx header: entry %d" % index)
+                continue
+            expected = nut_texture.decode_entry(raw, entry)
+            output = ctypes.create_string_buffer(len(expected))
+            written = ctypes.c_size_t()
+            rc = lib.r6_nut_decode_rgba(source, len(raw), ctypes.byref(item),
+                                        0, 0, output, len(expected),
+                                        ctypes.byref(written))
+            if rc != R6_OK or written.value != len(expected) or \
+                    output.raw != expected:
+                failures.append("ntlx decode: entry %d rc=%d" % (index, rc))
+
     quota = collections.Counter()
     paths = []
     for base, _, files in os.walk(dump):
@@ -653,8 +691,8 @@ def test_nut_decode(dll, dump, failures):
                                 output, 64, ctypes.byref(written))
     if rc != R6_ERR_FORMAT:
         failures.append("nut decode format: rc=%d" % rc)
-    print("  nut pixel decode: %d sampled textures, cube face, buffer checks" %
-          (len(cases) + sum(quota.values())))
+    print("  nut pixel decode: %d sampled textures + 8 NTLX ARGB8 entries, "
+          "cube face, buffer checks" % (len(cases) + sum(quota.values())))
 
 
 def test_glsl_ubo(dll, dump, failures):

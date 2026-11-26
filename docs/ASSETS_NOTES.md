@@ -86,7 +86,7 @@ decal/sprite mesh rather than the car body. No claim about mesh semantics yet.
 
 ## NTWD textures (decoded from Ghidra)
 
-`python tools/assets/ntwd_texture.py FILE` parses every NTWD stream. The
+`python tools/assets/ntwd_texture.py FILE` parses every NTWD/NTLX stream. The
 loader functions `FUN_140cae1a0`, `FUN_140cbc000`, `FUN_140cbc0d0`,
 `FUN_140cbc0f0`, `FUN_140cbc190` and `FUN_140cbc270` in `wmn6r.exe` give this
 layout:

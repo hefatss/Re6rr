@@ -8,7 +8,8 @@ int r6_ntwd_parse(const void *data, size_t size, r6_ntwd_header *out,
     size_t at;
     uint32_t i;
     if (!data || !out || size < 0x50 ||
-        r6_memcmp(data, "NTWD", 4) != 0) {
+        (r6_memcmp(data, "NTWD", 4) != 0 &&
+         r6_memcmp(data, "NTLX", 4) != 0)) {
         return R6_ERR_FORMAT;
     }
     header.type = bytes[4];

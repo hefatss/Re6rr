@@ -119,14 +119,14 @@ Verified on this dump:
 | `set_number` + scripted getter | 42, round-trips through Lua global |
 | ordered context bundle | reproduces the same `GetTirePos` |
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
-| 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py` |
+| 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py`; 8 NTLX headers and pixels also match |
 | 142 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |
 | `Body.nsh` sampler units 0/1/6 | `r6_glsl_texture_upload()` matches Python RGBA8 descriptors for five `.nut` formats; bad format, zero size and overflow rejected |
 | `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; short, bad-version and bad-index inputs rejected |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog and `GlslBindings` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings` and `Re6Texture` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -135,10 +135,11 @@ Verified on this dump:
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |
 | story catalog | 122 episodes, 3,309 messages, 3,484 events and 647 `drive_story_*` keys packed to 386,681 bytes; sampled records and shared strings round-trip; malformed blobs rejected |
 
-All NTWD streams in this dump are type 2; the type-1 branch is implemented but
-has no corpus coverage here. No cube-map or multi-face texture appears either.
-The full asset sweep runs with `python tools/engine/test_engine.py --skip-lua
---limit 10000`.
+NTWD streams in the sampled `.tex` files are type 2; the type-1 branch is now
+covered by the eight NTLX ARGB8 entries in `cmn_dressup_aero_s.nut`, parsed and
+decoded through the same C API. No cube-map or multi-face texture appears in
+the sampled assets. The full asset sweep runs with
+`python tools/engine/test_engine.py --skip-lua --limit 10000`.
 
 ## Android build
 
