@@ -16,6 +16,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_audio.h"
 #include "r6/r6_bgm.h"
 #include "r6/r6_car.h"
+#include "r6/r6_config_3d.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
@@ -2686,4 +2687,144 @@ Java_com_wmmt_re6rr_VoiceRequest_nativeExt(JNIEnv *env, jclass cls,
     }
     free(bytes);
     return out;
+}
+
+/* config_3d bridge: Java owns the bin bytes and receives plain values. The
+ * parser writes into a stack section array; nothing native escapes. */
+static int config3d_load(JNIEnv *env, jbyteArray data, unsigned char **bytes,
+                         r6_config_3d_view *view,
+                         r6_config_3d_section *sections) {
+    size_t length = 0;
+    int rc = raw_from_blob(env, data, bytes, &length);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    return r6_config_3d_init(view, *bytes, length, sections,
+                             R6_CONFIG_3D_SECTION_MAX);
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Config3D_nativeHeader(JNIEnv *env, jclass cls,
+                                          jbyteArray data) {
+    r6_config_3d_view view;
+    r6_config_3d_section sections[R6_CONFIG_3D_SECTION_MAX];
+    unsigned char *bytes = NULL;
+    jint values[5];
+    jintArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (config3d_load(env, data, &bytes, &view, sections) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    for (i = 0; i < 3; i++) {
+        values[i] = (jint)view.version[i];
+    }
+    values[3] = (jint)view.count;
+    values[4] = (jint)view.stride;
+    out = (*env)->NewIntArray(env, 5);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, 5, values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_Config3D_nativeGlobals(JNIEnv *env, jclass cls,
+                                           jbyteArray data) {
+    r6_config_3d_view view;
+    r6_config_3d_section sections[R6_CONFIG_3D_SECTION_MAX];
+    unsigned char *bytes = NULL;
+    jdouble values[4];
+    jdoubleArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (config3d_load(env, data, &bytes, &view, sections) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    for (i = 0; i < 4; i++) {
+        values[i] = (jdouble)view.floats[i];
+    }
+    out = (*env)->NewDoubleArray(env, 4);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 4, values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_Config3D_nativeRecord(JNIEnv *env, jclass cls,
+                                          jbyteArray data, jint section,
+                                          jint record) {
+    r6_config_3d_view view;
+    r6_config_3d_section sections[R6_CONFIG_3D_SECTION_MAX];
+    unsigned char *bytes = NULL;
+    const r6_config_3d_record *row;
+    jdouble values[7];
+    jdoubleArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (config3d_load(env, data, &bytes, &view, sections) != R6_OK ||
+        section < 0 || (uint32_t)section >= view.count ||
+        record < 0 || record >= R6_CONFIG_3D_RECORD_COUNT) {
+        free(bytes);
+        return NULL;
+    }
+    row = &sections[section].records[record];
+    values[0] = (jdouble)row->flags;
+    values[1] = (jdouble)row->db_start;
+    values[2] = (jdouble)row->angle;
+    values[3] = (jdouble)row->db_end;
+    for (i = 0; i < 3; i++) {
+        values[4 + i] = (jdouble)row->raw[i];
+    }
+    out = (*env)->NewDoubleArray(env, 7);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 7, values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Config3D_nativeTail(JNIEnv *env, jclass cls,
+                                        jbyteArray data, jint section) {
+    r6_config_3d_view view;
+    r6_config_3d_section sections[R6_CONFIG_3D_SECTION_MAX];
+    unsigned char *bytes = NULL;
+    jint values[R6_CONFIG_3D_TAIL_COUNT];
+    jintArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (config3d_load(env, data, &bytes, &view, sections) != R6_OK ||
+        section < 0 || (uint32_t)section >= view.count) {
+        free(bytes);
+        return NULL;
+    }
+    for (i = 0; i < R6_CONFIG_3D_TAIL_COUNT; i++) {
+        values[i] = (jint)sections[section].tail[i];
+    }
+    out = (*env)->NewIntArray(env, R6_CONFIG_3D_TAIL_COUNT);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, R6_CONFIG_3D_TAIL_COUNT,
+                                  values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_wmmt_re6rr_Config3D_nativeAmplitude(JNIEnv *env, jclass cls,
+                                             jdouble db, jdouble zero_db) {
+    r6_envelope_math math_sink = {NULL, engine_pow, engine_exp2};
+    double value = 0.0;
+    (void)env;
+    (void)cls;
+    if (r6_config_3d_amplitude(&math_sink, db, zero_db, &value) != R6_OK) {
+        return 0.0;
+    }
+    return (jdouble)value;
 }

@@ -146,7 +146,8 @@ def check_jni(dump):
                                 "GlslBindings.java", "Re6Texture.java",
                                 "Re6Audio.java", "EngineSound.java",
                                 "VertexLayout.java", "BgmCatalog.java",
-                                "EngineRuntime.java", "VoiceRequest.java")]
+                                "EngineRuntime.java", "VoiceRequest.java",
+                                "Config3D.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"

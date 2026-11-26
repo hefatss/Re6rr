@@ -141,9 +141,10 @@ gzip reads and passes plain bytes; the core never touches `AssetManager`.
 `.nub` headers, tone records, control fields and PCM bytes, `EngineSound` selects car/tune mappings with 16
 layer envelopes, `VertexLayout` reads vertex locations, semantics and masks,
 `BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates 16 layers
-from both engine blobs, and `VoiceRequest` builds and reads 0xa0 KeyOn records
-with their extension blobs; the JNI host supplies pow/exp2 from libm, but none
-opens an audio or GL device. JNI C
+from both engine blobs, `VoiceRequest` builds and reads 0xa0 KeyOn records with
+their extension blobs, and `Config3D` reads 3D sound sections and amplitudes;
+the JNI host supplies pow/exp2 from libm, but none opens an audio or GL
+device. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
 `build_host.py`. `CMakeLists.txt` links `r6core` into `libr6engine.so` for
@@ -201,7 +202,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime` and `VoiceRequest` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest` and `Config3D` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
