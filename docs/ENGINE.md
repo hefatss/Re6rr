@@ -251,7 +251,7 @@ platform/android/java/        Java side of the JNI bridge
   rows. Signature-like labels are copied verbatim, not interpreted.
 - `r6_path_strings_parse()/group()/get()/group_get()/find()` — read the derived
   `R6PST` inventory of 1,271 executable strings and 422 source paths.
-- `r6_enma_sim_parse()/getter()/hit()/config()` — read the derived `R6ESIM`
+- `r6_enma_sim_parse()/getter()/hit()/config()/find()` — read the derived `R6ESIM`
   facts: six `CGameInput` getters, four single-offset probe hits and the
   4096-byte default config image. Values are copied as raw bits.
 - `r6_ref_words_parse()/word()/xref()/word_xref()/find()` — read the derived
@@ -431,7 +431,7 @@ Verified on this dump:
 | String xrefs | all 195 names, 222 RVAs and scan totals match `xrefs.json`; find, bad blob, index, row and capacity rejected |
 | .pdata stats | all 7 buckets and 20 largest functions match `pdata.json`; find, bad blob, index, row and capacity rejected |
 | Reference words | all 98,805 words and 174,507 xrefs match `refs.json`; find, bad blob, index, row and xref rejected |
-| Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; bad blob, index, row and capacity rejected |
+| Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; find, bad blob, index, row and capacity rejected |
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
 | luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
 | Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; find, bad blob, index, row and capacity rejected |

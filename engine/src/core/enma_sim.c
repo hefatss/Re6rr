@@ -168,3 +168,42 @@ int r6_enma_sim_config(const void *data, size_t size, unsigned char *out,
               R6_ENMA_SIM_CONFIG_SIZE);
     return R6_OK;
 }
+
+int r6_enma_sim_find(const void *data, size_t size, const char *name,
+                     uint32_t *index) {
+    r6_enma_sim_header header;
+    size_t wanted;
+    uint32_t at;
+    int result = enma_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.getter_count; at++) {
+        char getter[R6_ENMA_SIM_NAME_CAP];
+        char export_name[R6_ENMA_SIM_NAME_CAP];
+        result = r6_enma_sim_getter(data, size, at, getter, sizeof(getter),
+                                    export_name, sizeof(export_name), NULL,
+                                    NULL, NULL, NULL);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(getter) == wanted &&
+            r6_memcmp(getter, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

@@ -29,6 +29,11 @@ public final class EnmaSimFacts {
         return nativeHit(blob, index);
     }
 
+    /** getter index for an exact name match; -1 if absent. */
+    public static long findGetter(byte[] blob, String name) {
+        return nativeFindGetter(blob, name);
+    }
+
     /** Copies the 4096-byte default config image. */
     public static byte[] config(byte[] blob) {
         return nativeConfig(blob);
@@ -43,6 +48,8 @@ public final class EnmaSimFacts {
     private static native String nativeGetterExport(byte[] blob, int index);
 
     private static native long[] nativeHit(byte[] blob, int index);
+
+    private static native long nativeFindGetter(byte[] blob, String name);
 
     private static native byte[] nativeConfig(byte[] blob);
 }

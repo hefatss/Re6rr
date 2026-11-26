@@ -47,6 +47,10 @@ R6_API int r6_enma_sim_hit(const void *data, size_t size, uint32_t index,
 R6_API int r6_enma_sim_config(const void *data, size_t size,
                               unsigned char *out, size_t capacity);
 
+/* First exact getter-name match. */
+R6_API int r6_enma_sim_find(const void *data, size_t size, const char *name,
+                            uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif

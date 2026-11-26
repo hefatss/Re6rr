@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 U32 = ctypes.c_uint32
 PU32 = ctypes.POINTER(U32)
 BUF = ctypes.c_char_p
@@ -42,6 +43,9 @@ def configure(lib):
     lib.r6_enma_sim_hit.restype = ctypes.c_int
     lib.r6_enma_sim_hit.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32]
+    lib.r6_enma_sim_find.restype = ctypes.c_int
+    lib.r6_enma_sim_find.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
     lib.r6_enma_sim_config.restype = ctypes.c_int
     lib.r6_enma_sim_config.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, ctypes.c_size_t]
@@ -104,6 +108,16 @@ def check(lib):
         source, len(blob), out, len(out)) == R6_OK
     assert out.raw[:4096] == config
 
+    index = U32()
+    for expected_index, expected_name in enumerate(getters):
+        assert lib.r6_enma_sim_find(
+            source, len(blob), expected_name.encode("ascii"),
+            ctypes.byref(index)) == R6_OK
+        assert index.value == expected_index
+    assert lib.r6_enma_sim_find(
+        source, len(blob), b"R6_NO_SUCH_GETTER",
+        ctypes.byref(index)) == R6_ERR_NOT_FOUND
+
     assert lib.r6_enma_sim_getter(
         source, len(blob), 6, name, len(name), export_name, len(export_name),
         ctypes.byref(first), ctypes.byref(count), ctypes.byref(kind),
@@ -135,7 +149,7 @@ def check(lib):
         source, len(bad), 0, ctypes.byref(offset),
         ctypes.byref(value_bits)) == R6_ERR_FORMAT
     print("Enma sim facts: 6 getters, 4 probe hits and 4096 config bytes "
-          "match enma_sim.json; bad blob, index, row and capacity rejected")
+          "match enma_sim.json; find, bad blob, index, row and capacity rejected")
 
 
 def main():
