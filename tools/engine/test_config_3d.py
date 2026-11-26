@@ -90,6 +90,13 @@ def check(dump):
     struct.pack_into("<i", bad_stride, 12, 0x131)
     bad_count = bytearray(raw)
     struct.pack_into("<i", bad_count, 8, 0x21)
+    bad_floats = []
+    for offset, value in ((0x10, 0.0), (0x10, -1.0), (0x14, 0.0),
+                          (0x18, 0.5), (0x18, 100.0), (0x1c, -0.1),
+                          (0x1c, 10.0)):
+        blob = bytearray(raw)
+        struct.pack_into("<f", blob, offset, value)
+        bad_floats.append(ctypes.create_string_buffer(bytes(blob), len(raw)))
     for data, size, capacity, expected in (
             (source, 0x1F, 0x20, R6_ERR_BUFFER),
             (ctypes.create_string_buffer(bytes(bad_version)), len(raw),
@@ -99,9 +106,22 @@ def check(dump):
             (ctypes.create_string_buffer(bytes(bad_count)), len(raw),
              0x20, R6_ERR_FORMAT),
             (source, len(raw) - 1, 0x20, R6_ERR_FORMAT),
-            (source, len(raw), 4, R6_ERR_BUFFER)):
+            (source, len(raw), 4, R6_ERR_BUFFER)) + tuple(
+                (blob, len(raw), 0x20, R6_ERR_FORMAT)
+                for blob in bad_floats):
         assert lib.r6_config_3d_init(ctypes.byref(view), data, size,
                                      sections, capacity) == expected
+
+    boundary = bytearray(raw)
+    for index, value in enumerate((1.0, 1.0, 99.0, 9.9)):
+        struct.pack_into("<f", boundary, 0x10 + index * 4, value)
+    boundary_view = View()
+    assert lib.r6_config_3d_init(ctypes.byref(boundary_view),
+                                 ctypes.create_string_buffer(bytes(boundary),
+                                                             len(boundary)),
+                                 len(boundary), sections, 0x20) == R6_OK
+    assert abs(boundary_view.floats[2] - 99.0) < 1e-4
+    assert abs(boundary_view.floats[3] - 9.9) < 1e-4
     assert lib.r6_config_3d_init(None, source, len(raw), sections,
                                  0x20) == R6_ERR_BUFFER
     assert lib.r6_config_3d_init(ctypes.byref(view), source, len(raw), None,

@@ -42,6 +42,12 @@ int r6_config_3d_init(r6_config_3d_view *view, const void *data, size_t size,
     for (index = 0; index < 4; index++) {
         view->floats[index] = config_f32(bytes + 0x10 + index * 4);
     }
+    /* nuSound2_3DSetConfig global validators; NaN fails every comparison. */
+    if (!(view->floats[0] > 0.0f) || !(view->floats[1] > 0.0f) ||
+        view->floats[2] < 1.0f || view->floats[2] > 99.0f ||
+        view->floats[3] < 0.0f || view->floats[3] > 9.9f) {
+        return R6_ERR_FORMAT;
+    }
     for (index = 0; index < count; index++) {
         const unsigned char *base = bytes + R6_CONFIG_3D_HEADER_SIZE +
                                     (size_t)index * R6_CONFIG_3D_SECTION_STRIDE;

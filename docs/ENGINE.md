@@ -134,7 +134,8 @@ platform/android/java/        Java side of the JNI bridge
   `config_3d.bin` into caller-owned section storage (10 records plus 6 tail
   words each, angles shifted by 90 degrees) and convert dB to amplitude with
   the host pow hook. Malformed versions, strides, counts and short buffers are
-  rejected.
+  rejected, as are globals outside the recovered validators (`>0`, `>0`,
+  `1..99`, `0..9.9`).
 - `r6_gles_program_count()/program()` and
   `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
   — pair stage records by shader name (223 programs from 446 records), then
@@ -273,7 +274,7 @@ Verified on this dump:
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |
 | full engine layer port | 224 sounds × 2 runtime states, 7,168 layer results match `engine_sound.layer_outputs()`; `R6ERS` carries 224 lexical rows, 14 header values and 20 constants in 4,784 bytes; bad sound, capacity and hooks rejected |
 | KeyOn request port | three 0xa0-byte request variants, plain and extended, pack byte-for-byte like `audio_events.voice_request()` and unpack every field; unit clamp and cents→pitch match Python; oversize blobs, short buffers and missing pow hook rejected |
-| config_3d reader | 5 sections × 10 records and 6 tail words match `audio_events.parse_config_3d()`; dB amplitude matches Python with a host pow callback; bad version, stride, count, truncation and short section capacity rejected |
+| config_3d reader | 5 sections × 10 records and 6 tail words match `audio_events.parse_config_3d()`; dB amplitude matches Python with a host pow callback; bad version, stride, count, truncation, short section capacity and all four global float validators rejected, boundary values accepted |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
