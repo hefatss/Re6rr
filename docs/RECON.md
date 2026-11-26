@@ -148,6 +148,15 @@ ranges and rotations, offset positions and connection ids;
 modelled by `ees_fields.car_effect_copy()`, but neither its field semantics nor
 the remaining camera bytes are interpreted. Details in `recon/SCENE_EES.md`.
 
+`.nut` files are gzip-wrapped or raw texture containers: 5,577 raw NTWD,
+5,431 gzip NTWD and 143 gzip NTLX. NTWD stores version/entry counts at `+4`,
+per-entry payload size at `+0x18`, descriptor size, packed dimension fields at
+`+0x20`/`+0x24` and the first GIDX offset at `+0x30`; a `0x10` prefix and
+one `0x50` descriptor per entry precede the payloads. All 36 `sp_cutin` files are 384x320,
+one entry, `0x1e000` payload bytes at `+0x60`. Pixel-format semantics are not
+inferred. `tools/engine/nut_texture.py` inventories the corpus without storing
+texture data.
+
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. SM4 control flow is
 structured: 272 `SWITCH`, 22 `LOOP` and 9 `IF` blocks match cleanly across all
