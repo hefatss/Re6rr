@@ -16,6 +16,18 @@
 extern "C" {
 #endif
 
+enum {
+    R6_AUDIO_FADE_FRAME_RATE = 60,
+    R6_AUDIO_STREAM_LIMIT = 0x20000000
+};
+
+/* FUN_140781ba0: integer frame delta at 60 fps, then milliseconds. */
+R6_API int32_t r6_audio_fade_frames_to_ms(int32_t now_frame,
+                                          int32_t max_frame);
+
+/* FUN_180035b80: running stream-byte total, -1 past the cap. */
+R6_API int64_t r6_audio_stream_reserve(int64_t total, int64_t size);
+
 typedef struct r6_nub_header {
     uint32_t version;
     uint32_t bank_id;

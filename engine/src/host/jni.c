@@ -2922,3 +2922,21 @@ Java_com_wmmt_re6rr_BankSetup_nativeTone(JNIEnv *env, jclass cls,
     free(tones);
     return out;
 }
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_AudioStream_nativeFadeMs(JNIEnv *env, jclass cls,
+                                             jint now_frame,
+                                             jint max_frame) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_audio_fade_frames_to_ms((int32_t)now_frame,
+                                            (int32_t)max_frame);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_AudioStream_nativeReserve(JNIEnv *env, jclass cls,
+                                              jlong total, jlong size) {
+    (void)env;
+    (void)cls;
+    return (jlong)r6_audio_stream_reserve((int64_t)total, (int64_t)size);
+}

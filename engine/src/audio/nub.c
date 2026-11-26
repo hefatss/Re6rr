@@ -223,3 +223,15 @@ int r6_bank_setup_init(r6_bank_setup_view *view, const void *data,
     view->tones = count ? tones : NULL;
     return R6_OK;
 }
+
+int32_t r6_audio_fade_frames_to_ms(int32_t now_frame, int32_t max_frame) {
+    int64_t frames = (int64_t)max_frame - (int64_t)now_frame;
+    return (int32_t)((frames / R6_AUDIO_FADE_FRAME_RATE) * 1000);
+}
+
+int64_t r6_audio_stream_reserve(int64_t total, int64_t size) {
+    if (size < 0 || total + size > R6_AUDIO_STREAM_LIMIT) {
+        return -1;
+    }
+    return total + size;
+}
