@@ -57,7 +57,9 @@ int r6_ref_words_word(const void *data, size_t size, uint32_t index,
     first = r6_u32(bytes, row_off + 4u);
     count = r6_u32(bytes, row_off + 8u);
     if (first + count > header.xref_count ||
-        (index && r6_u32(bytes, row_off - 12u) >= r6_u32(bytes, row_off))) {
+        (index && (r6_u32(bytes, row_off - 12u) >= r6_u32(bytes, row_off) ||
+                   first != r6_u32(bytes, row_off - 12u + 4u) +
+                            r6_u32(bytes, row_off - 12u + 8u)))) {
         return R6_ERR_FORMAT;
     }
     if (value) {
