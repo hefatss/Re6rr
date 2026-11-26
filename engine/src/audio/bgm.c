@@ -222,3 +222,48 @@ uint32_t r6_bgm_fade_begin(void *data, size_t size, int32_t ms,
     *stop_voice = state.voice;
     return 0;
 }
+
+int r6_bgm_manager_read(const void *data, size_t size,
+                        r6_bgm_manager_state *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    if (!bytes || !out || size < R6_BGM_MANAGER_SIZE) {
+        return R6_ERR_ARG;
+    }
+    out->current = (int32_t)r6_u32(bytes, R6_BGM_MANAGER_CURRENT_OFFSET);
+    out->next = (int32_t)r6_u32(bytes, R6_BGM_MANAGER_NEXT_OFFSET);
+    return R6_OK;
+}
+
+int r6_bgm_manager_select(void *data, size_t size, int32_t id,
+                          int32_t *action) {
+    unsigned char *bytes = (unsigned char *)data;
+    r6_bgm_manager_state state;
+    if (!bytes || !action || size < R6_BGM_MANAGER_SIZE) {
+        return R6_ERR_ARG;
+    }
+    if (r6_bgm_manager_read(bytes, size, &state) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    if (id == R6_BGM_NO_CHANGE) {
+        *action = R6_BGM_ACTION_NONE;
+        return R6_OK;
+    }
+    if (id == R6_BGM_NO_SOUND_ID) {
+        state.current = R6_BGM_NO_CHANGE;
+        *action = R6_BGM_ACTION_FADE;
+    } else if (id == R6_BGM_RANDOM_ID) {
+        *action = R6_BGM_ACTION_REJECTED;
+    } else if (state.current == R6_BGM_NO_CHANGE) {
+        state.current = id;
+        *action = R6_BGM_ACTION_PLAY;
+    } else if (state.current == id) {
+        *action = R6_BGM_ACTION_ALREADY;
+    } else {
+        state.next = id;
+        *action = R6_BGM_ACTION_QUEUE;
+    }
+    bgm_put_u32(bytes, R6_BGM_MANAGER_CURRENT_OFFSET,
+                (uint32_t)state.current);
+    bgm_put_u32(bytes, R6_BGM_MANAGER_NEXT_OFFSET, (uint32_t)state.next);
+    return R6_OK;
+}

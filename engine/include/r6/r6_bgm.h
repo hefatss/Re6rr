@@ -98,6 +98,39 @@ R6_API int r6_bgm_fade_read(const void *data, size_t size,
 R6_API uint32_t r6_bgm_fade_begin(void *data, size_t size, int32_t ms,
                                   uint32_t *stop_voice);
 
+/* SoundManager::playBGM state at +0x44c/+0x450 (FUN_1407d6940). */
+enum {
+    R6_BGM_MANAGER_CURRENT_OFFSET = 0x44C,
+    R6_BGM_MANAGER_NEXT_OFFSET = 0x450,
+    R6_BGM_MANAGER_SIZE = 0x454,
+    R6_BGM_NO_CHANGE = -1,
+    R6_BGM_NO_SOUND_ID = 0x8C,
+    R6_BGM_RANDOM_ID = 0x8D,
+    R6_BGM_STREAM_HANDLE = 0
+};
+
+enum {
+    R6_BGM_ACTION_NONE = 0,
+    R6_BGM_ACTION_PLAY = 1,
+    R6_BGM_ACTION_FADE = 2,
+    R6_BGM_ACTION_QUEUE = 3,
+    R6_BGM_ACTION_ALREADY = 4,
+    R6_BGM_ACTION_REJECTED = 5
+};
+
+typedef struct r6_bgm_manager_state {
+    int32_t current;
+    int32_t next;
+} r6_bgm_manager_state;
+
+R6_API int r6_bgm_manager_read(const void *data, size_t size,
+                               r6_bgm_manager_state *out);
+
+/* Apply the shipped id dispatch. The returned action tells the host whether
+ * to start a stream, fade the current one, queue a change or do nothing. */
+R6_API int r6_bgm_manager_select(void *data, size_t size, int32_t id,
+                                 int32_t *action);
+
 #ifdef __cplusplus
 }
 #endif

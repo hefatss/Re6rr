@@ -3036,6 +3036,59 @@ Java_com_wmmt_re6rr_BgmFade_nativeBegin(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_BgmManager_nativeRead(JNIEnv *env, jclass cls,
+                                          jbyteArray data) {
+    r6_bgm_manager_state state;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_bgm_manager_read(bytes, length, &state) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)state.current;
+    values[1] = (jlong)state.next;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_BgmManager_nativeSelect(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint id) {
+    r6_bgm_manager_state state;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    int32_t action = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_bgm_manager_select(bytes, length, (int32_t)id, &action) != R6_OK ||
+        r6_bgm_manager_read(bytes, length, &state) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    (*env)->SetByteArrayRegion(env, data, 0, (jsize)length,
+                               (const jbyte *)bytes);
+    free(bytes);
+    values[0] = (jlong)action;
+    values[1] = (jlong)state.current;
+    values[2] = (jlong)state.next;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_SoundDispatch_nativeBank(JNIEnv *env, jclass cls,
                                              jbyteArray data, jint index) {
     r6_sound_bank_slot_t slot;
