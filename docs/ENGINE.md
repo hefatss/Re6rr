@@ -10,6 +10,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
 engine/include/r6/r6_audio.h  nuSound2 .nub header, tone and control structures
+engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
@@ -56,6 +57,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_pcm()` — bounds-checked
   nuSound2 bank parse, playback control fields and a zero-copy PCM view over
   host-owned bytes. No mixer, resampling or audio device.
+- `r6_esnd_parse()` / `r6_esnd_find()` / `r6_esnd_get_layer()` — read a packed
+  car/tune engine-sound mapping and its resolved 16 layer envelopes. The blob
+  is built by `tools/engine/engine_sound_catalog.py` from `engmap.tbl` and
+  `emtis.tbl`; runtime pitch/volume evaluation stays in Python.
 - `r6_vehicle_init/reset/step/get_state()`, `r6_vehicle_set_surface()`,
   `r6_vehicle_clamp_to_course()` and `r6_vehicle_config_from_lua()` —
   deterministic car dynamics driven by the loaded spec/tire context, with
@@ -109,6 +114,7 @@ python tools/engine/contexts.py --car CRC_928GT_Masaki --model PLC_928GT --run
 python tools/engine/test_physics.py --dump D:\Games\W6W-05
 python tools/engine/test_race.py --dump D:\Games\W6W-05
 python tools/engine/test_game.py --dump D:\Games\W6W-05
+python tools/engine/engine_sound_catalog.py --dump D:\Games\W6W-05 --out build\tmp\engine_sound.r6esnd
 python tools/engine/car_catalog.py --list
 python tools/engine/test_catalog.py --dump D:\Games\W6W-05
 python tools/engine/course_descriptor.py --list-routes
@@ -135,6 +141,7 @@ Verified on this dump:
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
+| packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture` and `Re6Audio` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
