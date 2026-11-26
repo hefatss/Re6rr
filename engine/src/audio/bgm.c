@@ -154,3 +154,71 @@ int r6_bgm_find_name(const void *data, size_t size, const char *name,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+static float bgm_f32(const unsigned char *bytes, size_t offset) {
+    float value;
+    r6_memcpy(&value, bytes + offset, sizeof(value));
+    return value;
+}
+
+static void bgm_put_f32(unsigned char *bytes, size_t offset, float value) {
+    r6_memcpy(bytes + offset, &value, sizeof(value));
+}
+
+static void bgm_put_u32(unsigned char *bytes, size_t offset, uint32_t value) {
+    bytes[offset] = (unsigned char)value;
+    bytes[offset + 1] = (unsigned char)(value >> 8);
+    bytes[offset + 2] = (unsigned char)(value >> 16);
+    bytes[offset + 3] = (unsigned char)(value >> 24);
+}
+
+int r6_bgm_fade_read(const void *data, size_t size, r6_bgm_fade_state *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    if (!bytes || !out || size < R6_BGM_FADE_RECORD_SIZE) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->state = r6_u32(bytes, R6_BGM_FADE_STATE_OFFSET);
+    out->flag = bytes[R6_BGM_FADE_FLAG_OFFSET];
+    out->mode = r6_u32(bytes, R6_BGM_FADE_MODE_OFFSET);
+    out->frames = r6_u32(bytes, R6_BGM_FADE_FRAMES_OFFSET);
+    out->step = bgm_f32(bytes, R6_BGM_FADE_STEP_OFFSET);
+    out->volume = bgm_f32(bytes, R6_BGM_FADE_VOLUME_OFFSET);
+    out->voice = r6_u32(bytes, R6_BGM_FADE_VOICE_OFFSET);
+    out->channel = r6_u32(bytes, R6_BGM_FADE_CHANNEL_OFFSET);
+    out->fader = bgm_f32(bytes, R6_BGM_FADER_OFFSET);
+    return R6_OK;
+}
+
+uint32_t r6_bgm_fade_begin(void *data, size_t size, int32_t ms,
+                           uint32_t *stop_voice) {
+    unsigned char *bytes = (unsigned char *)data;
+    r6_bgm_fade_state state;
+    double ticks;
+    if (!bytes || !stop_voice || size < R6_BGM_FADE_RECORD_SIZE) {
+        return R6_BGM_FADE_BAD_ARG;
+    }
+    *stop_voice = 0;
+    if (r6_bgm_fade_read(bytes, size, &state) != R6_OK) {
+        return R6_BGM_FADE_BAD_ARG;
+    }
+    if (state.mode == R6_BGM_STATE_FADING) {
+        return R6_BGM_FADE_ALREADY_FADING;
+    }
+    if (!state.state) {
+        return R6_BGM_FADE_NOT_PLAYING;
+    }
+    ticks = (double)ms / 5.333;
+    if (state.state == R6_BGM_STATE_PLAYING && ticks > 0.0 && !state.flag) {
+        uint32_t frames = (uint32_t)ticks;
+        bgm_put_u32(bytes, R6_BGM_FADE_MODE_OFFSET, R6_BGM_STATE_FADING);
+        bgm_put_u32(bytes, R6_BGM_FADE_FRAMES_OFFSET, frames);
+        bgm_put_f32(bytes, R6_BGM_FADE_STEP_OFFSET,
+                    -state.volume / (float)frames);
+        return 0;
+    }
+    bgm_put_u32(bytes, R6_BGM_FADE_STATE_OFFSET, R6_BGM_STATE_STOPPED);
+    bgm_put_f32(bytes, R6_BGM_FADER_OFFSET, 0.0f);
+    *stop_voice = state.voice;
+    return 0;
+}

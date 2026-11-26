@@ -67,8 +67,8 @@ layers using host libm, `VoiceRequest` builds and reads 0xa0 KeyOn records with
 copied extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` handles fade timing and stream
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
-and `SoundInit` validates the Sound::Initialize config; none makes GL or
-audio-device calls. The
+`SoundInit` validates the Sound::Initialize config, and `BgmFade` reads and
+updates stream fade state; none makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 

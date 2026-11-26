@@ -54,6 +54,50 @@ R6_API int r6_bgm_find_name(const void *data, size_t size, const char *name,
 R6_API const char *r6_bgm_string(const void *data, size_t size,
                                  uint32_t offset);
 
+/* nuSound2StreamFadeOut (FUN_180016850) reads and updates a host-owned stream
+ * record. Field offsets and state codes come from AUDIO_NUB.md. */
+enum {
+    R6_BGM_FADE_STATE_OFFSET = 0x28C,
+    R6_BGM_FADE_FLAG_OFFSET = 0x293,
+    R6_BGM_FADE_MODE_OFFSET = 0x294,
+    R6_BGM_FADE_FRAMES_OFFSET = 0x298,
+    R6_BGM_FADE_STEP_OFFSET = 0x29C,
+    R6_BGM_FADE_VOLUME_OFFSET = 0x2A0,
+    R6_BGM_FADE_VOICE_OFFSET = 0x2A8,
+    R6_BGM_FADE_CHANNEL_OFFSET = 0x148,
+    R6_BGM_FADER_OFFSET = 0x2C0,
+    R6_BGM_FADE_RECORD_SIZE = 0x2C4,
+    R6_BGM_STATE_FADING = 2,
+    R6_BGM_STATE_PLAYING = 3,
+    R6_BGM_STATE_STOPPED = 5,
+    R6_BGM_FADE_INVALID_HANDLE = 0x8000000Au,
+    R6_BGM_FADE_NOT_PLAYING = 0x8000000Bu,
+    R6_BGM_FADE_ALREADY_FADING = 0x80000000u,
+    R6_BGM_FADE_BAD_ARG = 0xFFFFFFFFu
+};
+
+typedef struct r6_bgm_fade_state {
+    uint32_t state;
+    uint8_t flag;
+    uint32_t mode;
+    uint32_t frames;
+    float step;
+    float volume;
+    uint32_t voice;
+    uint32_t channel;
+    float fader;
+} r6_bgm_fade_state;
+
+R6_API int r6_bgm_fade_read(const void *data, size_t size,
+                            r6_bgm_fade_state *out);
+
+/* Start a fade or take the native fallback-stop path. On success the stream
+ * bytes are updated in place and *stop_voice receives the voice id to stop
+ * (zero for the fade path). Returns a native status code, or
+ * R6_BGM_FADE_BAD_ARG when arguments or record size are invalid. */
+R6_API uint32_t r6_bgm_fade_begin(void *data, size_t size, int32_t ms,
+                                  uint32_t *stop_voice);
+
 #ifdef __cplusplus
 }
 #endif

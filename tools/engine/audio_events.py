@@ -249,6 +249,19 @@ def fade_frames_to_ms(now_frame, max_frame):
     return int((int(max_frame) - int(now_frame)) / 60) * 1000
 
 
+# FUN_180016850: nuSound2StreamFadeOut converts milliseconds to 5.333 ms
+# ticks, then sets a per-frame volume step from the stream's current volume.
+STREAM_FADE_MS_PER_TICK = 5.333
+
+
+def stream_fade_frames(ms):
+    return int(int(ms) / STREAM_FADE_MS_PER_TICK)
+
+
+def stream_fade_step(volume, frames):
+    return -float(volume) / frames
+
+
 def sound_init_facts(pe):
     """Return the Sound::Initialize ABI, grounded in the shipped constants."""
     off = pe.off(INIT_CONFIG_WRITE_VA - pe.image_base)

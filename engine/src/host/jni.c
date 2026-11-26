@@ -2975,6 +2975,66 @@ Java_com_wmmt_re6rr_SoundInit_nativeParse(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_BgmFade_nativeRead(JNIEnv *env, jclass cls,
+                                       jbyteArray stream) {
+    r6_bgm_fade_state state;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jdouble values[9];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, stream, &bytes, &length) != R6_OK ||
+        r6_bgm_fade_read(bytes, length, &state) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jdouble)state.state;
+    values[1] = (jdouble)state.flag;
+    values[2] = (jdouble)state.mode;
+    values[3] = (jdouble)state.frames;
+    values[4] = (jdouble)state.step;
+    values[5] = (jdouble)state.volume;
+    values[6] = (jdouble)state.voice;
+    values[7] = (jdouble)state.channel;
+    values[8] = (jdouble)state.fader;
+    out = (*env)->NewDoubleArray(env, 9);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 9, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_BgmFade_nativeBegin(JNIEnv *env, jclass cls,
+                                        jbyteArray stream, jint ms) {
+    r6_bgm_fade_state state;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t stop_voice = 0;
+    uint32_t status;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, stream, &bytes, &length) != R6_OK) {
+        return NULL;
+    }
+    status = r6_bgm_fade_begin(bytes, length, (int32_t)ms, &stop_voice);
+    if (r6_bgm_fade_read(bytes, length, &state) == R6_OK) {
+        (*env)->SetByteArrayRegion(env, stream, 0, (jsize)length,
+                                   (const jbyte *)bytes);
+    }
+    free(bytes);
+    values[0] = (jlong)status;
+    values[1] = (jlong)stop_voice;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {
     unsigned char *bytes = NULL;
