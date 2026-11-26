@@ -153,7 +153,8 @@ def check_jni(dump):
                                 "SoundInit.java", "BgmFade.java",
                                 "SoundDispatch.java", "SceneBridge.java",
                                 "StageEffect.java", "BgmManager.java",
-                                "SoundConfig.java", "BankSlots.java")]
+                                "SoundConfig.java", "BankSlots.java",
+                                "CourseSurface.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"

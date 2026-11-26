@@ -16,6 +16,17 @@
 extern "C" {
 #endif
 
+/* Surface class inferred from shipped LOADLIST ROAD_NAME labels. -1 means the
+ * label does not carry a recognized surface token. */
+enum r6_course_surface {
+    R6_SURFACE_UNKNOWN = -1,
+    R6_SURFACE_ROAD = 0,
+    R6_SURFACE_GRASS = 1,
+    R6_SURFACE_GRAVEL = 2
+};
+
+R6_API int r6_course_classify_surface(const char *name);
+
 enum r6_course_flags {
     R6_COURSE_CHECKPOINT = 1u,
     R6_COURSE_START = 2u,

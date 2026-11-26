@@ -292,3 +292,72 @@ int r6_course_descriptor_parse(const void *data, size_t size,
     *count = vertex_count;
     return R6_OK;
 }
+
+static char course_lower(char value) {
+    return value >= 'A' && value <= 'Z' ? (char)(value - 'A' + 'a') : value;
+}
+
+static int course_contains_ci(const char *text, size_t length,
+                              const char *needle) {
+    size_t wide = r6_strlen(needle);
+    size_t index;
+    if (!wide || wide > length) {
+        return 0;
+    }
+    for (index = 0; index + wide <= length; index++) {
+        size_t offset;
+        for (offset = 0; offset < wide; offset++) {
+            if (course_lower(text[index + offset]) != needle[offset]) {
+                break;
+            }
+        }
+        if (offset == wide) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int course_has_any(const char *text, size_t length,
+                          const char *const *tokens, size_t count) {
+    size_t index;
+    for (index = 0; index < count; index++) {
+        if (course_contains_ci(text, length, tokens[index])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int r6_course_classify_surface(const char *name) {
+    static const char *const gravel[] = {"gravel", "grail", "dirt", "sand"};
+    static const char *const grass[] = {"grass", "kusa", "green", "bush",
+                                        "weed"};
+    static const char *const road[] = {"broad", "nroad", "route", "road",
+                                       "conc", "asph", "pavement", "futa",
+                                       "tunnel"};
+    size_t length;
+    size_t suffix = 0;
+    size_t index;
+    if (!name) {
+        return R6_SURFACE_UNKNOWN;
+    }
+    length = r6_strlen(name);
+    for (index = 0; index + 5 <= length; index++) {
+        if (r6_memcmp(name + index, "PICE_", 5) == 0) {
+            suffix = index + 5;
+        }
+    }
+    name += suffix;
+    length -= suffix;
+    if (course_has_any(name, length, gravel, 4)) {
+        return R6_SURFACE_GRAVEL;
+    }
+    if (course_has_any(name, length, grass, 5)) {
+        return R6_SURFACE_GRASS;
+    }
+    if (course_has_any(name, length, road, 9)) {
+        return R6_SURFACE_ROAD;
+    }
+    return R6_SURFACE_UNKNOWN;
+}

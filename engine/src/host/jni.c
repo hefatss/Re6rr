@@ -3217,6 +3217,24 @@ Java_com_wmmt_re6rr_BankSlots_nativeFind(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_CourseSurface_nativeClassify(JNIEnv *env, jclass cls,
+                                                 jstring name) {
+    const char *text;
+    jint result;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    result = (jint)r6_course_classify_surface(text);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_SceneBridge_nativeWriteCamid(JNIEnv *env, jclass cls,
                                                  jbyteArray scene,
                                                  jbyteArray config) {
