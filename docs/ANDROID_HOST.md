@@ -30,14 +30,17 @@ tree to app external files:
         --manifest <dump>/glsl/manifest.json --out <dump>/glsl/vertex.r6gv
     python tools/engine/bgm_catalog.py --dump D:\Games\W6W-05 \
         --out <dump>/bgm.r6bgm
+    python tools/engine/engine_runtime_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/engine_runtime.r6ers
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
 CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 `story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
 through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`,
-`engine_sound.r6esnd` through `EngineSound`, and `bgm.r6bgm` through
-`BgmCatalog`. `AssetProvider` uses the native gzip inflater; the core
+`engine_sound.r6esnd` through `EngineSound`, `bgm.r6bgm` through
+`BgmCatalog`, and `engine_runtime.r6ers` plus `engine_sound.r6esnd` through
+`EngineRuntime`. `AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
 
 ## UI
@@ -59,7 +62,8 @@ blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
-`BgmCatalog` resolves BGM ids and names; none makes GL or audio-device calls. The
+`BgmCatalog` resolves BGM ids and names, and `EngineRuntime` evaluates the 16
+layers using host libm; none makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 

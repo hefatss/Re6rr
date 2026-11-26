@@ -7,6 +7,10 @@
 #include <jni.h>
 #include <stdlib.h>
 
+/* Host-only libm declaration: the freestanding core never sees this file, and
+ * Windows clang here has no CRT headers installed for the syntax check. */
+extern double pow(double base, double exponent);
+
 #include "r6/r6.h"
 #include "r6/r6_asset.h"
 #include "r6/r6_audio.h"
@@ -15,6 +19,7 @@
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
+#include "r6/r6_engine_runtime.h"
 #include "r6/r6_engine_sound.h"
 #include "r6/r6_glsl.h"
 #include "r6/r6_glsl_manifest.h"
@@ -2450,5 +2455,112 @@ Java_com_wmmt_re6rr_BgmCatalog_nativeString(JNIEnv *env, jclass cls,
         }
     }
     free(bytes);
+    return out;
+}
+
+/* Engine-runtime bridge: the host supplies pow/exp2 from libm, the core
+ * stays freestanding and no native pointer crosses JNI. */
+static double engine_pow(void *user, double base, double exponent) {
+    (void)user;
+    return pow(base, exponent);
+}
+
+static double engine_exp2(void *user, double exponent) {
+    (void)user;
+    return pow(2.0, exponent);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_EngineRuntime_nativeSoundCount(JNIEnv *env, jclass cls,
+                                                   jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_engine_runtime_view view;
+    jint result = -1;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_engine_runtime_init(&view, bytes, length) == R6_OK) {
+        result = (jint)view.sound_count;
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_EngineRuntime_nativeEvaluate(
+        JNIEnv *env, jclass cls, jbyteArray runtime, jbyteArray engine_sound,
+        jint sound, jint rpm, jint current, jint request_offset,
+        jboolean flag, jdoubleArray state_values) {
+    unsigned char *runtime_bytes = NULL;
+    unsigned char *esnd_bytes = NULL;
+    size_t runtime_length = 0;
+    size_t esnd_length = 0;
+    r6_engine_runtime_view view;
+    r6_engine_state state;
+    r6_envelope_math math_sink = {NULL, engine_pow, engine_exp2};
+    r6_engine_layer_result results[R6_ENGINE_LAYER_COUNT];
+    double values[38];
+    jdouble output[96];
+    jdoubleArray out = NULL;
+    uint32_t count = 0;
+    uint32_t i;
+    uint32_t index;
+    (void)cls;
+    if (!state_values ||
+        (*env)->GetArrayLength(env, state_values) != 38) {
+        return NULL;
+    }
+    (*env)->GetDoubleArrayRegion(env, state_values, 0, 38, values);
+    if ((*env)->ExceptionCheck(env) ||
+        raw_from_blob(env, runtime, &runtime_bytes, &runtime_length) != R6_OK ||
+        raw_from_blob(env, engine_sound, &esnd_bytes, &esnd_length) != R6_OK ||
+        r6_engine_runtime_init(&view, runtime_bytes, runtime_length) != R6_OK ||
+        r6_engine_state_init(&state, (int32_t)rpm) != R6_OK) {
+        free(esnd_bytes);
+        free(runtime_bytes);
+        return NULL;
+    }
+    state.current = (int32_t)current;
+    state.request_offset = (int32_t)request_offset;
+    state.flag = flag ? 1u : 0u;
+    for (i = 0; i < 5; i++) {
+        state.base[i] = values[i];
+    }
+    for (i = 0; i < R6_ENGINE_LAYER_COUNT; i++) {
+        state.layer_base[i] = values[5 + i];
+    }
+    state.throttle = values[21];
+    for (i = 0; i < 3; i++) {
+        for (index = 0; index < 3; index++) {
+            state.floors[i][index] = values[22 + i * 3 + index];
+        }
+    }
+    state.smooth34 = values[31];
+    state.smooth4f = values[32];
+    state.smooth20 = values[33];
+    state.f134 = values[34];
+    state.f2d = values[35];
+    state.sub = values[36];
+    state.curve_scale = values[37];
+
+    if (r6_engine_eval_layers(&view, esnd_bytes, esnd_length,
+                              (uint32_t)sound, &state, &math_sink, results,
+                              R6_ENGINE_LAYER_COUNT, &count) == R6_OK) {
+        for (i = 0; i < R6_ENGINE_LAYER_COUNT; i++) {
+            index = i * 6;
+            output[index] = (jdouble)results[i].layer;
+            output[index + 1] = (jdouble)results[i].source;
+            output[index + 2] = (jdouble)results[i].tone;
+            output[index + 3] = (jdouble)results[i].pitch;
+            output[index + 4] = (jdouble)results[i].level;
+            output[index + 5] = (jdouble)results[i].volume;
+        }
+        out = (*env)->NewDoubleArray(env, 96);
+        if (out) {
+            (*env)->SetDoubleArrayRegion(env, out, 0, 96, output);
+        }
+    }
+    free(esnd_bytes);
+    free(runtime_bytes);
     return out;
 }
