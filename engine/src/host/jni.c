@@ -3735,6 +3735,37 @@ Java_com_wmmt_re6rr_SceneConfig_nativeName(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_AudioLayoutFacts_nativeAll(JNIEnv *env, jclass cls) {
+    r6_audio_layout_facts_t facts;
+    jlong values[17];
+    jlongArray out = NULL;
+    (void)cls;
+    r6_audio_layout_facts(&facts);
+    values[0] = (jlong)facts.bank_slots;
+    values[1] = (jlong)facts.slot_stride;
+    values[2] = (jlong)facts.slot_bank_ptr;
+    values[3] = (jlong)facts.slot_data_ptr;
+    values[4] = (jlong)facts.slot_voice_ids;
+    values[5] = (jlong)facts.record_base;
+    values[6] = (jlong)facts.record_stride;
+    values[7] = (jlong)facts.record_voice_ids;
+    values[8] = (jlong)facts.stream_reserve;
+    values[9] = (jlong)facts.stream_limit;
+    values[10] = (jlong)facts.version[0];
+    values[11] = (jlong)facts.version[1];
+    values[12] = (jlong)facts.version[2];
+    values[13] = (jlong)facts.voice_slots;
+    values[14] = (jlong)facts.voice_record_stride;
+    values[15] = (jlong)facts.voice_meta_base;
+    values[16] = (jlong)facts.voice_meta_stride;
+    out = (*env)->NewLongArray(env, 17);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 17, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_VoiceDispatchFacts_nativeAll(JNIEnv *env, jclass cls) {
     r6_voice_dispatch_facts_t facts;
     jlong values[32];

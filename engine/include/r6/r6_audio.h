@@ -262,6 +262,28 @@ R6_API int r6_audio_binding(uint32_t index, r6_audio_binding_t *out);
 
 R6_API int r6_audio_binding_find(const char *name, r6_audio_binding_t *out);
 
+/* Fixed offsets and limits recovered from the bank registration/cleanup path
+ * and the voice/meta table. Values only: no native pointer is followed. */
+typedef struct r6_audio_layout_facts_t {
+    uint32_t bank_slots;
+    uint32_t slot_stride;
+    uint32_t slot_bank_ptr;
+    uint32_t slot_data_ptr;
+    uint32_t slot_voice_ids;
+    uint32_t record_base;
+    uint32_t record_stride;
+    uint32_t record_voice_ids;
+    uint32_t stream_reserve;
+    uint32_t stream_limit;
+    uint8_t version[3];
+    uint32_t voice_slots;
+    uint32_t voice_record_stride;
+    uint32_t voice_meta_base;
+    uint32_t voice_meta_stride;
+} r6_audio_layout_facts_t;
+
+R6_API void r6_audio_layout_facts(r6_audio_layout_facts_t *out);
+
 #ifdef __cplusplus
 }
 #endif

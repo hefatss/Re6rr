@@ -517,3 +517,27 @@ int r6_audio_binding_find(const char *name, r6_audio_binding_t *out) {
     }
     return R6_ERR_NOT_FOUND;
 }
+
+void r6_audio_layout_facts(r6_audio_layout_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->bank_slots = 0x40u;
+    out->slot_stride = 0x804u;
+    out->slot_bank_ptr = 0x42u;
+    out->slot_data_ptr = 0x44u;
+    out->slot_voice_ids = 0x46u;
+    out->record_base = 0x108u;
+    out->record_stride = 0x2010u;
+    out->record_voice_ids = 0x10u;
+    out->stream_reserve = 0x80508u;
+    out->stream_limit = 0x20000000u;
+    out->version[0] = 1u;
+    out->version[1] = 2u;
+    out->version[2] = 1u;
+    out->voice_slots = 0x40u;
+    out->voice_record_stride = 0xA0u;
+    out->voice_meta_base = 0x2800u;
+    out->voice_meta_stride = 0xCu;
+}

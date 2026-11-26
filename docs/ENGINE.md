@@ -9,7 +9,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 ```
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
-engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control, string-table, bank-registration view and Sound::Initialize config structures
+engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control, string-table, bank-registration view, layout facts and Sound::Initialize config structures
 engine/include/r6/r6_bgm.h  packed BGM lookups, stream fade state and manager id dispatch
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
@@ -130,6 +130,9 @@ platform/android/java/        Java side of the JNI bridge
   0xd0-byte chained-voice records as 52 f32 slots, and `r6_voice_chain_apply()`
   writes the seven established core-voice fields with native clamp/pitch.
   Speaker matrix, mode and core-voice lookup targets are not written.
+- `r6_audio_layout_facts()` — copy the 64 bank slot offsets, cleanup record
+  layout, stream reserve/limit, bank version and voice/meta table constants.
+  No pointer is dereferenced.
 - `r6_voice_dispatch_facts()` — copy the recovered bank/3D null error codes,
   chained-tone error and modes, extension blob layout, game vector sources and
   call-site addresses. No native method is called or pointer dereferenced.
@@ -232,8 +235,8 @@ rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
 resolves camera records, `EesContainer` parses the shipped headers, `EesCamera` reads the 31 named camera
 fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
-runtime fields, `EesCarDisp` reads display records, `VoiceDispatchFacts` exposes recovered status codes and call
-sites, `SceneConfig` packs scenes and resolves native names, and
+runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
+exposes recovered status codes and call sites, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect`
 resolves symbolic sounds;
 the JNI host supplies
@@ -298,6 +301,7 @@ Verified on this dump:
 | sound dispatch arrays | 8 bank slots, 34 loop records and 2 positional 0x24 records match `audio_events.dispatch_facts()`; out-of-range indices and short buffers rejected |
 | config.bin header | shipped 2640-byte file yields the same 0x50 header, float offset 0x70 and six count/offset pairs as `audio_events.config_header()`; bad magic, version, size and section offsets rejected |
 | chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
+| audio layout facts | 5 slot fields, 3 cleanup record fields, stream reserve/limit, version and 4 voice/meta fields match `audio_events.py`; null output is a no-op |
 | voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources and 8 addresses match `audio_events.py`; null output is a no-op |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
@@ -308,7 +312,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `VoiceDispatchFacts`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

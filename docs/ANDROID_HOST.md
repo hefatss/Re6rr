@@ -81,7 +81,8 @@ names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
 camera containers/records, `EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
 last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 runtime
-fields, `EesCarDisp` reads display records, `VoiceDispatchFacts` exposes recovered status codes and call sites,
+fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
+exposes recovered status codes and call sites,
 `SceneConfig` packs scenes and resolves native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
