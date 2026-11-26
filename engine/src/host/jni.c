@@ -3454,6 +3454,61 @@ Java_com_wmmt_re6rr_SceneBridge_nativeRuntimeCamera(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
+                                           jbyteArray raw, jint offset) {
+    r6_ees_camera_fields_t fields;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jdouble values[R6_EES_CAMERA_FIELD_COUNT];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_ees_camera_fields(bytes, length, (uint32_t)offset, &fields) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jdouble)fields.m_CamType;
+    values[1] = (jdouble)fields.m_StratFrame;
+    values[2] = (jdouble)fields.m_ActFrame;
+    values[3] = (jdouble)fields.m_WiatMode;
+    values[4] = (jdouble)fields.m_StratFieldAngle;
+    values[5] = (jdouble)fields.m_EndFieldAngle;
+    values[6] = (jdouble)fields.m_FieldAngleCalcId;
+    values[7] = (jdouble)fields.m_GlobalLookAt;
+    values[8] = (jdouble)fields.m_LookAtId;
+    values[9] = (jdouble)fields.m_LookAtStartRenge;
+    values[10] = (jdouble)fields.m_LookAtStartCamRotX;
+    values[11] = (jdouble)fields.m_LookAtStartCamRotY;
+    values[12] = (jdouble)fields.m_LookAtStartCamRotZ;
+    values[13] = (jdouble)fields.m_LookAtEndRenge;
+    values[14] = (jdouble)fields.m_LookAtEndCamRotX;
+    values[15] = (jdouble)fields.m_LookAtEndCamRotY;
+    values[16] = (jdouble)fields.m_LookAtEndCamRotZ;
+    values[17] = (jdouble)fields.m_TransCalcId;
+    values[18] = (jdouble)fields.m_RotCalcId;
+    values[19] = (jdouble)fields.m_StratOpRotZ;
+    values[20] = (jdouble)fields.m_EndOpRotZ;
+    values[21] = (jdouble)fields.m_OpRotZCalcId;
+    values[22] = (jdouble)fields.m_LookAtStartOfsetPosX;
+    values[23] = (jdouble)fields.m_LookAtStartOfsetPosY;
+    values[24] = (jdouble)fields.m_LookAtStartOfsetPosZ;
+    values[25] = (jdouble)fields.m_LookAtEndOfsetPosX;
+    values[26] = (jdouble)fields.m_LookAtEndOfsetPosY;
+    values[27] = (jdouble)fields.m_LookAtEndOfsetPosZ;
+    values[28] = (jdouble)fields.m_OfsetCalcId;
+    values[29] = (jdouble)fields.m_StartConnection;
+    values[30] = (jdouble)fields.m_EndConnection;
+    out = (*env)->NewDoubleArray(env, R6_EES_CAMERA_FIELD_COUNT);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, R6_EES_CAMERA_FIELD_COUNT,
+                                     values);
+    }
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {
     unsigned char *bytes = NULL;

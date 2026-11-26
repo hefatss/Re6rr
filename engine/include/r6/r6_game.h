@@ -104,6 +104,52 @@ R6_API int r6_scene_container_offset(uint32_t slot, size_t *out);
 R6_API int r6_scene_runtime_camera(const void *records, size_t size,
                                    int32_t frame);
 
+/* FUN_1401e0330 names 31 fields in the 0x160-byte camera_data record. The
+ * logger prints several f32 members with "%d"; the declared types below come
+ * from the recovered struct, not the print format. */
+enum {
+    R6_EES_CAMERA_STRIDE = 0x160,
+    R6_EES_CAMERA_FIELD_COUNT = 31
+};
+
+typedef struct r6_ees_camera_fields_t {
+    int32_t m_CamType;
+    int32_t m_StratFrame;
+    float m_ActFrame;
+    uint8_t m_WiatMode;
+    float m_StratFieldAngle;
+    float m_EndFieldAngle;
+    int32_t m_FieldAngleCalcId;
+    int32_t m_GlobalLookAt;
+    int32_t m_LookAtId;
+    float m_LookAtStartRenge;
+    float m_LookAtStartCamRotX;
+    float m_LookAtStartCamRotY;
+    float m_LookAtStartCamRotZ;
+    float m_LookAtEndRenge;
+    float m_LookAtEndCamRotX;
+    float m_LookAtEndCamRotY;
+    float m_LookAtEndCamRotZ;
+    int32_t m_TransCalcId;
+    int32_t m_RotCalcId;
+    float m_StratOpRotZ;
+    float m_EndOpRotZ;
+    int32_t m_OpRotZCalcId;
+    float m_LookAtStartOfsetPosX;
+    float m_LookAtStartOfsetPosY;
+    float m_LookAtStartOfsetPosZ;
+    float m_LookAtEndOfsetPosX;
+    float m_LookAtEndOfsetPosY;
+    float m_LookAtEndOfsetPosZ;
+    int32_t m_OfsetCalcId;
+    int32_t m_StartConnection;
+    int32_t m_EndConnection;
+} r6_ees_camera_fields_t;
+
+/* Copy one record from caller-owned .EES bytes at `offset`. */
+R6_API int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
+                                r6_ees_camera_fields_t *out);
+
 #ifdef __cplusplus
 }
 #endif

@@ -298,3 +298,52 @@ int r6_scene_runtime_camera(const void *records, size_t size, int32_t frame) {
     }
     return -1;
 }
+
+static float ees_f32(const unsigned char *bytes, size_t at) {
+    float value;
+    r6_memcpy(&value, bytes + at, sizeof(value));
+    return value;
+}
+
+int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
+                         r6_ees_camera_fields_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t base = offset;
+    if (!bytes || !out || base > size ||
+        size - base < R6_EES_CAMERA_STRIDE) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->m_CamType = (int32_t)read_u32(bytes, base + 0x00);
+    out->m_StratFrame = (int32_t)read_u32(bytes, base + 0x04);
+    out->m_ActFrame = ees_f32(bytes, base + 0x08);
+    out->m_WiatMode = (uint8_t)read_u8(bytes, base + 0x0C);
+    out->m_StratFieldAngle = ees_f32(bytes, base + 0x90);
+    out->m_EndFieldAngle = ees_f32(bytes, base + 0x94);
+    out->m_FieldAngleCalcId = (int32_t)read_u32(bytes, base + 0x98);
+    out->m_GlobalLookAt = (int32_t)read_u32(bytes, base + 0xA8);
+    out->m_LookAtId = (int32_t)read_u32(bytes, base + 0xB4);
+    out->m_LookAtStartRenge = ees_f32(bytes, base + 0xB8);
+    out->m_LookAtStartCamRotX = ees_f32(bytes, base + 0xBC);
+    out->m_LookAtStartCamRotY = ees_f32(bytes, base + 0xC0);
+    out->m_LookAtStartCamRotZ = ees_f32(bytes, base + 0xC4);
+    out->m_LookAtEndRenge = ees_f32(bytes, base + 0xC8);
+    out->m_LookAtEndCamRotX = ees_f32(bytes, base + 0xCC);
+    out->m_LookAtEndCamRotY = ees_f32(bytes, base + 0xD0);
+    out->m_LookAtEndCamRotZ = ees_f32(bytes, base + 0xD4);
+    out->m_TransCalcId = (int32_t)read_u32(bytes, base + 0xD8);
+    out->m_RotCalcId = (int32_t)read_u32(bytes, base + 0xDC);
+    out->m_StratOpRotZ = ees_f32(bytes, base + 0xE0);
+    out->m_EndOpRotZ = ees_f32(bytes, base + 0xE4);
+    out->m_OpRotZCalcId = (int32_t)read_u32(bytes, base + 0xE8);
+    out->m_LookAtStartOfsetPosX = ees_f32(bytes, base + 0xEC);
+    out->m_LookAtStartOfsetPosY = ees_f32(bytes, base + 0xF0);
+    out->m_LookAtStartOfsetPosZ = ees_f32(bytes, base + 0xF4);
+    out->m_LookAtEndOfsetPosX = ees_f32(bytes, base + 0xF8);
+    out->m_LookAtEndOfsetPosY = ees_f32(bytes, base + 0xFC);
+    out->m_LookAtEndOfsetPosZ = ees_f32(bytes, base + 0x100);
+    out->m_OfsetCalcId = (int32_t)read_u32(bytes, base + 0x104);
+    out->m_StartConnection = (int32_t)read_u32(bytes, base + 0x108);
+    out->m_EndConnection = (int32_t)read_u32(bytes, base + 0x10C);
+    return R6_OK;
+}

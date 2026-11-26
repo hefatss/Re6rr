@@ -76,7 +76,7 @@ copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 `BankSlots` finds free registration slots, `SoundStrings` reads bank/tone
 names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
-camera containers/records, and
+camera containers/records, `EesCamera` reads named camera fields, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
