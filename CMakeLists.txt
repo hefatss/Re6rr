@@ -12,6 +12,7 @@ set(R6_CORE
     engine/src/core/lua_globals.c
     engine/src/core/lua_xrefs.c
     engine/src/game/honor_schema.c
+    engine/src/game/enma_enums.c
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
