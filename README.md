@@ -29,7 +29,7 @@ Status legend: **Done** = implemented and checked against shipped data;
 | Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin`/`config_3d.bin` layouts, Sound::Initialize config/Impl ABI, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, tone-record control fields, BGM stream/fade ABI; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
 | Audio playback internals | Partial | Mixer bus/fade ABI, dB↔volume conversion, 0xa0 voice-request layout, bank-registration slot/version/record ABI, 32 chained-voice state records and post-KeyOn voice reconfiguration recovered; envelope semantics and playback host unresolved. |
 | Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` copy ABI mapped, field semantics and remaining camera bytes uninterpreted. |
-| Texture containers (`.nut`) | Partial | 11,151 files inventoried: gzip wrapper, NTWD/NTLX magic, NTWD header/descriptor layout and cut-in payloads parsed; pixel-format semantics and texture host unresolved. |
+| Texture containers (`.nut`) | Partial | 11,151 files inventoried: gzip wrapper, NTWD/NTLX header/descriptor layouts, dimensions, payload sizes and cut-in/NTLX payloads parsed; pixel-format semantics and texture host unresolved. |
 | Renderer | Partial | Shipped SM4 DXBC operands, structured IF/LOOP/SWITCH blocks, RDEF uniform usage and texture/sampler binding resolution decoded; no GLSL/Vulkan translation and no renderer host. |
 | Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |
 | Test suite | Done | `build_host.py --test` plus all `test_*.py` green against the dump. |

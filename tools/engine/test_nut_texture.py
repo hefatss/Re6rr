@@ -42,6 +42,25 @@ def run(dump, failures):
           all(row["gidx"] >= 0x50 for row in ntwd if row["version"] == 2),
           "NTWD header sanity", failures)
 
+    ntlx = [row for row in rows if row["container"] == "NTLX"]
+    check(len(ntlx) == 143 and all(row["version"] == 1 and
+                                   row["compressed"] and
+                                   row["descriptor_size"] == 0x50 and
+                                   row["gidx"] == 0 for row in ntlx),
+          "NTLX headers", failures)
+    check(sum(row["exact"] for row in ntlx) == 140 and
+          {row["bytes_per_pixel"] for row in ntlx} == {1, 4},
+          "NTLX layouts", failures)
+    logo_path = os.path.join(dump, "data_jp", "texture", "logo_s",
+                             "cmn_car_logo_s100.nut")
+    logo = nut_texture.parse_nut(logo_path)
+    check(logo["total"] == 0x8050 and logo["payload_size"] == 0x8000 and
+          logo["dimensions"] == (256, 128) and
+          logo["payload_offset"] == 0x60 and logo["exact"],
+          "NTLX single entry", failures)
+    check(len(nut_texture.nut_payload(logo_path)) == 0x8000,
+          "NTLX payload length", failures)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -54,8 +73,8 @@ def main():
         for item in failures:
             print("FAIL " + item)
         return 1
-    print("11151 .nut files, 11008 NTWD (5431 gzip) / 143 NTLX, "
-          "36 cut-in textures: OK")
+    print("11151 .nut files, 11008 NTWD (5431 gzip) / 143 NTLX "
+          "(140 exact), 36 cut-in textures: OK")
     return 0
 
 

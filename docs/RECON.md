@@ -175,10 +175,14 @@ the remaining camera bytes are interpreted. Details in `recon/SCENE_EES.md`.
 5,431 gzip NTWD and 143 gzip NTLX. NTWD stores version/entry counts at `+4`,
 per-entry payload size at `+0x18`, descriptor size, packed dimension fields at
 `+0x20`/`+0x24` and the first GIDX offset at `+0x30`; a `0x10` prefix and
-one `0x50` descriptor per entry precede the payloads. All 36 `sp_cutin` files are 384x320,
-one entry, `0x1e000` payload bytes at `+0x60`. Pixel-format semantics are not
-inferred. `tools/engine/nut_texture.py` inventories the corpus without storing
-texture data.
+one descriptor per entry precede the payloads, with descriptor size from `+0x1c`
+(`0x50`, `0x60`, `0x70` or `0x80`). All 36 `sp_cutin` files are 384x320,
+one entry, `0x1e000` payload bytes at `+0x60`. NTLX uses version 1, always
+gzip-wrapped, with the same prefix/descriptor layout, descriptor size `0x50`,
+GIDX offset zero at `+0x30`, and payload bytes per pixel of either 1 or 4; 140
+of 143 files match the exact layout. Pixel-format semantics are not inferred.
+`tools/engine/nut_texture.py` inventories the corpus without storing texture
+data.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. SM4 control flow is
