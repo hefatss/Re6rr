@@ -2828,3 +2828,97 @@ Java_com_wmmt_re6rr_Config3D_nativeAmplitude(JNIEnv *env, jclass cls,
     }
     return (jdouble)value;
 }
+
+/* Bank-registration bridge: the first call sizes the caller-owned tone array,
+ * then the core fills it. Only copied values cross JNI. */
+static int bank_setup_parse(JNIEnv *env, jbyteArray data,
+                            r6_bank_setup_view *view,
+                            r6_bank_setup_tone **tones) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    size_t count;
+    int rc = raw_from_blob(env, data, &bytes, &length);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    *tones = NULL;
+    rc = r6_bank_setup_init(view, bytes, length, NULL, 0);
+    if (rc == R6_OK) {
+        free(bytes);
+        return R6_OK;
+    }
+    if (rc != R6_ERR_BUFFER) {
+        free(bytes);
+        return rc;
+    }
+    count = (size_t)view->tone_count;
+    if (count > (size_t)-1 / sizeof(**tones)) {
+        free(bytes);
+        return R6_ERR_MEMORY;
+    }
+    *tones = (r6_bank_setup_tone *)malloc(count ? count * sizeof(**tones) : 1);
+    if (!*tones) {
+        free(bytes);
+        return R6_ERR_MEMORY;
+    }
+    rc = r6_bank_setup_init(view, bytes, length, *tones, count);
+    free(bytes);
+    if (rc != R6_OK) {
+        free(*tones);
+        *tones = NULL;
+    }
+    return rc;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_BankSetup_nativeHeader(JNIEnv *env, jclass cls,
+                                           jbyteArray data) {
+    r6_bank_setup_view view;
+    r6_bank_setup_tone *tones = NULL;
+    jint values[8];
+    jintArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (bank_setup_parse(env, data, &view, &tones) != R6_OK) {
+        free(tones);
+        return NULL;
+    }
+    for (i = 0; i < 3; i++) {
+        values[i] = (jint)view.version[i];
+    }
+    values[3] = (jint)view.tone_count;
+    values[4] = (jint)view.data_offset;
+    values[5] = (jint)view.data_size;
+    values[6] = (jint)view.record_table;
+    values[7] = (jint)(tones ? 1 : 0);
+    out = (*env)->NewIntArray(env, 8);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, 8, values);
+    }
+    free(tones);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_BankSetup_nativeTone(JNIEnv *env, jclass cls,
+                                         jbyteArray data, jint index) {
+    r6_bank_setup_view view;
+    r6_bank_setup_tone *tones = NULL;
+    jdouble values[3];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (bank_setup_parse(env, data, &view, &tones) != R6_OK ||
+        index < 0 || (uint32_t)index >= view.tone_count) {
+        free(tones);
+        return NULL;
+    }
+    values[0] = (jdouble)tones[index].length;
+    values[1] = (jdouble)tones[index].data_offset;
+    values[2] = (jdouble)tones[index].formats;
+    out = (*env)->NewDoubleArray(env, 3);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 3, values);
+    }
+    free(tones);
+    return out;
+}
