@@ -238,7 +238,7 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_asset_inventory_parse()/ext()/magic()/folder()/find_ext()/find_magic()/find_folder()/shader()` — read the
   derived `R6AIV` counts: 32 extension rows, 7 inner-magic rows, 27 top-folder
   rows and 40 shader samples with copied paths and 16-byte prefixes.
-- `r6_pe_inventory_parse()/func()/dll()/import()/section()/export()/tls()/directory()/directory_find()/pdb()`
+- `r6_pe_inventory_parse()/func()/func_find()/dll()/import()/section()/export()/tls()/directory()/directory_find()/pdb()`
   — read the derived `R6PEI` counts: 70,377 `.pdata` rows, 28 DLLs, 825
   imports, 7 sections, 8 directories, 2 exports and one TLS callback. RVAs are copied as
   numbers; no PE bytes are mapped or executed.
@@ -435,7 +435,7 @@ Verified on this dump:
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
 | luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
 | Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; find, bad blob, index, row and capacity rejected |
-| PE inventory | all 70,377 `.pdata` rows, 825 imports, 28 DLLs, 7 sections, 8 directories, 2 exports and PDB data match `pe.json`/`pdata.json`; find, bad blob, index, row and capacity rejected |
+| PE inventory | all 70,377 `.pdata` rows, 825 imports, 28 DLLs, 7 sections, 8 directories, 2 exports and PDB data match `pe.json`/`pdata.json`; RVA/directory find, bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; find, bad blob, index and capacity rejected |
 | Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |

@@ -47,6 +47,9 @@ def configure(lib):
     lib.r6_pe_inventory_func.restype = ctypes.c_int
     lib.r6_pe_inventory_func.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32, PU32, PU32]
+    lib.r6_pe_inventory_func_find.restype = ctypes.c_int
+    lib.r6_pe_inventory_func_find.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
     lib.r6_pe_inventory_dll.restype = ctypes.c_int
     lib.r6_pe_inventory_dll.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, BUF, ctypes.c_size_t,
@@ -122,6 +125,16 @@ def check(lib):
         assert end.value == expected["end"]
         assert length.value == expected["size"]
         assert leaf.value == (1 if expected["leaf"] else 0)
+
+    func_index = U32()
+    for index in (0, 1, 35188, 70375, 70376):
+        assert lib.r6_pe_inventory_func_find(
+            source, len(blob), funcs[index]["rva"],
+            ctypes.byref(func_index)) == R6_OK
+        assert func_index.value == index
+    assert lib.r6_pe_inventory_func_find(
+        source, len(blob), funcs[0]["rva"] - 1,
+        ctypes.byref(func_index)) == R6_ERR_NOT_FOUND
 
     name = ctypes.create_string_buffer(256)
     first = U32()

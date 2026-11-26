@@ -20,6 +20,11 @@ public final class PeInventory {
         return nativeFunc(blob, index);
     }
 
+    /** row index for an exact function RVA; -1 if absent. */
+    public static long funcFind(byte[] blob, long rva) {
+        return nativeFuncFind(blob, rva);
+    }
+
     public static String dllName(byte[] blob, int index) {
         return nativeDllName(blob, index);
     }
@@ -81,6 +86,8 @@ public final class PeInventory {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native long[] nativeFunc(byte[] blob, int index);
+
+    private static native long nativeFuncFind(byte[] blob, long rva);
 
     private static native String nativeDllName(byte[] blob, int index);
 

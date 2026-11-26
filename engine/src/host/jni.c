@@ -2615,6 +2615,23 @@ Java_com_wmmt_re6rr_AssetInventory_nativeFindMagic(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeFuncFind(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jlong rva) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_func_find(bytes, length, (uint32_t)rva, &index) !=
+            R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)index;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {
