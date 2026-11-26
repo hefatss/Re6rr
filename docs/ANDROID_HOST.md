@@ -71,7 +71,8 @@ headers and DXBC chunk tables, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
-`BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates the 16
+`BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
+Lua bundle paths, `EngineRuntime` evaluates the 16
 layers using host libm, `EngmapTable` reads the 320 sound/group pairs, `EmtisTable` reads EMTIS
 sections and name counts,
 `VoiceRequest` builds and reads 0xa0 KeyOn records with
@@ -89,7 +90,7 @@ last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 r
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
 192-entry lookup layout,
-`EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
+`ContextPaths` returns ordered Lua bundle paths, `EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
 names, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
@@ -99,7 +100,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK

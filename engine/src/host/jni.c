@@ -17,6 +17,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_bgm.h"
 #include "r6/r6_car.h"
 #include "r6/r6_config_3d.h"
+#include "r6/r6_context.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_emtis.h"
@@ -145,6 +146,62 @@ Java_com_wmmt_re6rr_Re6Engine_nativeLoadScript(JNIEnv *env, jclass cls,
     }
     free(buffer);
     return (jint)rc;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_ContextPaths_nativeList(JNIEnv *env, jclass cls,
+                                            jstring car, jstring model) {
+    const char *car_utf = NULL;
+    const char *model_utf = NULL;
+    char path[R6_CONTEXT_PATH_CAP];
+    jobjectArray out = NULL;
+    jclass string_class;
+    jstring value;
+    int set;
+    int index;
+    jsize at = 0;
+    (void)cls;
+    if (!car || !model) {
+        return NULL;
+    }
+    car_utf = (*env)->GetStringUTFChars(env, car, NULL);
+    model_utf = (*env)->GetStringUTFChars(env, model, NULL);
+    string_class = car_utf && model_utf ?
+        (*env)->FindClass(env, "java/lang/String") : NULL;
+    if (string_class) {
+        out = (*env)->NewObjectArray(env, R6_CONTEXT_PATH_COUNT,
+                                     string_class, NULL);
+    }
+    if (out) {
+        for (set = 0; set < R6_CONTEXT_SETS; set++) {
+            for (index = 0; index < R6_CONTEXT_PATH_COUNT; index++) {
+                if (r6_context_path(set, index, car_utf, model_utf, path,
+                                    sizeof(path)) != R6_OK) {
+                    continue;
+                }
+                value = (*env)->NewStringUTF(env, path);
+                if (!value) {
+                    out = NULL;
+                    break;
+                }
+                (*env)->SetObjectArrayElement(env, out, at++, value);
+                (*env)->DeleteLocalRef(env, value);
+            }
+            if (!out) {
+                break;
+            }
+        }
+        if (out && at != R6_CONTEXT_PATH_COUNT) {
+            out = NULL;
+        }
+    }
+    if (model_utf) {
+        (*env)->ReleaseStringUTFChars(env, model, model_utf);
+    }
+    if (car_utf) {
+        (*env)->ReleaseStringUTFChars(env, car, car_utf);
+    }
+    return out;
 }
 
 JNIEXPORT jint JNICALL
