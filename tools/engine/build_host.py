@@ -32,6 +32,7 @@ SOURCES = [
     "engine/src/game/enma_enums.c",
     "engine/src/game/enma_defaults.c",
     "engine/src/game/enma_exports.c",
+    "engine/src/game/scene_env.c",
     "engine/src/assets/xmd.c",
     "engine/src/assets/ndwd.c",
     "engine/src/assets/ntwd.c",
@@ -163,7 +164,7 @@ def check_jni(dump):
                                 "SoundDispatch.java", "SceneBridge.java",
                                 "StageEffect.java", "BgmManager.java",
                                 "SoundConfig.java", "BankSlots.java",
-                                "CourseSurface.java", "SoundStrings.java", "LuaAudioBindings.java", "EesCamera.java", "SceneConfig.java", "EesCarEffect.java", "EesCarDisp.java", "EesContainer.java", "EesCarInfo.java", "VoiceDispatchFacts.java", "VoiceCoreTableFacts.java", "AudioLayoutFacts.java", "NshContainer.java", "EnvironmentLua.java", "EngmapTable.java", "EmtisTable.java", "NativeNames.java", "ContextPaths.java", "LuaGlobals.java", "LuaXrefs.java", "HonorSchema.java", "EnmaEnums.java", "EnmaDefaults.java", "EnmaExports.java")]
+                                "CourseSurface.java", "SoundStrings.java", "LuaAudioBindings.java", "EesCamera.java", "SceneConfig.java", "EesCarEffect.java", "EesCarDisp.java", "EesContainer.java", "EesCarInfo.java", "VoiceDispatchFacts.java", "VoiceCoreTableFacts.java", "AudioLayoutFacts.java", "NshContainer.java", "EnvironmentLua.java", "EngmapTable.java", "EmtisTable.java", "NativeNames.java", "ContextPaths.java", "LuaGlobals.java", "LuaXrefs.java", "HonorSchema.java", "EnmaEnums.java", "EnmaDefaults.java", "EnmaExports.java", "SceneEnvStats.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"

@@ -15,6 +15,7 @@ set(R6_CORE
     engine/src/game/enma_enums.c
     engine/src/game/enma_defaults.c
     engine/src/game/enma_exports.c
+    engine/src/game/scene_env.c
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
