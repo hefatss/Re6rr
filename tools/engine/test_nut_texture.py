@@ -1,6 +1,7 @@
-"""Self-check for the shipped NTWD/NTLX container inventory."""
+"""Self-check for shipped NTWD/NTLX layout, pixel formats and CPU decode."""
 
 import argparse
+import collections
 import os
 import sys
 
@@ -13,6 +14,10 @@ import nut_texture  # noqa: E402
 def check(condition, message, failures):
     if not condition:
         failures.append(message)
+
+
+def load(dump, relative):
+    return nut_texture.read_nut(os.path.join(dump, *relative.split("/")))
 
 
 def run(dump, failures):
@@ -62,6 +67,79 @@ def run(dump, failures):
           "NTLX payload length", failures)
 
 
+def check_pixels(dump, failures):
+    flame = load(dump, "data/car/numberPlate/flame/flame_illumination1_c1.nut")
+    entries = nut_texture.parse_entries(flame)
+    check([entry["format_name"] for entry in entries[:2]] == ["BC3", "BC1"],
+          "flame formats", failures)
+    check(entries[0]["levels"] == 1 and entries[0]["width"] == 256 and
+          entries[0]["height"] == 128 and entries[0]["data_size"] == 0x8000,
+          "flame BC3 header", failures)
+    rgba = nut_texture.decode_entry(flame, entries[0])
+    alpha = rgba[3::4]
+    check(len(rgba) == 256 * 128 * 4 and alpha[0] == 255 and
+          alpha[64 * 256 + 128] == 0 and len(set(alpha)) > 1,
+          "BC3 alpha decode", failures)
+
+    blend = load(dump, "data/car/blend/blend_system.nut")
+    entry = nut_texture.parse_entries(blend)[0]
+    check(entry["format_name"] == "A8R8G8B8" and
+          entry["width"] == 128 and entry["height"] == 128,
+          "A8R8G8B8 header", failures)
+    rgba = nut_texture.decode_entry(blend, entry)
+    payload = nut_texture.nut_payload(
+        os.path.join(dump, "data", "car", "blend", "blend_system.nut"))
+    check(rgba[:4] == bytes((payload[2], payload[1], payload[0], payload[3])),
+          "A8R8G8B8 channel order", failures)
+
+    bc2 = load(dump, "data/course/stage/A_FUKUOKA_DAY_NML/FUKUOKA/model/nut/"
+                     "FUKUOKA_DAY_NML_Tex1.nut")
+    entry = nut_texture.parse_entries(bc2)[0]
+    check(entry["format_name"] == "BC2" and entry["levels"] == 3,
+          "BC2 header", failures)
+    rgba = nut_texture.decode_entry(bc2, entry)
+    check(len(rgba) == entry["width"] * entry["height"] * 4 and
+          len(set(rgba[3::4])) > 1, "BC2 decode", failures)
+
+    bc1 = load(dump, "data/car/car_data/otherCar/OTH_NZE121.nut")
+    entry = nut_texture.parse_entries(bc1)[0]
+    check(entry["format_name"] == "BC1" and entry["levels"] == 1,
+          "BC1 header", failures)
+    rgba = nut_texture.decode_entry(bc1, entry)
+    check(len(rgba) == 512 * 512 * 4 and len(set(rgba[::4])) > 1 and
+          rgba[3::4] == b"\xff" * (512 * 512), "BC1 decode", failures)
+
+
+def check_formats(dump, failures):
+    stats = collections.Counter()
+    bad = []
+    for directory, _, files in os.walk(dump):
+        for name in files:
+            if not name.lower().endswith(".nut"):
+                continue
+            raw = nut_texture.read_nut(os.path.join(directory, name))
+            for entry in nut_texture.parse_entries(raw):
+                if entry["container"] != "NTWD" or entry["type"] != 2:
+                    continue
+                if entry["format_name"] is None:
+                    stats["unknown"] += 1
+                elif nut_texture.expected_size(entry) == entry["data_size"]:
+                    stats["match"] += 1
+                elif (nut_texture.available_levels(entry) < entry["levels"] and
+                      nut_texture.expected_size(entry) >= entry["data_size"]):
+                    stats["short-mips"] += 1
+                else:
+                    stats["bad"] += 1
+                    if len(bad) < 5:
+                        bad.append((os.path.relpath(os.path.join(directory,
+                                                                 name), dump),
+                                    entry["index"], entry["format_name"],
+                                    entry["data_size"]))
+    check(stats["match"] == 50176 and stats["short-mips"] == 3 and
+          stats["unknown"] == 1 and stats["bad"] == 0,
+          "payload size model %s %s" % (dict(stats), bad), failures)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dump", default=os.environ.get(
@@ -69,12 +147,14 @@ def main():
     args = parser.parse_args()
     failures = []
     run(args.dump, failures)
+    check_pixels(args.dump, failures)
+    check_formats(args.dump, failures)
     if failures:
         for item in failures:
             print("FAIL " + item)
         return 1
     print("11151 .nut files, 11008 NTWD (5431 gzip) / 143 NTLX "
-          "(140 exact), 36 cut-in textures: OK")
+          "(140 exact), 36 cut-ins, 50176 payload sizes, 4 CPU formats: OK")
     return 0
 
 

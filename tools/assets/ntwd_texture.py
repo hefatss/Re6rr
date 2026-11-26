@@ -15,13 +15,13 @@ FUN_140cbc000, FUN_140cbc0f0, FUN_140cbc190, FUN_140cbc270):
       +0x00  u32  type-1 stride, or total size
       +0x08  u32  pixel byte count
       +0x0c  u16  header stride (normally 0x50)
-      +0x10  u32  face count byte at +0x11, format byte at +0x13
+      +0x10  u32  mip-level count byte at +0x11, format byte at +0x13
       +0x14  u16  width
       +0x16  u16  height
-      +0x1c  u32  flag bits (bit 9 selects the second face table, bit 17 cube)
+      +0x1c  u32  flag bits (bit 9 selects the second table, bit 17 cube)
       +0x20  u32  type-2 pixel offset from header start
-      +0x30  face table u32[n], optional
-      +0x30  "eXt" chunk (0x10 bytes), shifted by faces and flag bit 9
+      +0x30  face/mip table u32[n], optional
+      +0x30  "eXt" chunk (0x10 bytes), shifted by the table and flag bit 9
       +0x40  "GIDX" chunk (0x10 bytes), hash at +8
 
 Pixel blobs live after all texture headers. This module reports offsets and

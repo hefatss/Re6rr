@@ -63,7 +63,7 @@ typedef struct r6_ntwd_texture {
     uint16_t width;
     uint16_t height;
     uint16_t header_stride;
-    uint8_t faces;
+    uint8_t faces; /* +0x11: mip-level count; also sizes the eXt/GIDX table skip */
     uint8_t format;
 } r6_ntwd_texture;
 

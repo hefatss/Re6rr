@@ -29,7 +29,7 @@ Status legend: **Done** = implemented and checked against shipped data;
 | Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin`/`config_3d.bin` layouts, Sound::Initialize config/Impl ABI, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, tone-record control fields, BGM stream/fade ABI; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
 | Audio playback internals | Partial | Mixer bus/fade ABI, dB↔volume conversion, 0xa0 voice-request layout, bank-registration ABI, 32 chained-voice state records, post-KeyOn reconfiguration and game-side extended-KeyOn blob origins recovered; envelope bytes and playback host unresolved. |
 | Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` copy ABI mapped, field semantics and remaining camera bytes uninterpreted. |
-| Texture containers (`.nut`) | Partial | 11,151 files inventoried: gzip wrapper, NTWD/NTLX header/descriptor layouts, dimensions, payload sizes and cut-in/NTLX payloads parsed; pixel-format semantics and texture host unresolved. |
+| Texture containers (`.nut`) | Partial | 11,151 files inventoried; BC1/BC2/BC3/A8R8G8B8 formats, mip chains, cube multiplier and 50,176 payload sizes proven; CPU RGBA/PNG decode added; GPU texture upload and one format-`0x0e` file unresolved. |
 | Renderer | Partial | Shipped SM4 DXBC operands, structured IF/LOOP/SWITCH blocks, RDEF uniform usage and texture/sampler bindings decoded; 20,563 instructions classified for GLES, GLSL ES 3.00 emitter handles all 446 records with branches, integer shadows, relative/array registers, documented MOVC semantics, std140 UBO members for 442 static records and named uniform arrays for 4 relative-index records; no Vulkan translation or renderer host. |
 | Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |
 | Test suite | Done | `build_host.py --test` plus all `test_*.py` green against the dump. |
@@ -65,6 +65,7 @@ Details in `docs/P1_STATUS.md`, `docs/ASSETS_NOTES.md`, `docs/P3_LUA_HOST.md`,
     python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 --list
     python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 \
         --glsl-dir build/tmp/glsl                 # 446 GLSL ES records + manifest
+    python tools/engine/nut_texture.py --decode FILE --entry 0 --png out.png
     python tools/engine/build_host.py --test           # build C core + JNI checks
     python tools/engine/test_engine.py --corpus        # all data scripts via C
     python tools/engine/test_physics.py               # vehicle dynamics checks

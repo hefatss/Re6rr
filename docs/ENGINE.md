@@ -150,7 +150,8 @@ to be written must:
 
 - Recompiler (P1) still lacks indirect calls/host stubs, bounded loops and
   XMM/SIMD; 16/18 sampled functions pass.
-- NTWD parser records blob offsets; BC1/BC3/RGBA8 decompression not ported.
+- NTWD parser records blob offsets; BC1/BC2/BC3/A8R8G8B8 decode exists in
+  `tools/engine/nut_texture.py` but is not ported to the C core or GPU host.
 - NDWD parser covers headers and groups; vertex layouts and material chains
   stay in the Python recon tools for now.
 - Physics is an original arcade model, not a trace-equivalent of Enma: the
