@@ -41,6 +41,7 @@ SOURCES = [
     "engine/src/audio/mixer.c",
     "engine/src/audio/envelope.c",
     "engine/src/audio/engine_runtime.c",
+    "engine/src/audio/voice.c",
     "engine/src/physics/vehicle.c",
     "engine/src/physics/lua_config.c",
     "engine/src/physics/course.c",

@@ -1,0 +1,76 @@
+/* Freestanding port of the recovered 0xa0 KeyOn voice-request ABI.
+ *
+ * Layout and defaults come from `tools/engine/audio_events.py`
+ * (FUN_1800237d0, FUN_1800011b0 and the extended-KeyOn blobs). Pointer
+ * fields are stored as opaque integers: the core only copies bytes and never
+ * dereferences them. No allocation, CRT, libm or audio device.
+ */
+#ifndef R6_VOICE_H
+#define R6_VOICE_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "r6.h"
+#include "r6_envelope.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum {
+    R6_VOICE_REQUEST_SIZE = 0xA0,
+    R6_VOICE_EXT_A_SIZE = 0x34,
+    R6_VOICE_EXT_B_SIZE = 0x1C,
+    R6_VOICE_EXT_A_OFFSET = 0x34,
+    R6_VOICE_EXT_B_OFFSET = 0x68,
+    R6_VOICE_FLOAT_OFFSET = 0x84,
+    R6_VOICE_CENTS_DIVISOR = 1200
+};
+
+typedef struct r6_voice_request {
+    int32_t request;
+    int32_t bank;
+    int32_t bank_info;
+    uint32_t tone;
+    uint64_t bank_ptr;
+    uint64_t tone_ptr;
+    uint64_t voice_ptr;
+    int32_t chain_tone;
+    uint32_t extended;
+    uint32_t reserved;
+    unsigned char ext_a[R6_VOICE_EXT_A_SIZE];
+    unsigned char ext_b[R6_VOICE_EXT_B_SIZE];
+    float volume;
+    float pan;
+    uint32_t flags;
+    float extra_a;
+    float extra_b;
+    float extra_c;
+} r6_voice_request;
+
+/* Zero the record, store the six recovered float defaults. */
+R6_API int r6_voice_request_init(r6_voice_request *request);
+
+/* Copy an extended-KeyOn blob into its fixed slot; oversize is rejected. */
+R6_API int r6_voice_request_set_ext(r6_voice_request *request, int a,
+                                    const void *data, size_t size);
+
+/* Convert between the struct and a host-owned 0xa0-byte record. */
+R6_API int r6_voice_request_pack(const r6_voice_request *request, void *data,
+                                 size_t size);
+R6_API int r6_voice_request_unpack(const void *data, size_t size,
+                                   r6_voice_request *request);
+
+/* FUN_18001bf00/b1b0/bd30: NaN or negative -> 0, above one -> 1. */
+R6_API float r6_voice_clamp_unit(float value);
+
+/* FUN_18001be70: 2^(cents/1200), using the host pow hook. */
+R6_API int r6_voice_cents_to_pitch(const r6_envelope_math *math, double cents,
+                                   double *out);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
