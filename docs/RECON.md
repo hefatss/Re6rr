@@ -187,7 +187,9 @@ structured: 272 `SWITCH`, 22 `LOOP` and 9 `IF` blocks match cleanly across all
 `nsxr_shader.control_flow()` builds the nested block map. `uniform_usage()`
 resolves cbuffer operands to named RDEF variables by byte offset: 5,502 static
 operands map across all 446 blobs, 8 use dynamic indices and none are unresolved.
-Details in `recon/RENDER_NSXR.md`.
+`resource_usage()` maps 680 texture and 680 sampler operands to RDEF resource
+names; all 1,052 declarations and uses match a reflection binding. Details in
+`recon/RENDER_NSXR.md`.
 
 ## Lua
 

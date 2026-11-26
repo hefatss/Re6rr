@@ -10,7 +10,8 @@
 into instructions, declarations and SM4 operands (register type, mask/swizzle,
 immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
 blocks are matched by `control_flow()`; `uniform_usage()` resolves cbuffer
-operands against RDEF variables. No game data is stored in this repository.
+operands against RDEF variables and `resource_usage()` maps texture/sampler
+registers to reflected resources. No game data is stored in this repository.
 """
 
 import argparse
@@ -585,6 +586,52 @@ def uniform_usage(record):
                              name or "?")
             usage[key] = usage.get(key, 0) + 1
     return {"usage": usage, "dynamic": dynamic}
+
+
+def resource_usage(record):
+    """Resolve SHDR texture/sampler registers to RDEF resource names.
+
+    SM4 calls the texture operand type `resource` while RDEF calls the binding
+    `texture`; sampler operands and bindings share the name and bind point.
+    """
+    reflection = next(chunk["reflection"] for chunk
+                      in record["dxbc"]["chunks"] if chunk["tag"] == "RDEF")
+    code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                if chunk["tag"] == "SHDR")
+    bindings = {}
+    for item in reflection["resources"]:
+        kind = "resource" if item["type"] == "texture" else item["type"]
+        if kind in ("resource", "sampler"):
+            bindings[(kind, item["bind_point"])] = item["name"]
+    declared = set()
+    for instruction in code["declarations"]:
+        if instruction["name"] not in ("DCL_RESOURCE", "DCL_SAMPLER"):
+            continue
+        for operand in instruction["operands"]:
+            if operand["type"] not in ("resource", "sampler"):
+                continue
+            index = operand["indices"][0].get("value")
+            name = bindings.get((operand["type"], index),
+                                "?%s" % index)
+            declared.add(operand["type"] + ":" + name)
+    usage = {}
+    dynamic = unmapped = 0
+    for instruction in code["instructions"]:
+        for operand in instruction["operands"]:
+            if operand["type"] not in ("resource", "sampler"):
+                continue
+            index = operand["indices"][0].get("value")
+            if index is None:
+                dynamic += 1
+                continue
+            name = bindings.get((operand["type"], index))
+            if name is None:
+                unmapped += 1
+                continue
+            key = operand["type"] + ":" + name
+            usage[key] = usage.get(key, 0) + 1
+    return {"usage": usage, "declared": sorted(declared), "dynamic": dynamic,
+            "unmapped": unmapped}
 
 
 def parse_nsh(path):

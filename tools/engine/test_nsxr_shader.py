@@ -118,6 +118,17 @@ def check(dump):
                    vertex_uniforms["usage"].keys() |
                    pixel_uniforms["usage"].keys())
 
+    vertex_resources = nsxr_shader.resource_usage(body["records"][0])
+    pixel_resources = nsxr_shader.resource_usage(body["records"][1])
+    assert vertex_resources["usage"] == {} and \
+        vertex_resources["declared"] == []
+    assert pixel_resources["usage"] == {
+        "resource:texture00": 1, "resource:texture01": 1,
+        "resource:custom_texture06": 1, "sampler:sampler00": 1,
+        "sampler:sampler01": 1, "sampler:custom_sampler06": 1}
+    assert len(pixel_resources["declared"]) == 6 and \
+        pixel_resources["dynamic"] == pixel_resources["unmapped"] == 0
+
     first_mul = next(item for item in vertex_code["instructions"]
                      if item["name"] == "MUL")
     assert first_mul["offset"] == 196 and first_mul["consumed"] == 8
@@ -177,6 +188,13 @@ def check(dump):
     assert sum(item["dynamic"] for item in usage) == 8
     assert not any(name.endswith(".?") for item in usage
                    for name in item["usage"])
+    resources = [nsxr_shader.resource_usage(record) for record in records]
+    assert sum(sum(item["usage"].values()) for item in resources) == 1360
+    assert sum(len(item["declared"]) for item in resources) == 1052
+    assert all(item["dynamic"] == item["unmapped"] == 0
+               for item in resources)
+    assert not any("?" in name for item in resources
+                   for name in item["declared"])
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)
