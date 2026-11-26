@@ -792,6 +792,7 @@ def _is_int_operand(operand, context):
 
 def _source(operand, context, integral=False, component=None):
     kind = operand["type"]
+    resolved = False
     if kind == "immediate32":
         values = operand["values"]
         position = COMPONENT_INDEX.get(component, 0)
@@ -808,9 +809,15 @@ def _source(operand, context, integral=False, component=None):
         binding = _operand_index(operand)
         name = context["cbuffers"].get(binding, {}).get("name",
                                                         "cb%d" % binding)
-        expr = "%s[%s]" % (name, _index_expr(indices[1], context))
-        if integral:
-            expr = "floatBitsToInt(%s)" % expr
+        if context.get("ubo") and indices[1].get("kind") == "immediate32":
+            expr = _cbuffer_member(binding, indices[1]["value"],
+                                   component or operand.get("components") or "x",
+                                   context, integral)
+            resolved = True
+        else:
+            expr = "%s[%s]" % (name, _index_expr(indices[1], context))
+            if integral:
+                expr = "floatBitsToInt(%s)" % expr
     elif kind == "indexable_temp":
         indices = operand["indices"]
         expr = "%s[%s]" % (context["indexable"][_operand_index(operand)],
@@ -824,7 +831,8 @@ def _source(operand, context, integral=False, component=None):
     else:
         raise ValueError("unsupported source operand %s" % kind)
     components = component or operand.get("components")
-    if components and kind not in ("immediate32", "resource", "sampler"):
+    if components and kind not in ("immediate32", "resource", "sampler") \
+            and not resolved:
         expr += "." + components
     modifier = operand.get("modifier")
     if modifier == "neg":
@@ -850,8 +858,29 @@ def _movc_condition(operand, context, component):
     return "floatBitsToInt(%s) != 0" % expression
 
 
+def _cbuffer_decl(variable):
+    """GLSL std140 member for a reflected DXBC cbuffer variable."""
+    info = variable["type"]
+    name = variable["name"]
+    if info["class"] == "scalar" and info["type"] in ("float", "uint") and \
+            variable["size"] == 4:
+        return {"kind": "scalar", "type": info["type"], "name": name,
+                "declaration": "%s %s;" % (info["type"], name)}
+    if info["class"] == "vector" and info["type"] == "float" and \
+            info["rows"] == 1 and info["cols"] == 4 and \
+            variable["size"] == 16:
+        return {"kind": "vector", "type": "float", "name": name,
+                "declaration": "vec4 %s;" % name}
+    if info["class"] == "matrix_rows" and info["type"] == "float" and \
+            info["rows"] == 4 and info["cols"] == 4 and \
+            variable["size"] == 64:
+        return {"kind": "matrix", "type": "float", "name": name,
+                "declaration": "vec4 %s[4];" % name}
+    return None
+
+
 def cbuffer_symbols(reflection):
-    """Map RDEF cbuffer bind points to GLSL names and byte-offset symbols."""
+    """Map RDEF cbuffer binds to GLSL names, std140 members and byte regions."""
     buffers = {item["name"]: item for item in reflection["cbuffers"]}
     result = {}
     for resource in reflection["resources"]:
@@ -860,21 +889,72 @@ def cbuffer_symbols(reflection):
         buffer = buffers.get(resource["name"], {})
         name = "".join(char if char.isalnum() or char == "_" else "_"
                        for char in resource["name"])
+        regions = []
+        declarations = []
+        ubo = True
+        for variable in sorted(buffer.get("variables", []),
+                               key=lambda item: item["offset"]):
+            member = _cbuffer_decl(variable)
+            if member is None:
+                ubo = False
+                continue
+            region = dict(member, offset=variable["offset"],
+                          size=variable["size"])
+            regions.append(region)
+            declarations.append(member["declaration"])
         result[resource["bind_point"]] = {
             "name": name,
             "variables": [(item["name"], item["offset"])
                           for item in buffer.get("variables", [])],
+            "regions": regions,
+            "declarations": declarations,
+            "ubo": ubo,
+            "size": buffer.get("size", 0),
         }
     return result
+
+
+def _dynamic_cbuffer(code):
+    """True when any cbuffer operand uses a relative or combined index."""
+    for instruction in code["instructions"]:
+        for operand in instruction["operands"]:
+            if operand["type"] != "constant_buffer":
+                continue
+            index = operand["indices"][1]
+            if index.get("kind") != "immediate32":
+                return True
+    return False
+
+
+def _cbuffer_member(binding, index, component, context, integral=False):
+    """Resolve a static cbuffer vector/component to a named std140 member."""
+    byte = index * 16 + COMPONENT_INDEX.get(component, 0) * 4
+    info = context["cbuffers"][binding]
+    for region in info["regions"]:
+        if not region["offset"] <= byte < region["offset"] + region["size"]:
+            continue
+        name = "%s.%s" % (info["name"], region["name"])
+        if region["kind"] == "scalar":
+            if region["type"] == "uint":
+                return "int(%s)" % name if integral else name
+            return "floatBitsToInt(%s)" % name if integral else name
+        if region["kind"] == "vector":
+            expression = "%s.%s" % (name, component)
+        else:
+            row = (byte - region["offset"]) // 16
+            expression = "%s[%d].%s" % (name, row, component)
+        return "floatBitsToInt(%s)" % expression if integral else expression
+    raise ValueError("unmapped cbuffer byte %d in bind %d" % (byte, binding))
 
 
 def glsl_es_source(record):
     """Emit GLSL ES 3.00 for one DXBC record.
 
     Supports the decoded structured IF/LOOP/SWITCH blocks, integer register
-    components, float comparison masks, indexable temps and MOVC. RDEF cbuffer
-    names and byte offsets are emitted as uniform names and comments. Output is
-    source text for inspection, not driver-validated code.
+    components, float comparison masks, indexable temps and MOVC. Static RDEF
+    cbuffer accesses become std140 UBO members; records with relative cbuffer
+    indices keep named uniform arrays. Output is source text for inspection,
+    not driver-validated code.
     """
     code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
                 if chunk["tag"] == "SHDR")
@@ -918,9 +998,14 @@ def glsl_es_source(record):
                  for item in reflection["resources"]
                  if item["type"] == "texture"}
     symbols = cbuffer_symbols(reflection)
+    dynamic_cb = _dynamic_cbuffer(code)
+    # ponytail: relative cbuffer indices keep raw named arrays. Add a generated
+    # slot selector if a host needs std140 blocks for those four shaders too.
+    ubo_mode = not dynamic_cb and all(
+        symbols.get(binding, {}).get("ubo") for binding in cbuffers)
     int_components = _int_components(code)
     context = {"resources": resources, "int_components": int_components,
-               "indexable": indexable, "cbuffers": symbols}
+               "indexable": indexable, "cbuffers": symbols, "ubo": ubo_mode}
     for instruction in code["instructions"]:
         for operand in instruction["operands"]:
             if operand["type"] == "temp":
@@ -942,10 +1027,17 @@ def glsl_es_source(record):
     for binding, size in sorted(cbuffers.items()):
         info = symbols.get(binding, {})
         name = info.get("name", "cb%d" % binding)
-        lines.append("uniform vec4 %s[%d]; // cbuffer bind %d" %
-                     (name, size, binding))
-        for variable, offset in info.get("variables", []):
-            lines.append("//   %s @ byte %d" % (variable, offset))
+        if ubo_mode:
+            lines.append("layout(std140) uniform %s_block {" % name)
+            for declaration in info.get("declarations", []):
+                lines.append("    " + declaration)
+            lines.append("} %s; // cbuffer bind %d, %d bytes" %
+                         (name, binding, info.get("size", size * 16)))
+        else:
+            lines.append("uniform vec4 %s[%d]; // cbuffer bind %d" %
+                         (name, size, binding))
+            for variable, offset in info.get("variables", []):
+                lines.append("//   %s @ byte %d" % (variable, offset))
     for binding, name in sorted(resources.items()):
         lines.append("uniform sampler2D %s; // texture bind %d" %
                      (name, binding))

@@ -230,18 +230,25 @@ def check(dump):
     fade_source = nsxr_shader.glsl_es_source(shaders["Fade.nsh"]["records"][1])
     assert "out0 = vec4(in1.xyzw);" in fade_source
     body_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][1])
-    assert "switch (int(AlphaTest[0].y)) {" in body_source and \
+    assert "switch (int(AlphaTest.AlphaTestFunc)) {" in body_source and \
         "case 0:" in body_source and "break;" in body_source and \
         "ivec4 ri0;" in body_source
-    assert "uniform vec4 AlphaTest[1]; // cbuffer bind 13" in body_source and \
-        "//   AlphaTestFunc @ byte 4" in body_source
+    assert "layout(std140) uniform AlphaTest_block {" in body_source and \
+        "uint AlphaTestFunc;" in body_source and \
+        "} AlphaTest; // cbuffer bind 13, 16 bytes" in body_source
     body_reflection = next(chunk["reflection"] for chunk
                            in shaders["Body.nsh"]["records"][1]["dxbc"]["chunks"]
                            if chunk["tag"] == "RDEF")
     symbols = nsxr_shader.cbuffer_symbols(body_reflection)
     assert symbols[0]["name"] == "CustomParameter" and \
         symbols[13]["name"] == "AlphaTest" and \
-        ("AlphaTestFunc", 4) in symbols[13]["variables"]
+        ("AlphaTestFunc", 4) in symbols[13]["variables"] and \
+        symbols[13]["ubo"]
+    assert any(member["name"] == "AlphaTestFunc" and
+               member["offset"] == 4 for member in symbols[13]["regions"])
+    vertex_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][0])
+    assert "vec4 LocalToProjectionMatrix[4];" in vertex_source and \
+        "PerDraw.LocalToProjectionMatrix[1].xyzw" in vertex_source
     star_source = nsxr_shader.glsl_es_source(
         shaders["StarPass00.nsh"]["records"][1])
     assert "for (;;) {" in star_source and \
