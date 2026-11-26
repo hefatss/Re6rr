@@ -36,6 +36,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_name_runs.h"
 #include "r6/r6_lua_reg_tables.h"
 #include "r6/r6_path_strings.h"
+#include "r6/r6_enma_sim.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -1967,6 +1968,140 @@ Java_com_wmmt_re6rr_PathStrings_nativeFind(JNIEnv *env, jclass cls,
     values[1] = (jlong)local;
     values[2] = (jlong)global;
     return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_enma_sim_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    (void)cls;
+    if (!bytes || r6_enma_sim_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.getter_count;
+    values[2] = (jlong)header.hit_count;
+    values[3] = (jlong)header.config_size;
+    values[4] = (jlong)header.strings_size;
+    values[5] = (jlong)header.strings_off;
+    return pe_new_longs(env, values, 6);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeGetter(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char name[R6_ENMA_SIM_NAME_CAP];
+    char export_name[R6_ENMA_SIM_NAME_CAP];
+    uint32_t first = 0;
+    uint32_t count = 0;
+    uint32_t kind = 0;
+    uint32_t bits = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    (void)cls;
+    if (!bytes ||
+        r6_enma_sim_getter(bytes, length, (uint32_t)index, name,
+                           sizeof(name), export_name, sizeof(export_name),
+                           &first, &count, &kind, &bits) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)first;
+    values[1] = (jlong)count;
+    values[2] = (jlong)kind;
+    values[3] = (jlong)bits;
+    return pe_new_longs(env, values, 4);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeGetterName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char name[R6_ENMA_SIM_NAME_CAP];
+    char export_name[R6_ENMA_SIM_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_enma_sim_getter(bytes, length, (uint32_t)index, name,
+                           sizeof(name), export_name, sizeof(export_name),
+                           NULL, NULL, NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, name);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeGetterExport(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char name[R6_ENMA_SIM_NAME_CAP];
+    char export_name[R6_ENMA_SIM_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_enma_sim_getter(bytes, length, (uint32_t)index, name,
+                           sizeof(name), export_name, sizeof(export_name),
+                           NULL, NULL, NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, export_name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeHit(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    uint32_t offset = 0;
+    uint32_t bits = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    (void)cls;
+    if (!bytes ||
+        r6_enma_sim_hit(bytes, length, (uint32_t)index, &offset,
+                        &bits) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)offset;
+    values[1] = (jlong)bits;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_EnmaSimFacts_nativeConfig(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    unsigned char config[R6_ENMA_SIM_CONFIG_SIZE];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jbyteArray out = NULL;
+    (void)cls;
+    if (!bytes ||
+        r6_enma_sim_config(bytes, length, config,
+                           sizeof(config)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewByteArray(env, R6_ENMA_SIM_CONFIG_SIZE);
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, R6_ENMA_SIM_CONFIG_SIZE,
+                                   (const jbyte *)config);
+    }
+    return out;
 }
 
 JNIEXPORT jlongArray JNICALL
