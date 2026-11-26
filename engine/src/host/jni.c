@@ -3199,6 +3199,92 @@ Java_com_wmmt_re6rr_SoundConfig_nativeParse(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SoundStrings_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint kind) {
+    r6_sound_strings_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[8];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_sound_strings_parse(bytes, length, (int)kind, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.bank_id;
+    values[2] = (jlong)header.count;
+    values[3] = (jlong)header.size;
+    values[4] = (jlong)header.name_size;
+    values[5] = (jlong)header.path_size;
+    values[6] = (jlong)header.rows_off;
+    values[7] = (jlong)header.row_size;
+    out = (*env)->NewLongArray(env, 8);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 8, values);
+    }
+    return out;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_SoundStrings_nativeRow(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint kind,
+                                           jint index) {
+    r6_sound_strings_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jobjectArray out = NULL;
+    jclass string_class;
+    jstring value;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_sound_strings_row(bytes, length, (int)kind, (uint32_t)index,
+                             &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if (string_class) {
+        out = (*env)->NewObjectArray(env, 2, string_class, NULL);
+    }
+    if (!out) {
+        return NULL;
+    }
+    value = (*env)->NewStringUTF(env, row.name);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 0, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    value = (*env)->NewStringUTF(env, row.value);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 1, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    return out;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_SoundStrings_nativeRowId(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint kind,
+                                             jint index) {
+    r6_sound_strings_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong result = -1;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_sound_strings_row(bytes, length, (int)kind, (uint32_t)index,
+                             &row) == R6_OK) {
+        result = (jlong)row.id;
+    }
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_BankSlots_nativeFind(JNIEnv *env, jclass cls,
                                          jbyteArray slots) {

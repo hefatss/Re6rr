@@ -357,3 +357,109 @@ int r6_bank_slot_find(const void *slots, size_t size, uint32_t *out) {
     }
     return R6_ERR_NOT_FOUND;
 }
+
+static size_t strings_copy(const unsigned char *source, size_t available,
+                           char *target, size_t capacity) {
+    size_t length = 0;
+    if (!capacity) {
+        return 0;
+    }
+    while (length < available && source[length]) {
+        length++;
+    }
+    if (length >= capacity) {
+        length = capacity - 1u;
+    }
+    r6_memset(target, 0, capacity);
+    r6_memcpy(target, source, length);
+    return length;
+}
+
+int r6_sound_strings_parse(const void *data, size_t size, int kind,
+                           r6_sound_strings_header *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_sound_strings_header header;
+    uint64_t expected;
+    if (!bytes || !out || size < R6_SOUND_STRINGS_HEADER_SIZE ||
+        (kind != R6_SOUND_STRINGS_BANK && kind != R6_SOUND_STRINGS_TONE) ||
+        r6_u32(bytes, 0) != 1u) {
+        return R6_ERR_FORMAT;
+    }
+    r6_memset(&header, 0, sizeof(header));
+    header.version = 1u;
+    if (kind == R6_SOUND_STRINGS_BANK) {
+        header.count = r6_u32(bytes, 4);
+        header.size = r6_u32(bytes, 8);
+        header.name_size = r6_u32(bytes, 0x0c);
+        if (!header.count || !header.name_size ||
+            header.name_size > R6_SOUND_STRINGS_BANK_ROW_SIZE) {
+            return R6_ERR_FORMAT;
+        }
+        expected = R6_SOUND_STRINGS_HEADER_SIZE +
+                   (uint64_t)header.count * R6_SOUND_STRINGS_BANK_ROW_SIZE -
+                   (R6_SOUND_STRINGS_BANK_ROW_SIZE - header.name_size);
+        header.rows_off = R6_SOUND_STRINGS_HEADER_SIZE;
+        header.row_size = R6_SOUND_STRINGS_BANK_ROW_SIZE;
+    } else {
+        header.bank_id = r6_u32(bytes, 4);
+        header.count = r6_u32(bytes, 8);
+        header.size = r6_u32(bytes, 0x0c);
+        header.name_size = r6_u32(bytes, 0x10);
+        header.path_size = r6_u32(bytes, 0x14);
+        if (header.name_size != R6_SOUND_STRINGS_FIELD_SIZE ||
+            header.path_size != R6_SOUND_STRINGS_FIELD_SIZE) {
+            return R6_ERR_FORMAT;
+        }
+        expected = R6_SOUND_STRINGS_TONE_ROWS_OFFSET +
+                   (uint64_t)header.count * R6_SOUND_STRINGS_TONE_ROW_SIZE;
+        header.rows_off = R6_SOUND_STRINGS_TONE_ROWS_OFFSET;
+        header.row_size = R6_SOUND_STRINGS_TONE_ROW_SIZE;
+    }
+    if (header.size != size || header.size != expected) {
+        return R6_ERR_FORMAT;
+    }
+    *out = header;
+    return R6_OK;
+}
+
+int r6_sound_strings_row(const void *data, size_t size, int kind,
+                         uint32_t index, r6_sound_strings_row_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_sound_strings_header header;
+    size_t at;
+    size_t available;
+    int result = r6_sound_strings_parse(data, size, kind, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!out || index >= header.count) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    at = header.rows_off + (size_t)index * header.row_size;
+    if (at >= size) {
+        return R6_ERR_FORMAT;
+    }
+    available = size - at;
+    if (available > header.row_size) {
+        available = header.row_size;
+    }
+    if (kind == R6_SOUND_STRINGS_BANK) {
+        size_t name_size = header.name_size;
+        if (name_size > available) {
+            name_size = available;
+        }
+        strings_copy(bytes + at, name_size, out->name, sizeof(out->name));
+        if (header.name_size + 4u <= available) {
+            out->id = r6_u32(bytes, at + header.name_size);
+        }
+    } else {
+        strings_copy(bytes + at, available, out->name, sizeof(out->name));
+        if (available > header.name_size) {
+            strings_copy(bytes + at + header.name_size,
+                         available - header.name_size,
+                         out->value, sizeof(out->value));
+        }
+    }
+    return R6_OK;
+}

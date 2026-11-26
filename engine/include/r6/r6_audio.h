@@ -210,6 +210,41 @@ enum {
 
 R6_API int r6_bank_slot_find(const void *slots, size_t size, uint32_t *out);
 
+/* nuSound2BankStr.bin and nuSound2ToneStr<BANK>.bin. Names and WAV paths are
+ * copied into fixed NUL-padded fields; the blob itself stays caller-owned. */
+enum {
+    R6_SOUND_STRINGS_BANK = 0,
+    R6_SOUND_STRINGS_TONE = 1,
+    R6_SOUND_STRINGS_HEADER_SIZE = 0x20,
+    R6_SOUND_STRINGS_FIELD_SIZE = 0x40,
+    R6_SOUND_STRINGS_BANK_ROW_SIZE = 0x30,
+    R6_SOUND_STRINGS_TONE_ROW_SIZE = 0x80,
+    R6_SOUND_STRINGS_TONE_ROWS_OFFSET = 0x40
+};
+
+typedef struct r6_sound_strings_header {
+    uint32_t version;
+    uint32_t bank_id;
+    uint32_t count;
+    uint32_t size;
+    uint32_t name_size;
+    uint32_t path_size;
+    uint32_t rows_off;
+    uint32_t row_size;
+} r6_sound_strings_header;
+
+typedef struct r6_sound_strings_row_t {
+    char name[R6_SOUND_STRINGS_FIELD_SIZE];
+    char value[R6_SOUND_STRINGS_FIELD_SIZE];
+    uint32_t id;
+} r6_sound_strings_row_t;
+
+R6_API int r6_sound_strings_parse(const void *data, size_t size, int kind,
+                                  r6_sound_strings_header *out);
+
+R6_API int r6_sound_strings_row(const void *data, size_t size, int kind,
+                                uint32_t index, r6_sound_strings_row_t *out);
+
 #ifdef __cplusplus
 }
 #endif

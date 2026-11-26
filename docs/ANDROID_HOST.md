@@ -73,8 +73,9 @@ reservation, `VoiceChain` copies chained-voice records and applies core fields,
 `SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
 stream fade state, `BgmManager` applies playBGM id dispatch, `SoundDispatch`
 copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
-`BankSlots` finds free registration slots, `CourseSurface` classifies road
-names, `SceneBridge` copies camid and resolves camera containers/records, and
+`BankSlots` finds free registration slots, `SoundStrings` reads bank/tone
+names and WAV paths, `CourseSurface` classifies road names, `SceneBridge`
+copies camid and resolves camera containers/records, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
