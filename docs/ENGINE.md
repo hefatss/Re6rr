@@ -10,6 +10,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
+engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
 engine/include/r6/r6_course.h road polyline projection and surface flags
 engine/include/r6/r6_physics.h  vehicle config, state and simulation API
@@ -20,7 +21,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, no renderer or GPU calls
+engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader; no renderer or GPU calls
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
@@ -122,6 +123,7 @@ Verified on this dump:
 | 142 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |
 | `Body.nsh` sampler units 0/1/6 | `r6_glsl_texture_upload()` matches Python RGBA8 descriptors for five `.nut` formats; bad format, zero size and overflow rejected |
+| `Body.nsh` compiled bindings | `R6GB` manifest round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; short, bad-version and bad-index inputs rejected |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization and story catalog wrappers |
