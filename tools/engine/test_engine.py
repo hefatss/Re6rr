@@ -116,6 +116,18 @@ class GlslValue(ctypes.Union):
     ]
 
 
+class GlslTextureDesc(ctypes.Structure):
+    _fields_ = [
+        ("unit", ctypes.c_uint32),
+        ("internal_format", ctypes.c_uint32),
+        ("format", ctypes.c_uint32),
+        ("type", ctypes.c_uint32),
+        ("width", ctypes.c_uint32),
+        ("height", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+    ]
+
+
 class ScriptSource(ctypes.Structure):
     _fields_ = [
         ("name", ctypes.c_char_p),
@@ -729,6 +741,39 @@ def test_glsl_ubo(dll, dump, failures):
     print("  glsl std140 pack: scalar, uint, vec4, mat4, buffer checks")
 
 
+def test_glsl_texture(dll, dump, failures):
+    """C upload descriptors must match the Python GLES RGBA8 reference."""
+    lib = load_core(dll, dump)
+    lib.r6_glsl_texture_upload.restype = ctypes.c_int
+    lib.r6_glsl_texture_upload.argtypes = [
+        ctypes.c_uint32, ctypes.c_uint8, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.POINTER(GlslTextureDesc)]
+    cases = [(0, 0, 256, 256), (1, 1, 128, 64), (6, 2, 168, 168),
+             (13, 0x0e, 336, 336), (2, 0x15, 1, 1)]
+    for unit, nut_format, width, height in cases:
+        desc = GlslTextureDesc()
+        rc = lib.r6_glsl_texture_upload(unit, nut_format, width, height,
+                                        ctypes.byref(desc))
+        got = {"unit": desc.unit, "internal_format": desc.internal_format,
+               "format": desc.format, "type": desc.type,
+               "width": desc.width, "height": desc.height,
+               "size": desc.size}
+        if rc != R6_OK or got != glsl_ubo.texture_upload(
+                unit, nut_format, width, height):
+            failures.append("glsl texture: %d/%d rc=%d %s" %
+                            (nut_format, unit, rc, got))
+    checks = [(3, 4, 4, R6_ERR_FORMAT), (0, 0, 4, R6_ERR_ARG),
+              (0, 0x10000, 0x10000, R6_ERR_BUFFER)]
+    for nut_format, width, height, expected in checks:
+        desc = GlslTextureDesc()
+        rc = lib.r6_glsl_texture_upload(7, nut_format, width, height,
+                                        ctypes.byref(desc))
+        if rc != expected:
+            failures.append("glsl texture error: fmt=%d rc=%d" %
+                            (nut_format, rc))
+    print("  glsl texture upload: 5 formats, unit/size parity and error checks")
+
+
 def test_corpus(dll, dump, failures):
     """Load every data script through the C host, as lua_probe does in Python."""
     bootstrap = os.path.join(dump, "data", "car", "tire", "script",
@@ -796,6 +841,7 @@ def main():
         test_assets(args.dll, args.dump, failures, args.limit)
         test_nut_decode(args.dll, args.dump, failures)
         test_glsl_ubo(args.dll, args.dump, failures)
+        test_glsl_texture(args.dll, args.dump, failures)
     if failures:
         print("\nFAILURES (%d)" % len(failures))
         for line in failures:

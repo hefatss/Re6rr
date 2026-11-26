@@ -35,12 +35,30 @@ typedef union r6_glsl_value {
     float m[16];
 } r6_glsl_value;
 
+/* Description of one decoded RGBA8 texture upload to a GLES sampler unit.
+ * Enums are numeric GL values so the freestanding core needs no GL headers. */
+typedef struct r6_glsl_texture_desc {
+    uint32_t unit;
+    uint32_t internal_format;
+    uint32_t format;
+    uint32_t type;
+    uint32_t width;
+    uint32_t height;
+    uint32_t size;
+} r6_glsl_texture_desc;
+
 /* Zero-fill capacity bytes, then write each value at its reflected offset.
  * On R6_ERR_BUFFER, out_size holds the required capacity. */
 R6_API int r6_glsl_pack_ubo(void *ubo, size_t capacity,
                             const r6_glsl_region *regions,
                             const r6_glsl_value *values, size_t count,
                             size_t *out_size);
+
+/* Describe a decoded RGBA8 upload for one .nut format and sampler unit.
+ * R6_ERR_BUFFER means the RGBA8 byte count does not fit in uint32_t. */
+R6_API int r6_glsl_texture_upload(uint32_t unit, uint8_t nut_format,
+                                  uint32_t width, uint32_t height,
+                                  r6_glsl_texture_desc *out);
 
 #ifdef __cplusplus
 }

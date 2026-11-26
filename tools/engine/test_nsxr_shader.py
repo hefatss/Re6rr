@@ -259,6 +259,18 @@ def check(dump):
     assert bindings["cbuffers"][1]["regions"][1]["name"] == "AlphaTestFunc"
     assert [item["name"] for item in bindings["textures"]] == \
         ["texture00", "texture01", "custom_texture06"]
+    assert [(item["unit"], item["sampler"], item["texture"])
+            for item in bindings["samplers"]] == \
+        [(0, "sampler00", "texture00"),
+         (1, "sampler01", "texture01"),
+         (6, "custom_sampler06", "custom_texture06")]
+    uploads = glsl_ubo.texture_uploads(bindings, {
+        "texture00": (0, 256, 256), "texture01": (2, 128, 64),
+        "custom_texture06": (0x0e, 168, 168)})
+    assert [item["size"] for item in uploads] == [262144, 32768, 112896] and \
+        all(item["internal_format"] == 0x8058 and
+            item["format"] == 0x1908 and item["type"] == 0x1401
+            for item in uploads)
     star_bindings = nsxr_shader.glsl_bindings(
         shaders["StarPass00.nsh"]["records"][1])
     assert not star_bindings["ubo"] and \
@@ -367,7 +379,7 @@ def check(dump):
         assert len(manifest) == 446
         assert sum(item["stage_kind"] == "vertex" for item in manifest) == 223
         assert sum(item["stage_kind"] == "pixel" for item in manifest) == 223
-        totals = [0] * 6
+        totals = [0] * 7
         for item in manifest:
             source = open(os.path.join(glsl_dir, item["file"]),
                           encoding="utf8").read()
@@ -402,12 +414,13 @@ def check(dump):
             totals[4] += bool(bindings["ubo"])
             totals[5] += sum(len(value["regions"])
                              for value in bindings["cbuffers"])
+            totals[6] += len(bindings["samplers"])
             if bindings["ubo"]:
                 packed = glsl_ubo.pack_ubos(bindings)
                 assert len(packed) == len(bindings["cbuffers"])
                 assert sum(len(item) for item in packed.values()) == \
                     sum(item["size"] for item in bindings["cbuffers"])
-        assert totals == [1590, 1457, 797, 526, 442, 2029]
+        assert totals == [1590, 1457, 797, 526, 442, 2029, 526]
         assert any(item["file"] == "Body.stage1.glsl" for item in manifest)
     print("  223 .nsh files, 446 DXBC blobs, 20563 instructions, "
           "43827 decoded operands, 1590 inputs / 1457 outputs, "

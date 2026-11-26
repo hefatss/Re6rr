@@ -975,6 +975,9 @@ def glsl_bindings(record):
         if declaration["name"] == "DCL_CONSTANT_BUFFER":
             operand = declaration["operands"][0]
             slots[_operand_index(operand)] = _operand_index(operand, 1)
+    sampler_names = {item["bind_point"]: item["name"]
+                     for item in reflection["resources"]
+                     if item["type"] == "sampler"}
     symbols = cbuffer_symbols(reflection)
     # ponytail: relative cbuffer indices keep raw named arrays. Add a generated
     # slot selector if a host needs std140 blocks for those four shaders too.
@@ -993,16 +996,21 @@ def glsl_bindings(record):
             "variables": [{"name": name, "offset": offset}
                           for name, offset in info.get("variables", [])],
         })
+    textures = sorted(
+        ({"binding": item["bind_point"], "name": item["name"]}
+         for item in reflection["resources"]
+         if item["type"] == "texture"),
+        key=lambda item: item["binding"])
     return {
         "stage": reflection["stage"],
         "inputs": signature("ISGN", "in", True),
         "outputs": signature("OSGN", "out", False),
         "cbuffers": cbuffers,
-        "textures": sorted(
-            ({"binding": item["bind_point"], "name": item["name"]}
-             for item in reflection["resources"]
-             if item["type"] == "texture"),
-            key=lambda item: item["binding"]),
+        "textures": textures,
+        "samplers": [{"unit": item["binding"], "texture": item["name"],
+                      "sampler": sampler_names[item["binding"]]}
+                     for item in textures
+                     if item["binding"] in sampler_names],
         "ubo": ubo,
     }
 

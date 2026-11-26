@@ -90,3 +90,29 @@ int r6_glsl_pack_ubo(void *ubo, size_t capacity,
     *out_size = capacity;
     return R6_OK;
 }
+
+int r6_glsl_texture_upload(uint32_t unit, uint8_t nut_format,
+                           uint32_t width, uint32_t height,
+                           r6_glsl_texture_desc *out) {
+    uint64_t pixels;
+    if (!out || width == 0 || height == 0) {
+        return R6_ERR_ARG;
+    }
+    if (nut_format != 0 && nut_format != 1 && nut_format != 2 &&
+        nut_format != 0x0e && nut_format != 0x15) {
+        return R6_ERR_FORMAT;
+    }
+    pixels = (uint64_t)width * height;
+    if (pixels > UINT32_MAX / 4u) {
+        out->size = 0;
+        return R6_ERR_BUFFER;
+    }
+    out->unit = unit;
+    out->internal_format = 0x8058u; /* GL_RGBA8 */
+    out->format = 0x1908u;          /* GL_RGBA */
+    out->type = 0x1401u;            /* GL_UNSIGNED_BYTE */
+    out->width = width;
+    out->height = height;
+    out->size = (uint32_t)pixels * 4u;
+    return R6_OK;
+}

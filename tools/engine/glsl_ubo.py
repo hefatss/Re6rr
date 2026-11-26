@@ -53,3 +53,32 @@ def pack_ubos(bindings, values=None):
     return {block["name"]: pack_ubo(bindings, block["name"],
                                    values.get(block["name"], {}))
             for block in bindings["cbuffers"]}
+
+
+# GLES 3.00 constants for the decoded RGBA8 upload path. Compressed .nut
+# payloads are decoded by nut_texture.py before reaching this helper.
+GLES_RGBA8 = {"internal_format": 0x8058, "format": 0x1908, "type": 0x1401}
+NUT_RGBA_FORMATS = (0, 1, 2, 0x0e, 0x15)
+
+
+def texture_upload(unit, nut_format, width, height):
+    """Describe one RGBA8 texture upload for reflected GLES sampler unit."""
+    if nut_format not in NUT_RGBA_FORMATS or width < 1 or height < 1:
+        raise ValueError("invalid RGBA8 texture descriptor")
+    size = width * height * 4
+    if size > 0xffffffff:
+        raise ValueError("texture too large for one RGBA8 upload")
+    return dict(GLES_RGBA8, unit=unit, width=width, height=height, size=size)
+
+
+def texture_uploads(bindings, images):
+    """Pair reflected sampler/texture names with host-supplied image metadata.
+
+    `images` maps a texture name from glsl_bindings() to
+    (nut_format, width, height). No shader-to-asset mapping is invented: the
+    host that knows which .nut fills which sampler supplies it.
+    """
+    return [dict(texture_upload(item["unit"], *images[item["texture"]]),
+                 sampler=item["sampler"], texture=item["texture"])
+            for item in bindings["samplers"]]
+
