@@ -3705,6 +3705,36 @@ Java_com_wmmt_re6rr_EesCarDisp_nativeRead(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnvironmentLua_nativeParse(JNIEnv *env, jclass cls,
+                                               jbyteArray raw) {
+    r6_scene_values_t values;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong out_values[8];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_environment_parse(bytes, length, &values) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out_values[0] = (jlong)values.stage;
+    out_values[1] = (jlong)values.stage_root;
+    out_values[2] = (jlong)values.stage_day;
+    out_values[3] = (jlong)values.cam_id;
+    out_values[4] = (jlong)values.actors[0];
+    out_values[5] = (jlong)values.actors[1];
+    out_values[6] = (jlong)values.actors[2];
+    out_values[7] = (jlong)values.actors[3];
+    out = (*env)->NewLongArray(env, 8);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 8, out_values);
+    }
+    return out;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
                                            jint stage, jint stage_root,

@@ -85,7 +85,8 @@ last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 r
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
 192-entry lookup layout,
-`SceneConfig` packs scenes and resolves native names, and
+`EnvironmentLua` parses scene scripts, `SceneConfig` packs scenes and resolves
+native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or

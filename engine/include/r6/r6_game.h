@@ -243,6 +243,11 @@ typedef struct r6_scene_values_t {
 R6_API int r6_scene_pack(const r6_scene_values_t *values, void *out,
                          size_t size);
 
+/* Parse one shipped Environment.Lua text file into the eight scene slots.
+ * Keys are `NAME = "decimal"`; missing or malformed values become zero. */
+R6_API int r6_environment_parse(const void *text, size_t size,
+                                r6_scene_values_t *out);
+
 /* Packed native name tables (R6SCN) used by the scene debug logger. */
 enum {
     R6_SCENE_CAR_NAMES = 0,

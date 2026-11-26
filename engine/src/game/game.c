@@ -552,6 +552,123 @@ int r6_ees_car_disp(const void *data, size_t size, uint32_t offset,
     return R6_OK;
 }
 
+static int env_key(const unsigned char *bytes, size_t begin, size_t end,
+                   const char *name) {
+    size_t length = 0;
+    while (name[length]) {
+        length++;
+    }
+    return end - begin == length && r6_memcmp(bytes + begin, name, length) == 0;
+}
+
+static int32_t env_integer(const unsigned char *bytes, size_t begin,
+                           size_t end) {
+    size_t at = begin;
+    int sign = 1;
+    int32_t value = 0;
+    while (at < end && (bytes[at] == ' ' || bytes[at] == '\t' ||
+                        bytes[at] == '\r')) {
+        at++;
+    }
+    if (at < end && (bytes[at] == '+' || bytes[at] == '-')) {
+        if (bytes[at] == '-') {
+            sign = -1;
+        }
+        at++;
+    }
+    if (at == end) {
+        return 0;
+    }
+    while (at < end && bytes[at] >= '0' && bytes[at] <= '9') {
+        int32_t digit = (int32_t)(bytes[at] - '0');
+        if (value > (int32_t)(0x7FFFFFFFu - (uint32_t)digit) / 10) {
+            return 0;
+        }
+        value = value * 10 + digit;
+        at++;
+    }
+    while (at < end && (bytes[at] == ' ' || bytes[at] == '\t' ||
+                        bytes[at] == '\r')) {
+        at++;
+    }
+    return at == end ? value * sign : 0;
+}
+
+int r6_environment_parse(const void *text, size_t size,
+                         r6_scene_values_t *out) {
+    const unsigned char *bytes = (const unsigned char *)text;
+    size_t at = 0;
+    if (!bytes || !out || !size) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    while (at < size) {
+        size_t end = at;
+        size_t key_begin;
+        size_t key_end;
+        size_t cursor;
+        while (end < size && bytes[end] != '\n') {
+            end++;
+        }
+        key_begin = at;
+        while (key_begin < end && (bytes[key_begin] == ' ' ||
+                                   bytes[key_begin] == '\t' ||
+                                   bytes[key_begin] == '\r')) {
+            key_begin++;
+        }
+        key_end = key_begin;
+        while (key_end < end &&
+               ((bytes[key_end] >= 'A' && bytes[key_end] <= 'Z') ||
+                (bytes[key_end] >= '0' && bytes[key_end] <= '9') ||
+                bytes[key_end] == '_')) {
+            key_end++;
+        }
+        cursor = key_end;
+        while (cursor < end && (bytes[cursor] == ' ' ||
+                                bytes[cursor] == '\t')) {
+            cursor++;
+        }
+        if (cursor < end && bytes[cursor] == '=') {
+            cursor++;
+            while (cursor < end && (bytes[cursor] == ' ' ||
+                                    bytes[cursor] == '\t')) {
+                cursor++;
+            }
+            if (cursor < end && bytes[cursor] == '"') {
+                size_t value_at = cursor + 1u;
+                size_t value_end = value_at;
+                while (value_end < end && bytes[value_end] != '"') {
+                    value_end++;
+                }
+                if (value_end < end) {
+                    int32_t value = env_integer(bytes, value_at, value_end);
+                    if (env_key(bytes, key_begin, key_end, "STAGE")) {
+                        out->stage = value;
+                    } else if (env_key(bytes, key_begin, key_end,
+                                       "STAGE_ROOT")) {
+                        out->stage_root = value;
+                    } else if (env_key(bytes, key_begin, key_end,
+                                       "STAGE_DAY")) {
+                        out->stage_day = value;
+                    } else if (env_key(bytes, key_begin, key_end, "CAM_ID")) {
+                        out->cam_id = value;
+                    } else if (env_key(bytes, key_begin, key_end, "ACTOR_0")) {
+                        out->actors[0] = value;
+                    } else if (env_key(bytes, key_begin, key_end, "ACTOR_1")) {
+                        out->actors[1] = value;
+                    } else if (env_key(bytes, key_begin, key_end, "ACTOR_2")) {
+                        out->actors[2] = value;
+                    } else if (env_key(bytes, key_begin, key_end, "ACTOR_3")) {
+                        out->actors[3] = value;
+                    }
+                }
+            }
+        }
+        at = end < size ? end + 1u : end;
+    }
+    return R6_OK;
+}
+
 int r6_scene_pack(const r6_scene_values_t *values, void *out, size_t size) {
     unsigned char *bytes = (unsigned char *)out;
     uint32_t index;
