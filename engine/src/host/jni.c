@@ -37,6 +37,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_lua_reg_tables.h"
 #include "r6/r6_path_strings.h"
 #include "r6/r6_enma_sim.h"
+#include "r6/r6_ref_words.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -2102,6 +2103,98 @@ Java_com_wmmt_re6rr_EnmaSimFacts_nativeConfig(JNIEnv *env, jclass cls,
                                    (const jbyte *)config);
     }
     return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RefWords_nativeHeader(JNIEnv *env, jclass cls,
+                                          jbyteArray blob) {
+    r6_ref_words_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    (void)cls;
+    if (!bytes || r6_ref_words_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.word_count;
+    values[2] = (jlong)header.xref_count;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RefWords_nativeWord(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    uint32_t value = 0;
+    uint32_t first = 0;
+    uint32_t count = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    (void)cls;
+    if (!bytes ||
+        r6_ref_words_word(bytes, length, (uint32_t)index, &value, &first,
+                          &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)value;
+    values[1] = (jlong)first;
+    values[2] = (jlong)count;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_RefWords_nativeXref(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    uint32_t rva = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_ref_words_xref(bytes, length, (uint32_t)index, &rva) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)rva;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_RefWords_nativeWordXref(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint word_index,
+                                            jint local_index) {
+    uint32_t rva = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_ref_words_word_xref(bytes, length, (uint32_t)word_index,
+                               (uint32_t)local_index, &rva) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)rva;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_RefWords_nativeFind(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jlong value) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_ref_words_find(bytes, length, (uint32_t)value, &index) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)index;
 }
 
 JNIEXPORT jlongArray JNICALL
