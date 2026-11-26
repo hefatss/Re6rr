@@ -20,6 +20,7 @@ set(R6_CORE
     engine/src/render/vertex_layout.c
     engine/src/assets/inflate.c
     engine/src/audio/nub.c
+    engine/src/audio/engmap.c
     engine/src/audio/engine_sound.c
     engine/src/audio/bgm.c
     engine/src/audio/mixer.c

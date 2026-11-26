@@ -15,6 +15,7 @@ engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversion
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_envelope.h  pitch/volume curve evaluation with host math hooks
 engine/include/r6/r6_engine_runtime.h  full 16-layer state evaluation and runtime constants
+engine/include/r6/r6_engmap.h    WM4_ENGMAP engine sound/group pair reader
 engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice records, chain arithmetic, dispatch status and core-voice lookup facts
 engine/include/r6/r6_config_3d.h  config_3d.bin section reader and dB amplitude conversion
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
@@ -33,7 +34,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, nuSound2 string tables and Lua bindings, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, WM4_ENGMAP text table, nuSound2 string tables and Lua bindings, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, NSXR/DXBC container reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs and stage-effect sounds
@@ -131,6 +132,8 @@ platform/android/java/        Java side of the JNI bridge
   0xd0-byte chained-voice records as 52 f32 slots, and `r6_voice_chain_apply()`
   writes the seven established core-voice fields with native clamp/pitch.
   Speaker matrix, mode and core-voice lookup targets are not written.
+- `r6_engmap_parse()` — read the `WM4_ENGMAP` text table into 320 engine
+  sound/group pairs, rejecting count mismatches and conflicting groups.
 - `r6_audio_layout_facts()` — copy the 64 bank slot offsets, cleanup record
   layout, stream reserve/limit, bank version and voice/meta table constants.
   No pointer is dereferenced.
@@ -316,6 +319,7 @@ Verified on this dump:
 | chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
 | audio layout facts | 5 slot fields, 3 cleanup record fields, stream reserve/limit, version and 4 voice/meta fields match `audio_events.py`; null output is a no-op |
 | core-voice lookup facts | 192 entries at +0x44 stride 0x178, mode 7 and lookup address match `audio_events.py`; null output is a no-op |
+| WM4_ENGMAP | all 320 shipped sound/group pairs match `audio_tables.parse_engmap()`; conflicts, bad magic and null inputs rejected |
 | voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources and 8 addresses match `audio_events.py`; null output is a no-op |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
@@ -327,7 +331,7 @@ Verified on this dump:
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; short input, bad magic and bad sizes rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `EnvironmentLua`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `EnvironmentLua`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

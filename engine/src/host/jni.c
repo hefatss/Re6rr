@@ -19,6 +19,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_config_3d.h"
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
+#include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
@@ -3487,6 +3488,35 @@ Java_com_wmmt_re6rr_EesContainer_nativeParse(JNIEnv *env, jclass cls,
     out = (*env)->NewIntArray(env, 22);
     if (out) {
         (*env)->SetIntArrayRegion(env, out, 0, 22, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EngmapTable_nativeParse(JNIEnv *env, jclass cls,
+                                            jbyteArray raw) {
+    r6_engmap_t table;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[1 + R6_ENGMAP_MAX_PAIRS * 2];
+    jlongArray out = NULL;
+    uint32_t index;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_engmap_parse(bytes, length, &table) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)table.count;
+    for (index = 0; index < R6_ENGMAP_MAX_PAIRS; index++) {
+        values[1u + index * 2u] = (jlong)table.pairs[index].engine_sound;
+        values[2u + index * 2u] = (jlong)table.pairs[index].group;
+    }
+    out = (*env)->NewLongArray(env, (jsize)(1u + R6_ENGMAP_MAX_PAIRS * 2u));
+    if (out) {
+        (*env)->SetLongArrayRegion(
+            env, out, 0, (jsize)(1u + R6_ENGMAP_MAX_PAIRS * 2u), values);
     }
     return out;
 }

@@ -70,7 +70,8 @@ inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates the 16
-layers using host libm, `VoiceRequest` builds and reads 0xa0 KeyOn records with
+layers using host libm, `EngmapTable` reads the 320 sound/group pairs,
+`VoiceRequest` builds and reads 0xa0 KeyOn records with
 copied extension blobs, `Config3D` reads and validates 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` handles fade timing and stream
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
@@ -95,7 +96,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK
