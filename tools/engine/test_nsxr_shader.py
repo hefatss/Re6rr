@@ -203,6 +203,28 @@ def check(dump):
     assert len(nsxr_shader.SM4_GLSL_ES) == 43 and all(
         item["class"] in ("direct", "lower", "control", "texture")
         for item in nsxr_shader.SM4_GLSL_ES.values())
+    emitted = 0
+    for record in records:
+        code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                    if chunk["tag"] == "SHDR")
+        used = {item["name"] for item in code["instructions"]}
+        if used <= nsxr_shader.GLSL_EMIT_OPS:
+            source = nsxr_shader.glsl_es_source(record)
+            assert source.startswith("#version 300 es") and \
+                "void main()" in source
+            emitted += 1
+    assert emitted == 252
+    copy_source = nsxr_shader.glsl_es_source(shaders["Copy.nsh"]["records"][1])
+    assert "uniform sampler2D texture00;" in copy_source and \
+        "texture(texture00, vec2(in1.xyxx))" in copy_source and \
+        "layout(location=0) out vec4 out0;" in copy_source
+    fade_source = nsxr_shader.glsl_es_source(shaders["Fade.nsh"]["records"][1])
+    assert "out0 = vec4(in1.xyzw);" in fade_source
+    try:
+        nsxr_shader.glsl_es_source(body["records"][1])
+        raise AssertionError("Body.nsh pixel emitted with branch opcodes")
+    except ValueError as error:
+        assert "unsupported GLES opcodes" in str(error)
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)

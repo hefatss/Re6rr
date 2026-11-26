@@ -4,6 +4,8 @@
         --report build/tmp/shaders.json --list
     python tools/engine/nsxr_shader.py --dump D:\\Games\\W6W-05 \
         --extract Body.nsh --stage 0 --out build/tmp/body_dxbc.bin
+    python tools/engine/nsxr_shader.py --dump D:\\Games\\W6W-05 \
+        --glsl Copy.nsh --stage 1
 
 `.nsh` files are raw `NSXR` containers. Each has two records; a record points
 0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
@@ -11,11 +13,14 @@ into instructions, declarations and SM4 operands (register type, mask/swizzle,
 immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
 blocks are matched by `control_flow()`; `uniform_usage()` resolves cbuffer
 operands against RDEF variables and `resource_usage()` maps texture/sampler
-registers to reflected resources. No game data is stored in this repository.
+registers to reflected resources. `glsl_es_source()` emits GLSL ES 3.00 for the
+straight-line opcode subset; branches raise explicitly. No game data is stored
+in this repository.
 """
 
 import argparse
 import json
+import math
 import os
 import struct
 
@@ -299,6 +304,16 @@ for _name, _class, _glsl in (
         ("ENDSWITCH", "control", "end switch"),
         ("SAMPLE", "texture", "texture(sampler, uv)")):
     SM4_GLSL_ES[_name] = {"class": _class, "glsl": _glsl}
+
+# Straight-line subset emitted by glsl_es_source(). Branches, integer ops and
+# MOVC are deliberately rejected until their operand forms are proven.
+GLSL_EMIT_BINARY = {"ADD": "+", "MUL": "*", "DIV": "/"}
+GLSL_EMIT_DOT = {"DP2": 2, "DP3": 3, "DP4": 4}
+GLSL_EMIT_UNARY = {"RSQ": "inversesqrt", "SQRT": "sqrt", "FRC": "fract",
+                   "EXP": "exp2", "LOG": "log2", "ROUND_Z": "trunc"}
+GLSL_EMIT_OPS = ({"MOV", "MAD", "MIN", "MAX", "SAMPLE", "DISCARD", "RET"} |
+                 set(GLSL_EMIT_BINARY) | set(GLSL_EMIT_DOT) |
+                 set(GLSL_EMIT_UNARY))
 
 # Operand counts for the SM4 opcodes in OPCODE_NAMES. Declarations use
 # DECL_OPERAND_COUNTS below; CUSTOMDATA is not an instruction.
@@ -689,6 +704,158 @@ def glsl_coverage(data):
     return {"counts": counts, "unknown": unknown, "total": total}
 
 
+def _operand_index(operand, position=0):
+    return operand["indices"][position].get("value")
+
+
+def _immediate(raw):
+    value, = struct.unpack("<f", struct.pack("<I", raw & 0xffffffff))
+    if not math.isfinite(value):
+        return "uintBitsToFloat(0x%08xU)" % (raw & 0xffffffff)
+    text = "%.9g" % (0.0 if value == 0 else value)
+    return text if any(char in text for char in ".eE") else text + ".0"
+
+
+def _source(operand, context, integral=False):
+    kind = operand["type"]
+    if kind == "immediate32":
+        raw = operand["values"][0]
+        expr = str(raw if raw < 0x80000000 else raw - 0x100000000) \
+            if integral else _immediate(raw)
+    elif kind == "resource":
+        expr = context["resources"].get(
+            _operand_index(operand), "texture%d" % _operand_index(operand))
+    elif kind == "sampler":
+        expr = "sampler%d" % _operand_index(operand)
+    elif kind == "constant_buffer":
+        expr = "cb%d[%d]" % (_operand_index(operand),
+                             _operand_index(operand, 1))
+    elif kind in ("temp", "input", "output"):
+        expr = "%s%d" % ({"temp": "r", "input": "in",
+                          "output": "out"}[kind], _operand_index(operand))
+    else:
+        raise ValueError("unsupported source operand %s" % kind)
+    if operand.get("components") and kind not in ("immediate32", "resource",
+                                                  "sampler"):
+        expr += "." + operand["components"]
+    modifier = operand.get("modifier")
+    if modifier == "neg":
+        return "-(%s)" % expr
+    if modifier == "abs":
+        return "abs(%s)" % expr
+    if modifier == "absneg":
+        return "-abs(%s)" % expr
+    return expr
+
+
+def glsl_es_source(record):
+    """Emit GLSL ES 3.00 for one straight-line DXBC record.
+
+    Only GLSL_EMIT_OPS are supported; branch and integer opcodes raise. Output
+    is source text for inspection, not a compiled or runnable shader.
+    """
+    code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                if chunk["tag"] == "SHDR")
+    reflection = next(chunk["reflection"] for chunk
+                      in record["dxbc"]["chunks"] if chunk["tag"] == "RDEF")
+    unsupported = [ins["name"] for ins in code["instructions"]
+                   if ins["name"] not in GLSL_EMIT_OPS]
+    if unsupported:
+        raise ValueError("unsupported GLES opcodes: %s" %
+                         ", ".join(sorted(set(unsupported))))
+
+    def signature(tag, prefix, skip_system):
+        chunk = next(item for item in record["dxbc"]["chunks"]
+                     if item["tag"] == tag)
+        return {entry["register"]: (entry, "%s%d" %
+                                    (prefix, entry["register"]))
+                for entry in chunk["signature"]["entries"]
+                if not (skip_system and entry["name"].startswith("SV_"))}
+
+    inputs = signature("ISGN", "in", True)
+    outputs = signature("OSGN", "out", False)
+    cbuffers = {}
+    temps = 0
+    for declaration in code["declarations"]:
+        if declaration["name"] == "DCL_TEMPS":
+            temps = max(temps, declaration["trailing"][0])
+        elif declaration["name"] == "DCL_CONSTANT_BUFFER":
+            operand = declaration["operands"][0]
+            cbuffers[_operand_index(operand)] = _operand_index(operand, 1)
+    resources = {item["bind_point"]: item["name"]
+                 for item in reflection["resources"]
+                 if item["type"] == "texture"}
+    context = {"resources": resources}
+    for instruction in code["instructions"]:
+        for operand in instruction["operands"]:
+            if operand["type"] == "temp":
+                temps = max(temps, _operand_index(operand) + 1)
+
+    lines = ["#version 300 es", "precision highp float;",
+             "precision highp int;"]
+    for register, (entry, name) in sorted(inputs.items()):
+        lines.append("in vec4 %s; // %s" % (name, entry["name"]))
+    for register, (entry, name) in sorted(outputs.items()):
+        lines.append("layout(location=%d) out vec4 %s; // %s" %
+                     (register, name, entry["name"]))
+    for index in range(temps):
+        lines.append("vec4 r%d;" % index)
+    for binding, size in sorted(cbuffers.items()):
+        lines.append("uniform vec4 cb%d[%d];" % (binding, size))
+    for binding, name in sorted(resources.items()):
+        lines.append("uniform sampler2D %s; // texture bind %d" %
+                     (name, binding))
+    lines.append("void main() {")
+
+    for instruction in code["instructions"]:
+        name = instruction["name"]
+        operands = instruction["operands"]
+        if name == "RET":
+            lines.append("    return;")
+            continue
+        if name == "DISCARD":
+            lines.append("    discard;")
+            continue
+        target = operands[0]
+        if target["type"] not in ("temp", "output"):
+            raise ValueError("unsupported GLES target %s" % target["type"])
+        base = "%s%d" % ({"temp": "r", "output": "out"}[target["type"]],
+                         _operand_index(target))
+        mask = target.get("components", "xyzw")
+        args = [_source(item, context) for item in operands[1:]]
+        if name == "MOV":
+            expression = args[0]
+        elif name in GLSL_EMIT_BINARY:
+            expression = "(%s %s %s)" % (args[0], GLSL_EMIT_BINARY[name],
+                                         args[1])
+        elif name == "MIN" or name == "MAX":
+            expression = "%s(%s, %s)" % (name.lower(), args[0], args[1])
+        elif name == "MAD":
+            expression = "(%s * %s + %s)" % tuple(args[:3])
+        elif name in GLSL_EMIT_DOT:
+            width = GLSL_EMIT_DOT[name]
+            expression = "dot(vec%d(%s), vec%d(%s))" % (
+                width, args[0], width, args[1])
+        elif name in GLSL_EMIT_UNARY:
+            expression = "%s(%s)" % (GLSL_EMIT_UNARY[name], args[0])
+        elif name == "SAMPLE":
+            expression = "texture(%s, vec2(%s))" % (
+                context["resources"].get(
+                    _operand_index(operands[2]), "texture%d" %
+                    _operand_index(operands[2])), args[0])
+        else:
+            raise ValueError("unsupported GLES opcode %s" % name)
+        if instruction["flags"]["saturate"]:
+            expression = "clamp(%s, 0.0, 1.0)" % expression
+        if mask == "xyzw":
+            lines.append("    %s = vec4(%s);" % (base, expression))
+        else:
+            lines.append("    %s.%s = vec4(%s).%s;" %
+                         (base, mask, expression, mask))
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -815,9 +982,25 @@ def main():
     parser.add_argument("--report")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--extract")
+    parser.add_argument("--glsl")
     parser.add_argument("--stage", type=int, default=0)
     parser.add_argument("--out")
     args = parser.parse_args()
+
+    if args.glsl:
+        header = parse_nsh(os.path.join(args.dump, SHADER_DIR, args.glsl))
+        if not 0 <= args.stage < header["record_count"]:
+            raise ValueError("stage %d outside %s" %
+                             (args.stage, args.glsl))
+        source = glsl_es_source(header["records"][args.stage])
+        if args.out:
+            os.makedirs(os.path.dirname(os.path.abspath(args.out)),
+                        exist_ok=True)
+            with open(args.out, "w", encoding="utf8") as stream:
+                stream.write(source)
+        else:
+            print(source, end="")
+        return 0
 
     if args.extract:
         record = extract(args.dump, args.extract, args.stage,

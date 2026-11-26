@@ -208,7 +208,11 @@ names; all 1,052 declarations and uses match a reflection binding. The 43 SM4
 opcodes in the corpus are classified for a GLES ES 3.00 backend: 11,184 direct
 instructions, 2,720 needing a small rewrite (`MAD`, `EXP`, `LOG`, `MOVC`),
 5,979 control-flow instructions following the decoded blocks and 680 `SAMPLE`
-instructions using RDEF bindings. This is static coverage, not a GLSL emitter.
+instructions using RDEF bindings. `glsl_es_source()` emits GLSL ES 3.00 for
+252 straight-line records: #version/precision, ISGN/OSGN locations, temps,
+cbuffer vectors, sampler uniforms and the MOV/ADD/MUL/MAD/MIN/MAX/SAMPLE/dot/
+unary subset. Branch, integer and `MOVC` opcodes raise instead of emitting
+wrong code. `nsxr_shader.py --glsl Copy.nsh --stage 1` prints one example.
 Details in `recon/RENDER_NSXR.md`.
 
 ## Lua
