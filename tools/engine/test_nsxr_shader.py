@@ -230,14 +230,23 @@ def check(dump):
     fade_source = nsxr_shader.glsl_es_source(shaders["Fade.nsh"]["records"][1])
     assert "out0 = vec4(in1.xyzw);" in fade_source
     body_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][1])
-    assert "switch (int(cb13[0].y)) {" in body_source and \
+    assert "switch (int(AlphaTest[0].y)) {" in body_source and \
         "case 0:" in body_source and "break;" in body_source and \
         "ivec4 ri0;" in body_source
+    assert "uniform vec4 AlphaTest[1]; // cbuffer bind 13" in body_source and \
+        "//   AlphaTestFunc @ byte 4" in body_source
+    body_reflection = next(chunk["reflection"] for chunk
+                           in shaders["Body.nsh"]["records"][1]["dxbc"]["chunks"]
+                           if chunk["tag"] == "RDEF")
+    symbols = nsxr_shader.cbuffer_symbols(body_reflection)
+    assert symbols[0]["name"] == "CustomParameter" and \
+        symbols[13]["name"] == "AlphaTest" and \
+        ("AlphaTestFunc", 4) in symbols[13]["variables"]
     star_source = nsxr_shader.glsl_es_source(
         shaders["StarPass00.nsh"]["records"][1])
     assert "for (;;) {" in star_source and \
-        "cb0[int(ri0.w)]" in star_source and \
-        "cb0[(4 + int(ri0.w))]" in star_source
+        "CustomParameter[int(ri0.w)]" in star_source and \
+        "CustomParameter[(4 + int(ri0.w))]" in star_source
     env_source = nsxr_shader.glsl_es_source(
         shaders["MapEnvFilter.nsh"]["records"][1])
     assert "vec4 x0[25];" in env_source and \

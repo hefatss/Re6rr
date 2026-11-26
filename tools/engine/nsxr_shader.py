@@ -805,8 +805,10 @@ def _source(operand, context, integral=False, component=None):
         expr = "sampler%d" % _operand_index(operand)
     elif kind == "constant_buffer":
         indices = operand["indices"]
-        expr = "cb%d[%s]" % (_operand_index(operand),
-                             _index_expr(indices[1], context))
+        binding = _operand_index(operand)
+        name = context["cbuffers"].get(binding, {}).get("name",
+                                                        "cb%d" % binding)
+        expr = "%s[%s]" % (name, _index_expr(indices[1], context))
         if integral:
             expr = "floatBitsToInt(%s)" % expr
     elif kind == "indexable_temp":
@@ -848,12 +850,31 @@ def _movc_condition(operand, context, component):
     return "floatBitsToInt(%s) != 0" % expression
 
 
+def cbuffer_symbols(reflection):
+    """Map RDEF cbuffer bind points to GLSL names and byte-offset symbols."""
+    buffers = {item["name"]: item for item in reflection["cbuffers"]}
+    result = {}
+    for resource in reflection["resources"]:
+        if resource["type"] != "cbuffer":
+            continue
+        buffer = buffers.get(resource["name"], {})
+        name = "".join(char if char.isalnum() or char == "_" else "_"
+                       for char in resource["name"])
+        result[resource["bind_point"]] = {
+            "name": name,
+            "variables": [(item["name"], item["offset"])
+                          for item in buffer.get("variables", [])],
+        }
+    return result
+
+
 def glsl_es_source(record):
     """Emit GLSL ES 3.00 for one DXBC record.
 
     Supports the decoded structured IF/LOOP/SWITCH blocks, integer register
-    components and float comparison masks. MOVC and indexable temps raise.
-    Output is source text for inspection, not driver-validated code.
+    components, float comparison masks, indexable temps and MOVC. RDEF cbuffer
+    names and byte offsets are emitted as uniform names and comments. Output is
+    source text for inspection, not driver-validated code.
     """
     code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
                 if chunk["tag"] == "SHDR")
@@ -896,9 +917,10 @@ def glsl_es_source(record):
     resources = {item["bind_point"]: item["name"]
                  for item in reflection["resources"]
                  if item["type"] == "texture"}
+    symbols = cbuffer_symbols(reflection)
     int_components = _int_components(code)
     context = {"resources": resources, "int_components": int_components,
-               "indexable": indexable}
+               "indexable": indexable, "cbuffers": symbols}
     for instruction in code["instructions"]:
         for operand in instruction["operands"]:
             if operand["type"] == "temp":
@@ -918,7 +940,12 @@ def glsl_es_source(record):
     for register in sorted(indexable):
         lines.append("vec4 x%d[%d];" % (register, indexable_counts[register]))
     for binding, size in sorted(cbuffers.items()):
-        lines.append("uniform vec4 cb%d[%d];" % (binding, size))
+        info = symbols.get(binding, {})
+        name = info.get("name", "cb%d" % binding)
+        lines.append("uniform vec4 %s[%d]; // cbuffer bind %d" %
+                     (name, size, binding))
+        for variable, offset in info.get("variables", []):
+            lines.append("//   %s @ byte %d" % (variable, offset))
     for binding, name in sorted(resources.items()):
         lines.append("uniform sampler2D %s; // texture bind %d" %
                      (name, binding))

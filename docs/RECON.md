@@ -211,7 +211,8 @@ instructions, 2,720 needing a small rewrite (`MAD`, `EXP`, `LOG`, `MOVC`),
 instructions using RDEF bindings. `glsl_es_source()` emits GLSL ES 3.00 for
 all 446 records: #version/precision, ISGN/OSGN locations, float temps plus
 `ivec4` shadows for integer components, `vec4 xN[]` indexable temp arrays,
-cbuffer vectors, sampler uniforms, structured `switch`/`for`/`if`, float
+RDEF-named cbuffer uniforms with byte-offset comments, sampler uniforms,
+structured `switch`/`for`/`if`, float
 comparison masks, integer ops and relative cbuffer/array indices. SM4 registers
 are typeless: writes to one shadow mirror into the other through
 `floatBitsToInt`/`intBitsToFloat`. `MOVC` follows the documented SM4 order
