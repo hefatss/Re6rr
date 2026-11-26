@@ -1,9 +1,8 @@
 #include "core/internal.h"
 #include "r6/r6_asset.h"
 
-/* CPU reconstruction of the four RGBA8-decodable .nut formats. Format 0x0e
- * (G16R16) has a known 4-byte-per-pixel size but no RGBA conversion here.
- * No files, allocation, CRT or libm: caller owns all bytes. */
+/* CPU reconstruction of the five shipped .nut pixel formats. No files,
+ * allocation, CRT or libm: caller owns all bytes. */
 
 static int r6_nut_cube(const r6_ntwd_texture *texture) {
     return ((texture->flags >> 9) & 1u) != 0 ||
@@ -13,7 +12,7 @@ static int r6_nut_cube(const r6_ntwd_texture *texture) {
 static uint64_t r6_nut_level_bytes(uint8_t format, uint32_t width,
                                    uint32_t height) {
     uint64_t size;
-    if (format == 0x15) {
+    if (format == 0x0e || format == 0x15) {
         size = (uint64_t)width * height * 4;
     } else if (format <= 2) {
         uint64_t blocks = ((uint64_t)(width + 3) / 4) *
@@ -169,7 +168,8 @@ int r6_nut_decode_rgba(const void *data, size_t size,
         return R6_ERR_ARG;
     }
     if (texture->format != 0 && texture->format != 1 &&
-        texture->format != 2 && texture->format != 0x15) {
+        texture->format != 2 && texture->format != 0x0e &&
+        texture->format != 0x15) {
         return R6_ERR_FORMAT;
     }
     cube = r6_nut_cube(texture);
@@ -208,13 +208,21 @@ int r6_nut_decode_rgba(const void *data, size_t size,
     }
     bytes += (size_t)start;
 
-    if (texture->format == 0x15) {
+    if (texture->format == 0x0e || texture->format == 0x15) {
         uint32_t i;
         for (i = 0; i < width * height; i++) {
-            dst[i * 4] = bytes[i * 4 + 2];
-            dst[i * 4 + 1] = bytes[i * 4 + 1];
-            dst[i * 4 + 2] = bytes[i * 4];
-            dst[i * 4 + 3] = bytes[i * 4 + 3];
+            if (texture->format == 0x0e) {
+                /* ARGB8 byte order: alpha, red, green, blue. */
+                dst[i * 4] = bytes[i * 4 + 1];
+                dst[i * 4 + 1] = bytes[i * 4 + 2];
+                dst[i * 4 + 2] = bytes[i * 4 + 3];
+                dst[i * 4 + 3] = bytes[i * 4];
+            } else {
+                dst[i * 4] = bytes[i * 4 + 2];
+                dst[i * 4 + 1] = bytes[i * 4 + 1];
+                dst[i * 4 + 2] = bytes[i * 4];
+                dst[i * 4 + 3] = bytes[i * 4 + 3];
+            }
         }
         return R6_OK;
     }

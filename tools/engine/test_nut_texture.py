@@ -109,20 +109,21 @@ def check_pixels(dump, failures):
     check(len(rgba) == 512 * 512 * 4 and len(set(rgba[::4])) > 1 and
           rgba[3::4] == b"\xff" * (512 * 512), "BC1 decode", failures)
 
-    g16 = load(dump, "data_jp/flash/DRIVE/ghost_battle/"
-                     "B073_02_01_DRESSUP_SEL00.nut")
-    entries = [item for item in nut_texture.parse_entries(g16)
-               if item["format_name"] == "G16R16"]
-    check(len(entries) == 1 and entries[0]["width"] == 336 and
-          entries[0]["height"] == 336 and entries[0]["levels"] == 1 and
+    argb = load(dump, "data_jp/flash/DRIVE/ghost_battle/"
+                      "B073_02_01_DRESSUP_SEL00.nut")
+    entries = [item for item in nut_texture.parse_entries(argb)
+               if item["format_name"] == "ARGB8"]
+    check(len(entries) == 1 and entries[0]["index"] == 12 and
+          entries[0]["width"] == 336 and entries[0]["height"] == 336 and
+          entries[0]["levels"] == 1 and
           nut_texture.expected_size(entries[0]) == 336 * 336 * 4,
-          "G16R16 header", failures)
-    try:
-        nut_texture.decode_entry(g16, entries[0])
-    except ValueError:
-        pass
-    else:
-        failures.append("G16R16 RGBA decode must stay explicit")
+          "ARGB8 header", failures)
+    rgba = nut_texture.decode_entry(argb, entries[0])
+    alpha = rgba[3::4]
+    center = rgba[(168 * 336 + 168) * 4:(168 * 336 + 168) * 4 + 4]
+    check(alpha[0] == 0 and alpha[10] == 3 and
+          len(set(alpha)) > 1 and center == bytes((0x24, 0x1a, 0, 255)),
+          "ARGB8 alpha corner and channel order", failures)
 
 
 def check_formats(dump, failures):
@@ -169,8 +170,7 @@ def main():
             print("FAIL " + item)
         return 1
     print("11151 .nut files, 11008 NTWD (5431 gzip) / 143 NTLX "
-          "(140 exact), 36 cut-ins, 50177 payload sizes, 4 CPU formats, "
-          "G16R16 size only: OK")
+          "(140 exact), 36 cut-ins, 50177 payload sizes, 5 CPU formats: OK")
     return 0
 
 

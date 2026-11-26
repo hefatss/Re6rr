@@ -106,7 +106,7 @@ Texture header (relative to its start):
 | `+0x08` | `u32` pixel byte count |
 | `+0x0c` | `u16` header stride (`0x50`) |
 | `+0x11` | `u8` mip-level count (also drives the eXt/GIDX table skip) |
-| `+0x13` | `u8` format: `0` = BC1, `1` = BC2, `2` = BC3, `0x0e` = G16R16, `0x15` = A8R8G8B8 |
+| `+0x13` | `u8` format: `0` = BC1, `1` = BC2, `2` = BC3, `0x0e` = ARGB8, `0x15` = A8R8G8B8 |
 | `+0x14` | `u16` width, `u16` height |
 | `+0x1c` | `u32` flags; bit 9 shifts the `eXt`/`GIDX` chunks by `0x10`, bit 17 marks cube maps |
 | `+0x20` | `u32` type-2 pixel offset from header start |
@@ -148,5 +148,4 @@ other layouts, not padding.
 - Which subrecord layout selects each section-2 vertex format.
 - Meaning of the `u32` values at subrecord `+0x20`/`+0x24` (chain records and
   texture hashes are decoded; their role in geometry is not).
-- 16-bit G/R to RGBA8 conversion for the single format `0x0e` texture; its
-  4-byte-per-pixel payload size is validated.
+- The three NPOT BC3 entries that store one mip level fewer than declared.

@@ -603,6 +603,8 @@ def test_nut_decode(dll, dump, failures):
          "FUKUOKA_DAY_NML_Tex1.nut", 4, 0, 1),
         ("data/car/car_data/otherCar/OTH_NZE121.nut", 0, 0, 0),
         ("data/car/blend/blend_system.nut", 0, 0, 0),
+        ("data_jp/flash/DRIVE/ghost_battle/"
+         "B073_02_01_DRESSUP_SEL00.nut", 12, 0, 0),
     ]
     for relative, index, level, face in cases:
         path = os.path.join(dump, *relative.split("/"))
@@ -621,7 +623,7 @@ def test_nut_decode(dll, dump, failures):
         raw = nut_texture.read_nut(path)
         for index, entry in enumerate(nut_texture.parse_entries(raw)):
             name = entry["format_name"]
-            if name not in ("BC1", "BC2", "BC3", "A8R8G8B8") or \
+            if name not in ("BC1", "BC2", "BC3", "ARGB8", "A8R8G8B8") or \
                     entry["cube"] or \
                     entry["width"] * entry["height"] > 65536 or \
                     quota[name] >= 32:

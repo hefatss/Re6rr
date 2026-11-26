@@ -16,7 +16,7 @@ FUN_140cbc000, FUN_140cbc0f0, FUN_140cbc190, FUN_140cbc270):
       +0x08  u32  pixel byte count
       +0x0c  u16  header stride (normally 0x50)
       +0x10  u32  mip-level count byte at +0x11, format byte at +0x13
-                  (0 BC1, 1 BC2, 2 BC3, 0x0e G16R16, 0x15 A8R8G8B8)
+                  (0 BC1, 1 BC2, 2 BC3, 0x0e ARGB8, 0x15 A8R8G8B8)
       +0x14  u16  width
       +0x16  u16  height
       +0x1c  u32  flag bits (bit 9 selects the second table, bit 17 cube)
