@@ -56,4 +56,14 @@ public final class GlslBindings {
                                               int index);
     private static native int[] nativeTextureUpload(int unit, int format,
                                                     int width, int height);
+
+    /** Pack one std140 block. Values follow reflected region order: one slot
+     *  for a scalar, four for a vector, sixteen for a matrix. */
+    public static byte[] packUbo(byte[] data, int record, int cbuffer,
+                                 double[] values) {
+        return nativePackUbo(data, record, cbuffer, values);
+    }
+
+    private static native byte[] nativePackUbo(byte[] data, int record,
+                                               int cbuffer, double[] values);
 }

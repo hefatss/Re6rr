@@ -47,8 +47,9 @@ still sees only bytes.
 
 `Game.selectCourse()` uses the descriptor list index as `course`, area `0`,
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
-3 s countdown. `GlslBindings` exposes record flags, UBO regions and sampler
-units from the compiled manifest; it makes no GL calls. The story catalog is
+3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
+and RGBA8 upload descriptors from the compiled manifest, and packs std140
+blocks from reflected region order; it makes no GL calls. The story catalog is
 data-only; no unlock progression, renderer, audio or All.Net code exists.
 
 ## Validation

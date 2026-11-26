@@ -1781,3 +1781,92 @@ Java_com_wmmt_re6rr_GlslBindings_nativeTextureUpload(
     values[5] = (jint)desc.size;
     return glsl_ints(env, values, 6);
 }
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativePackUbo(JNIEnv *env, jclass cls,
+                                               jbyteArray data, jint record,
+                                               jint cbuffer,
+                                               jdoubleArray values) {
+    unsigned char *bytes = NULL;
+    r6_glsl_bindings_view view;
+    r6_glsl_bindings_record_info info;
+    r6_glsl_bindings_cbuffer_info block;
+    r6_glsl_region *regions = NULL;
+    r6_glsl_value *packed = NULL;
+    unsigned char *ubo = NULL;
+    double *source = NULL;
+    jsize source_count = 0;
+    jsize cursor = 0;
+    size_t written = 0;
+    uint32_t index;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) != R6_OK ||
+        r6_glsl_bindings_get_record(&view, (uint32_t)record, &info) != R6_OK ||
+        r6_glsl_bindings_get_cbuffer(&view, &info, (uint32_t)cbuffer,
+                                     &block) != R6_OK) {
+        goto done;
+    }
+    regions = (r6_glsl_region *)malloc(block.regions * sizeof(*regions));
+    packed = (r6_glsl_value *)malloc(block.regions * sizeof(*packed));
+    ubo = (unsigned char *)malloc(block.size ? block.size : 1);
+    if (!regions || !packed || !ubo) {
+        goto done;
+    }
+    if (values) {
+        source_count = (*env)->GetArrayLength(env, values);
+        if ((*env)->ExceptionCheck(env)) {
+            goto done;
+        }
+        source = (double *)malloc((size_t)source_count * sizeof(*source));
+        if (!source) {
+            goto done;
+        }
+        (*env)->GetDoubleArrayRegion(env, values, 0, source_count, source);
+        if ((*env)->ExceptionCheck(env)) {
+            goto done;
+        }
+    }
+    for (index = 0; index < block.regions; index++) {
+        r6_glsl_manifest_region region;
+        uint32_t part;
+        uint32_t components;
+        if (r6_glsl_bindings_region(&view, &block, index, &region) != R6_OK) {
+            goto done;
+        }
+        regions[index].offset = region.offset;
+        regions[index].size = region.size;
+        regions[index].kind = region.kind;
+        regions[index].type = region.type;
+        packed[index].u = 0;
+        components = region.kind == R6_GLSL_MATRIX ? 16u :
+                     (region.kind == R6_GLSL_VECTOR ? 4u : 1u);
+        for (part = 0; part < components && cursor < source_count; part++) {
+            double value = source[cursor++];
+            if (region.kind == R6_GLSL_SCALAR) {
+                if (region.type == R6_GLSL_UINT) {
+                    packed[index].u = (uint32_t)(int64_t)value;
+                } else {
+                    packed[index].f = (float)value;
+                }
+            } else {
+                packed[index].m[part] = (float)value;
+            }
+        }
+    }
+    if (r6_glsl_pack_ubo(ubo, block.size, regions, packed, block.regions,
+                         &written) == R6_OK) {
+        out = (*env)->NewByteArray(env, (jsize)written);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, (jsize)written,
+                                       (jbyte *)ubo);
+        }
+    }
+done:
+    free(source);
+    free(ubo);
+    free(packed);
+    free(regions);
+    free(bytes);
+    return out;
+}
