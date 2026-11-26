@@ -25,7 +25,12 @@ Lua bindings live in the `luaL_Reg` table at VA 0x141e1a070 and call
   0x18002c2b0  nuSound2 voice params: 64 slots of 0xa0, meta at 0x2800+slot*0xc
   0x1800237d0  builds the 0xa0 voice request: pointers at +0x10/+0x18/+0x20,
                volume/pan/flags at +0x84/+0x88/+0x8c, defaults from 0x1800011b0
-  0x18002eb80  bank-slot setup: 64 slots of 0x804, voice ids at +0x46
+  0x18002eb80  bank-slot setup: 64 slots of 0x804, voice ids at +0x46;
+                version bytes 0..2 must be 1,2,1
+  0x18002f1c0  bank register: 64 slots of 0x804, state pointer at slot +0x42
+  0x18002e1b0  tone record = bank + *(u32 *)(bank + 0x18 + tone*4); +0x18 is
+               the offset-table base (0x20), +0x1c the first record offset
+  0x180035b80  stream byte reservation at instance +0x80508, cap 0x20000000
   0x18001cbc0  68 mixer buses of 0x48; nuSound2BusFade fades over N frames
   0x180020290  piecewise dB -> volume; 0x1800201b0 inverse, calibration at
                instance +0x1c20/+0x1c28/+0x1c2c
@@ -82,6 +87,7 @@ VOICE_META_BASE = 0x2800
 VOICE_META_STRIDE = 0xC
 # FUN_18002eb80 bank-slot errors, keyed by the value returned to the caller.
 BANK_SET_ERRORS = {"bad_index": 0x8000001E, "bad_format": 0x8000001D,
+                   "byte0_mismatch": 0x80000042, "no_slot": 0x8000001B,
                    "null_data": 0x80000024, "already_set": 0x80000021,
                    "voice_fail": 0x80000026, "stream_fail": 0x80000027}
 
@@ -314,6 +320,61 @@ def parse_config_3d(raw):
             "stride": stride, "floats": floats, "sections": sections}
 
 
+# nuSound2BankRegister (0x180299c0) -> 0x18002f370 -> 0x18002f1c0 takes the
+# first free bank slot, then 0x18002eb80 parses the image in place. Slot state
+# is at slot*0x804+0x42; cleanup 0x18002e7d0 reads the same records at
+# 0x108+slot*0x2010 (the int-indexed base 0x46 in the setup function).
+BANK_REGISTER = {
+    "register": 0x180299C0, "find_slot": 0x18002F1C0,
+    "setup": 0x18002EB80, "cleanup": 0x18002E7D0,
+    "slots": 0x40, "slot_stride": 0x804,
+    "slot_bank_ptr": 0x42, "slot_data_ptr": 0x44, "slot_voice_ids": 0x46,
+    "record_base": 0x108, "record_stride": 0x2010,
+    "record_voice_ids": 0x10,
+    "stream_reserve": 0x80508, "stream_limit": 0x20000000,
+    "version": (1, 2, 1),
+    "header": {"tone_count": 0x0C, "data_offset": 0x10,
+               "data_size": 0x14, "record_table": 0x18},
+    "tone": {"length": 0x14, "data_offset": 0x18,
+             "format_count": 0x1C, "wav_format": 0xBC},
+}
+
+
+def bank_setup_view(raw):
+    """Fields read by FUN_18002eb80 from a shipped .nub bank image."""
+    if len(raw) < 0x20:
+        raise ValueError("short bank image")
+    version = tuple(raw[:3])
+    if version != BANK_REGISTER["version"]:
+        raise ValueError("bank version %s" % (version,))
+    header = BANK_REGISTER["header"]
+    tone_count, data_offset, data_size, table = struct.unpack_from(
+        "<4I", raw, header["tone_count"])
+    tone = BANK_REGISTER["tone"]
+    tones = []
+    for index in range(tone_count):
+        at = table + index * 4
+        if at + 4 > len(raw):
+            raise ValueError("tone table outside bank")
+        record, = struct.unpack_from("<I", raw, at)
+        if record + tone["wav_format"] + 8 > len(raw):
+            raise ValueError("tone record outside bank")
+        length, offset, formats = struct.unpack_from(
+            "<3I", raw, record + tone["length"])
+        tones.append({"length": length, "data_offset": offset,
+                      "formats": formats})
+    return {"version": version, "tone_count": tone_count,
+            "data_offset": data_offset, "data_size": data_size,
+            "record_table": table, "tones": tones}
+
+
+def stream_reserve(total, size):
+    """FUN_180035b80: running stream-byte total, -1 past the 0x20000000 cap."""
+    if size < 0 or total + size > BANK_REGISTER["stream_limit"]:
+        return -1
+    return total + size
+
+
 def mixer_facts():
     return {
         "bus_count": BUS_COUNT, "bus_stride": BUS_STRIDE,
@@ -409,6 +470,7 @@ def dispatch_facts(dump):
             "voice_meta_base": VOICE_META_BASE,
             "voice_meta_stride": VOICE_META_STRIDE,
             "bank_set_errors": BANK_SET_ERRORS,
+            "bank_setup": BANK_REGISTER,
             "request_fields": VOICE_REQUEST_FIELDS,
             "float_defaults": VOICE_FLOAT_DEFAULTS,
         },

@@ -111,6 +111,16 @@ triples and enters the same 0xa0 voice request through
 slots of 0xa0 bytes with metadata at `0x2800 + slot*0xc`, while bank setup at
 `FUN_18002eb80` uses 0x804-byte slots and returns distinct errors for bad index,
 bad format, null data, already-set banks and voice/stream failures.
+`nuSound2BankRegister` (`0x180299c0`) forwards to `0x18002f370` and `0x18002f1c0`,
+which claims the first slot with a null pointer at `slot*0x804+0x42`; setup then
+checks version bytes `0..2` as `1,2,1`, tone count at `+0xc`, data offset/size at
+`+0x10/+0x14`, and an offset table at `+0x18` whose base is `0x20`. Each tone
+record stores length/data offset/format count at `+0x14/+0x18/+0x1c`, and the WAV
+format block begins at `+0xbc`; `FUN_180035b80` reserves the data size at
+instance `+0x80508` under a `0x20000000` cap. Cleanup (`0x18002e7d0`) reads the
+same slot records at `0x108 + slot*0x2010` and releases each voice id.
+`audio_events.bank_setup_view()` mirrors those native reads; all 149 shipped
+banks match the independently parsed header/tone records (781 tones).
 `config_3d.bin` is parsed by `nuSound2_3DSetConfig`: version bytes `1,2,3`,
 5 sections of `0x130` bytes, each with ten `0x1c`-byte records and six trailing
 dwords; record dB fields convert to amplitude with `10^(db/20)`.

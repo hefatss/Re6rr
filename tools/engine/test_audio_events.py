@@ -10,6 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
 import audio_events  # noqa: E402
+import nub_audio  # noqa: E402
 
 
 def check(condition, message, failures):
@@ -143,9 +144,56 @@ def run(dump, failures):
           "extended blobs match voice request", failures)
     check(playback["bank_set_errors"] == {
         "bad_index": 0x8000001E, "bad_format": 0x8000001D,
+        "byte0_mismatch": 0x80000042, "no_slot": 0x8000001B,
         "null_data": 0x80000024, "already_set": 0x80000021,
         "voice_fail": 0x80000026, "stream_fail": 0x80000027},
         "nuSound2 bank-set errors", failures)
+
+    setup = playback["bank_setup"]
+    check(setup["register"] == 0x180299C0 and
+          setup["find_slot"] == 0x18002F1C0 and
+          setup["setup"] == 0x18002EB80 and
+          setup["cleanup"] == 0x18002E7D0 and
+          setup["slots"] == 0x40 and setup["slot_stride"] == 0x804 and
+          setup["record_stride"] == 0x2010 and
+          setup["version"] == (1, 2, 1), "bank registration chain", failures)
+    check(setup["header"] == {"tone_count": 0x0C, "data_offset": 0x10,
+                              "data_size": 0x14, "record_table": 0x18} and
+          setup["tone"] == {"length": 0x14, "data_offset": 0x18,
+                            "format_count": 0x1C, "wav_format": 0xBC},
+          "bank field offsets", failures)
+    check(audio_events.stream_reserve(0, 0x20000000) == 0x20000000 and
+          audio_events.stream_reserve(0x20000000, 1) == -1,
+          "stream reserve cap", failures)
+    bank_count = tone_count = 0
+    sound_dir = os.path.join(dump, "data", "sound")
+    for directory, _, names in os.walk(sound_dir):
+        for name in names:
+            if not name.endswith(".nub"):
+                continue
+            path = os.path.join(directory, name)
+            with open(path, "rb") as stream:
+                raw = stream.read()
+            view = audio_events.bank_setup_view(raw)
+            meta = nub_audio.header(path)
+            parsed = nub_audio.tones(path, meta)
+            check(view["version"] == (1, 2, 1) and
+                  view["tone_count"] == meta["tone_count"] == len(parsed) and
+                  view["data_offset"] == meta["header_size"] and
+                  view["data_size"] == meta["data_size"] and
+                  view["record_table"] == 0x20 and
+                  view["record_table"] + view["tone_count"] * 4 <=
+                  meta["first_record"],
+                  "bank native view %s" % name, failures)
+            check(all(a["length"] == b["length"] and
+                      a["data_offset"] == b["data_offset"] and
+                      a["formats"] == b["format_count"]
+                      for a, b in zip(view["tones"], parsed)),
+                  "tone native view %s" % name, failures)
+            bank_count += 1
+            tone_count += len(parsed)
+    check(bank_count == 149 and tone_count == 781, "native bank corpus",
+          failures)
 
     dispatch = sections["dispatch"]
     check(dispatch["bank_table"] == {
