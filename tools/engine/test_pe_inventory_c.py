@@ -21,6 +21,11 @@ PU32 = ctypes.POINTER(U32)
 BUF = ctypes.c_char_p
 FUNC_OFF = 120
 DLL_OFF = FUNC_OFF + 70377 * 16
+IMPORT_OFF = DLL_OFF + 28 * 12
+SECTION_OFF = IMPORT_OFF + 825 * 12
+EXPORT_OFF = SECTION_OFF + 7 * 24
+TLS_OFF = EXPORT_OFF + 2 * 4
+DIRECTORY_OFF = TLS_OFF + 8
 
 
 class Header(ctypes.Structure):
@@ -59,6 +64,9 @@ def configure(lib):
     lib.r6_pe_inventory_tls.restype = ctypes.c_int
     lib.r6_pe_inventory_tls.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32]
+    lib.r6_pe_inventory_directory.restype = ctypes.c_int
+    lib.r6_pe_inventory_directory.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32, PU32]
     lib.r6_pe_inventory_pdb.restype = ctypes.c_int
     lib.r6_pe_inventory_pdb.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, BUF, ctypes.c_size_t, PU32, BUF,
@@ -170,6 +178,17 @@ def check(lib):
             ctypes.byref(hi)) == R6_OK
         assert (lo.value | (hi.value << 32)) == int(expected, 16)
 
+    directory_index = U32()
+    directory_rva = U32()
+    directory_size = U32()
+    for index, expected in enumerate(pe["directories"]):
+        assert lib.r6_pe_inventory_directory(
+            source, len(blob), index, ctypes.byref(directory_index),
+            ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_OK
+        assert directory_index.value == expected["index"]
+        assert directory_rva.value == int(expected["rva"], 16)
+        assert directory_size.value == expected["size"]
+
     guid = ctypes.create_string_buffer(64)
     path = ctypes.create_string_buffer(512)
     assert lib.r6_pe_inventory_pdb(
@@ -196,6 +215,9 @@ def check(lib):
         source, len(blob), 2, name, len(name)) == R6_ERR_ARG
     assert lib.r6_pe_inventory_tls(
         source, len(blob), 1, ctypes.byref(lo), ctypes.byref(hi)) == R6_ERR_ARG
+    assert lib.r6_pe_inventory_directory(
+        source, len(blob), 8, ctypes.byref(directory_index),
+        ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_ERR_ARG
     assert lib.r6_pe_inventory_dll(
         source, len(blob), 0, name, 4, ctypes.byref(first),
         ctypes.byref(count)) == R6_ERR_BUFFER
@@ -224,9 +246,15 @@ def check(lib):
     assert lib.r6_pe_inventory_dll(
         source, len(bad), 0, name, len(name), ctypes.byref(first),
         ctypes.byref(count)) == R6_ERR_FORMAT
-    print("PE inventory: 70377 functions, 825 imports, 28 DLLs, 7 sections "
-          "and PDB data match pe.json/pdata.json; bad blob, index, row and "
-          "capacity rejected")
+    bad = bytearray(blob)
+    struct.pack_into("<I", bad, DIRECTORY_OFF + 4, 34308096)
+    source = ctypes.create_string_buffer(bytes(bad), len(bad))
+    assert lib.r6_pe_inventory_directory(
+        source, len(bad), 0, ctypes.byref(directory_index),
+        ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_ERR_FORMAT
+    print("PE inventory: 70377 functions, 825 imports, 28 DLLs, 7 sections, "
+          "8 directories and PDB data match pe.json/pdata.json; bad blob, "
+          "index, row and capacity rejected")
 
 
 def main():

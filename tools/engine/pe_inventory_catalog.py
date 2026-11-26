@@ -27,6 +27,7 @@ IMPORT = struct.Struct("<3I")
 NAME = struct.Struct("<I")
 SECTION = struct.Struct("<6I")
 TLS = struct.Struct("<2I")
+DIRECTORY = struct.Struct("<3I")
 
 
 def collect(pe_report=PE_REPORT, pdata_report=PDATA_REPORT):
@@ -41,6 +42,7 @@ def collect(pe_report=PE_REPORT, pdata_report=PDATA_REPORT):
     assert len(pe["exports"]) == 2
     assert len(pe["tls"]["callbacks"]) == 1
     assert len(pe["sections"]) == 7
+    assert len(pe["directories"]) == 8
     return pe, pdata, funcs
 
 
@@ -50,7 +52,8 @@ def build(pe, pdata, funcs):
     section_off = import_off + IMPORT.size * 825
     export_off = section_off + SECTION.size * len(pe["sections"])
     tls_off = export_off + NAME.size * len(pe["exports"])
-    strings_off = tls_off + TLS.size * len(pe["tls"]["callbacks"])
+    directory_off = tls_off + TLS.size * len(pe["tls"]["callbacks"])
+    strings_off = directory_off + DIRECTORY.size * len(pe["directories"])
 
     strings = bytearray()
 
@@ -89,6 +92,9 @@ def build(pe, pdata, funcs):
         TLS.pack(int(callback, 16) & 0xffffffff,
                  int(callback, 16) >> 32)
         for callback in pe["tls"]["callbacks"])
+    directory_payload = b"".join(
+        DIRECTORY.pack(item["index"], int(item["rva"], 16), item["size"])
+        for item in pe["directories"])
     guid_off = add(pe["debug"]["pdb"]["guid"])
     path_off = add(pe["debug"]["pdb"]["path"])
 
@@ -107,7 +113,7 @@ def build(pe, pdata, funcs):
         pe["debug"]["pdb"]["age"], path_off)
     return (header + bytes(func_payload) + b"".join(dll_rows) +
             bytes(import_payload) + section_payload + export_payload +
-            tls_payload + bytes(strings))
+            tls_payload + directory_payload + bytes(strings))
 
 
 def main():

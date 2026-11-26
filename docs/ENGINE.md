@@ -237,9 +237,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_asset_inventory_parse()/ext()/magic()/folder()/shader()` — read the
   derived `R6AIV` counts: 32 extension rows, 7 inner-magic rows, 27 top-folder
   rows and 40 shader samples with copied paths and 16-byte prefixes.
-- `r6_pe_inventory_parse()/func()/dll()/import()/section()/export()/tls()/pdb()`
+- `r6_pe_inventory_parse()/func()/dll()/import()/section()/export()/tls()/directory()/pdb()`
   — read the derived `R6PEI` counts: 70,377 `.pdata` rows, 28 DLLs, 825
-  imports, 7 sections, 2 exports and one TLS callback. RVAs are copied as
+  imports, 7 sections, 8 directories, 2 exports and one TLS callback. RVAs are copied as
   numbers; no PE bytes are mapped or executed.
 - `r6_name_runs_parse()/run()/name()/run_name()/user()/find()` — read the
   derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names and 888
@@ -329,7 +329,7 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows and 825 imports, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words and 174,507 xrefs, `PdataStats` reads 7 size buckets and 20 largest functions, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words and 174,507 xrefs, `PdataStats` reads 7 size buckets and 20 largest functions, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
@@ -431,7 +431,7 @@ Verified on this dump:
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
 | luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
 | Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; find, bad blob, index, row and capacity rejected |
-| PE inventory | all 70,377 `.pdata` rows, 825 imports, 28 DLLs, 7 sections, 2 exports and PDB data match `pe.json`/`pdata.json`; bad blob, index, row and capacity rejected |
+| PE inventory | all 70,377 `.pdata` rows, 825 imports, 28 DLLs, 7 sections, 8 directories, 2 exports and PDB data match `pe.json`/`pdata.json`; bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; bad blob, index and capacity rejected |
 | Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |

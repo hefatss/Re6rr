@@ -20,6 +20,7 @@ enum {
     R6_PE_INVENTORY_EXPORTS = 2,
     R6_PE_INVENTORY_TLS = 1,
     R6_PE_INVENTORY_SECTIONS = 7,
+    R6_PE_INVENTORY_DIRECTORIES = 8,
     R6_PE_INVENTORY_IMPORT_NAME = 0,
     R6_PE_INVENTORY_IMPORT_ORDINAL = 1
 };
@@ -84,6 +85,10 @@ R6_API int r6_pe_inventory_export(const void *data, size_t size,
 
 R6_API int r6_pe_inventory_tls(const void *data, size_t size, uint32_t index,
                                uint32_t *address_lo, uint32_t *address_hi);
+
+R6_API int r6_pe_inventory_directory(const void *data, size_t size,
+                                     uint32_t index, uint32_t *dir_index,
+                                     uint32_t *rva, uint32_t *dir_size);
 
 R6_API int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
                                size_t guid_capacity, uint32_t *age,

@@ -2336,6 +2336,29 @@ Java_com_wmmt_re6rr_PdataStats_nativeFind(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeDirectory(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    uint32_t dir_index = 0;
+    uint32_t rva = 0;
+    uint32_t size = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    (void)cls;
+    if (!bytes ||
+        r6_pe_inventory_directory(bytes, length, (uint32_t)index, &dir_index,
+                                  &rva, &size) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)dir_index;
+    values[1] = (jlong)rva;
+    values[2] = (jlong)size;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {
     r6_honor_schema_header header;

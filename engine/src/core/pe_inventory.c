@@ -17,7 +17,9 @@ enum {
     R6_PE_SECTION_OFF = R6_PE_IMPORT_OFF + R6_PE_INVENTORY_IMPORTS * 12u,
     R6_PE_EXPORT_OFF = R6_PE_SECTION_OFF + R6_PE_INVENTORY_SECTIONS * 24u,
     R6_PE_TLS_OFF = R6_PE_EXPORT_OFF + R6_PE_INVENTORY_EXPORTS * 4u,
-    R6_PE_STRINGS_OFF = R6_PE_TLS_OFF + R6_PE_INVENTORY_TLS * 8u
+    R6_PE_DIRECTORY_OFF = R6_PE_TLS_OFF + R6_PE_INVENTORY_TLS * 8u,
+    R6_PE_STRINGS_OFF = R6_PE_DIRECTORY_OFF +
+                        R6_PE_INVENTORY_DIRECTORIES * 12u
 };
 
 static int pe_header(const void *data, size_t size,
@@ -28,6 +30,7 @@ static int pe_header(const void *data, size_t size,
         r6_memcmp(bytes, pe_inventory_magic,
                   sizeof(pe_inventory_magic)) != 0 ||
         r6_u32(bytes, 8) != 1u ||
+        r6_u32(bytes, 44) != R6_PE_INVENTORY_DIRECTORIES ||
         r6_u32(bytes, 48) != R6_PE_INVENTORY_FUNCS ||
         r6_u32(bytes, 84) != R6_PE_INVENTORY_DLLS ||
         r6_u32(bytes, 88) != R6_PE_INVENTORY_IMPORTS ||
@@ -284,6 +287,39 @@ int r6_pe_inventory_tls(const void *data, size_t size, uint32_t index,
     }
     if (address_hi) {
         *address_hi = r6_u32(bytes, row_off + 4u);
+    }
+    return R6_OK;
+}
+
+int r6_pe_inventory_directory(const void *data, size_t size, uint32_t index,
+                              uint32_t *dir_index, uint32_t *rva,
+                              uint32_t *dir_size) {
+    r6_pe_inventory_header header;
+    const unsigned char *bytes;
+    uint32_t row_off;
+    int result = pe_rows(data, size, index, 12u,
+                          R6_PE_INVENTORY_DIRECTORIES, R6_PE_DIRECTORY_OFF,
+                          &bytes, &row_off);
+    if (result != R6_OK) {
+        return result;
+    }
+    result = pe_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (r6_u32(bytes, row_off) > 15u ||
+        r6_u32(bytes, row_off + 4u) >= header.size_of_image ||
+        r6_u32(bytes, row_off + 8u) > header.size_of_image) {
+        return R6_ERR_FORMAT;
+    }
+    if (dir_index) {
+        *dir_index = r6_u32(bytes, row_off);
+    }
+    if (rva) {
+        *rva = r6_u32(bytes, row_off + 4u);
+    }
+    if (dir_size) {
+        *dir_size = r6_u32(bytes, row_off + 8u);
     }
     return R6_OK;
 }

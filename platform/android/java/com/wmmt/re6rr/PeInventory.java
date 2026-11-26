@@ -1,6 +1,6 @@
 package com.wmmt.re6rr;
 
-/** PE header, .pdata, import, section, export and TLS facts from wmn6r.exe.
+/** PE header, .pdata, import, section, directory, export and TLS facts from wmn6r.exe.
  *  No executable bytes are copied: the blob holds counts, RVAs and names. */
 public final class PeInventory {
     private PeInventory() {
@@ -56,6 +56,11 @@ public final class PeInventory {
         return nativeTls(blob, index);
     }
 
+    /** PE directory index, RVA and size. */
+    public static long[] directory(byte[] blob, int index) {
+        return nativeDirectory(blob, index);
+    }
+
     public static String pdbGuid(byte[] blob) {
         return nativePdbGuid(blob);
     }
@@ -87,6 +92,8 @@ public final class PeInventory {
     private static native String nativeExportName(byte[] blob, int index);
 
     private static native long[] nativeTls(byte[] blob, int index);
+
+    private static native long[] nativeDirectory(byte[] blob, int index);
 
     private static native String nativePdbGuid(byte[] blob);
 
