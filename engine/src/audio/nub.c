@@ -340,3 +340,20 @@ int r6_sound_bin_parse(const void *data, size_t size, r6_sound_bin *out) {
     }
     return R6_OK;
 }
+
+int r6_bank_slot_find(const void *slots, size_t size, uint32_t *out) {
+    const unsigned char *bytes = (const unsigned char *)slots;
+    uint32_t index;
+    if (!bytes || !out || size < R6_BANK_SLOT_TABLE_SIZE) {
+        return R6_ERR_ARG;
+    }
+    for (index = 0; index < R6_BANK_SLOT_COUNT; index++) {
+        size_t at = (size_t)index * R6_BANK_SLOT_STRIDE +
+                    R6_BANK_SLOT_POINTER_OFFSET;
+        if (!r6_u32(bytes, at) && !r6_u32(bytes, at + 4u)) {
+            *out = index;
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

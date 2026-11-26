@@ -76,6 +76,9 @@ platform/android/java/        Java side of the JNI bridge
   nuSound2BankRegister (FUN_18002eb80): version, tone count, data window,
   record table and per-tone length/offset/format count into caller storage.
   On a short tone array, `tone_count` reports the required capacity.
+- `r6_bank_slot_find()` — scan the 64 registration slots at a 0x804 stride for
+  the first null pointer at `slot*0x804+0x42`; a full table reports not found.
+  The slot table stays caller-owned and no bank is registered implicitly.
 - `r6_mixer_bus_read()/bus_write()/bus_fade()` and
   `r6_mixer_db_to_volume()/volume_to_db()` — access the recovered 68 buses at
   a 0x48 stride and port nuSound2 linear fade and piecewise dB conversions.
@@ -186,7 +189,8 @@ sections, `BankSetup` reads .nub registration views, `AudioStream` exposes
 fade timing and stream reservation, `VoiceChain` copies chained-voice records
 and applies core fields, `SoundInit` validates the Sound::Initialize config,
 `SoundDispatch` copies bank/loop/positional SE records, `SoundConfig` parses
-config.bin, `SceneBridge` copies camid and resolves camera records, and
+config.bin, `BankSlots` finds free registration slots, `SceneBridge` copies
+camid and resolves camera records, and
 `StageEffect` resolves symbolic sounds;
 the JNI host supplies
 pow/exp2 from libm and sizes tone arrays, but
@@ -240,6 +244,7 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
+| bank slot scan | first free slot found across all 64 slots at stride 0x804; full table, short buffer and null arguments rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
 | Sound::Initialize config | 0x28 config counts, three opaque pointer slots and 0x98 Impl vector sizes match `audio_events.sound_init_facts()` on the shipped exe; bad counts and short input rejected |
 | stream fade state | nine fields at the recovered offsets read exact; 2000 ms produces the same frames/step as `audio_events.stream_fade_frames()`/`.stream_fade_step()`, and already-fading, not-playing and fallback-stop paths match the native statuses |
@@ -256,7 +261,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `SceneBridge` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SceneBridge` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

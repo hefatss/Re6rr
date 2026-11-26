@@ -198,6 +198,18 @@ R6_API int r6_bank_setup_init(r6_bank_setup_view *view, const void *data,
                               size_t size, r6_bank_setup_tone *tones,
                               size_t capacity);
 
+/* nuSound2BankRegister slot scan (FUN_18002f1c0): the first slot whose
+ * pointer at slot*0x804+0x42 is null. The table stays caller-owned. */
+enum {
+    R6_BANK_SLOT_COUNT = 0x40,
+    R6_BANK_SLOT_STRIDE = 0x804,
+    R6_BANK_SLOT_POINTER_OFFSET = 0x42,
+    R6_BANK_SLOT_TABLE_SIZE = 0x20100,
+    R6_BANK_NO_SLOT = 0x8000001B
+};
+
+R6_API int r6_bank_slot_find(const void *slots, size_t size, uint32_t *out);
+
 #ifdef __cplusplus
 }
 #endif

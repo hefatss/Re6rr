@@ -3200,6 +3200,23 @@ Java_com_wmmt_re6rr_SoundConfig_nativeParse(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_BankSlots_nativeFind(JNIEnv *env, jclass cls,
+                                         jbyteArray slots) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jint result;
+    (void)cls;
+    if (raw_from_blob(env, slots, &bytes, &length) != R6_OK) {
+        return -1;
+    }
+    result = r6_bank_slot_find(bytes, length, &index) == R6_OK ? (jint)index :
+                                                                -1;
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_SceneBridge_nativeWriteCamid(JNIEnv *env, jclass cls,
                                                  jbyteArray scene,
                                                  jbyteArray config) {
