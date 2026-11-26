@@ -14,6 +14,7 @@ set(R6_CORE
     engine/src/game/honor_schema.c
     engine/src/game/enma_enums.c
     engine/src/game/enma_defaults.c
+    engine/src/game/enma_exports.c
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c

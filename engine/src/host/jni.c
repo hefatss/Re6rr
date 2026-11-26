@@ -22,6 +22,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_custom.h"
 #include "r6/r6_emtis.h"
 #include "r6/r6_enma_defaults.h"
+#include "r6/r6_enma_exports.h"
 #include "r6/r6_enma_enums.h"
 #include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
@@ -675,6 +676,75 @@ Java_com_wmmt_re6rr_EnmaDefaults_nativeBytes(JNIEnv *env, jclass cls,
         (*env)->SetByteArrayRegion(env, out, 0, (jsize)count,
                                    (const jbyte *)buffer);
     }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaExports_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_enma_exports_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_exports_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.count;
+    values[1] = (jlong)header.strings_off;
+    values[2] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EnmaExports_nativeName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    char name[R6_ENMA_EXPORT_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_enma_exports_name(bytes, length, (uint32_t)index, name,
+                             sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_EnmaExports_nativeFind(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jstring name) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jint out = -1;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_enma_exports_find(bytes, length, text, &index) == R6_OK) {
+        out = (jint)index;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
     return out;
 }
 
