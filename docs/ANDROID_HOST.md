@@ -42,6 +42,8 @@ tree to app external files:
         --out <dump>/lua_globals.r6lua
     python tools/engine/lua_xref_catalog.py \
         --out <dump>/lua_xrefs.r6xrf
+    python tools/engine/lua_inventory_catalog.py \
+        --out <dump>/lua_inventory.r6lsi
     python tools/engine/enma_enum_catalog.py \
         --out <dump>/enma_enums.r6eme
     python tools/engine/enma_defaults_catalog.py \
@@ -87,7 +89,7 @@ control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
 Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` through
-`LuaXrefs`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
+`LuaXrefs`, `lua_inventory.r6lsi` through `LuaInventory`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
 through `EnmaDefaults`, `enma_exports.r6eex` through `EnmaExports`, `scene_env.r6ses` through
 `SceneEnvStats`, `honor_schema.r6hon` through `HonorSchema`, `EngineRuntime` evaluates the 16
 layers using host libm, `EngmapTable` reads the 320 sound/group pairs, `EmtisTable` reads EMTIS
@@ -107,7 +109,7 @@ last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 r
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
 192-entry lookup layout,
-`ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes shipped global call sites, `LuaXrefs` maps names to native refs, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the predicate schema, `EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
+`ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes shipped global call sites, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the predicate schema, `EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
 names, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
@@ -117,7 +119,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `LuaInventory.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK

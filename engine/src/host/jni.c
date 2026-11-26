@@ -30,6 +30,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_honor_schema.h"
 #include "r6/r6_lua_globals.h"
 #include "r6/r6_lua_xrefs.h"
+#include "r6/r6_lua_inventory.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -852,6 +853,112 @@ Java_com_wmmt_re6rr_SceneEnvStats_nativeFind(JNIEnv *env, jclass cls,
     }
     if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
         r6_scene_env_find(bytes, length, text, &index) == R6_OK) {
+        out = (jint)index;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_lua_inventory_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[15];
+    jlongArray out = NULL;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_inventory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.root_count;
+    values[1] = (jlong)header.dir_count;
+    values[2] = (jlong)header.strings_size;
+    for (at = 0; at < R6_LUA_INVENTORY_ROOTS; at++) {
+        values[3 + at * 6] = (jlong)header.files[at];
+        values[4 + at * 6] = (jlong)header.bytes[at];
+        values[5 + at * 6] = (jlong)header.defined[at];
+        values[6 + at * 6] = (jlong)header.calls[at];
+        values[7 + at * 6] = (jlong)header.undefined[at];
+        values[8 + at * 6] = (jlong)header.native_candidates[at];
+    }
+    out = (*env)->NewLongArray(env, 15);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 15, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeName(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    char name[R6_LUA_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_inventory_name(bytes, length, (uint32_t)index, name,
+                              sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeRow(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    r6_lua_inventory_dir_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[4];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_inventory_dir(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.root;
+    values[1] = (jlong)row.files;
+    values[2] = (jlong)row.bytes;
+    values[3] = (jlong)row.with_logic;
+    out = (*env)->NewLongArray(env, 4);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 4, values);
+    }
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeFind(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint root,
+                                            jstring name) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jint out = -1;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_lua_inventory_find(bytes, length, (uint32_t)root, text,
+                              &index) == R6_OK) {
         out = (jint)index;
     }
     free(bytes);
