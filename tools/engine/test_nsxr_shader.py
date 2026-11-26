@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 import sys
 import tempfile
 
@@ -211,20 +212,42 @@ def check(dump):
         if used <= nsxr_shader.GLSL_EMIT_OPS:
             source = nsxr_shader.glsl_es_source(record)
             assert source.startswith("#version 300 es") and \
-                "void main()" in source
+                "void main()" in source and source.count("{") == \
+                source.count("}")
+            declared_int = set(re.findall(r"ivec4 (ri\d+);", source))
+            used_int = set(re.findall(r"\b(ri\d+)\b", source))
+            declared_array = set(re.findall(r"vec4 (x\d+)\[", source))
+            used_array = set(re.findall(r"\b(x\d+)\[", source))
+            assert not used_int - declared_int and \
+                not used_array - declared_array and \
+                "None" not in source
             emitted += 1
-    assert emitted == 252
+    assert emitted == 404
     copy_source = nsxr_shader.glsl_es_source(shaders["Copy.nsh"]["records"][1])
     assert "uniform sampler2D texture00;" in copy_source and \
         "texture(texture00, vec2(in1.xyxx))" in copy_source and \
         "layout(location=0) out vec4 out0;" in copy_source
     fade_source = nsxr_shader.glsl_es_source(shaders["Fade.nsh"]["records"][1])
     assert "out0 = vec4(in1.xyzw);" in fade_source
+    body_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][1])
+    assert "switch (int(cb13[0].y)) {" in body_source and \
+        "case 0:" in body_source and "break;" in body_source and \
+        "ivec4 ri0;" in body_source
+    star_source = nsxr_shader.glsl_es_source(
+        shaders["StarPass00.nsh"]["records"][1])
+    assert "for (;;) {" in star_source and \
+        "cb0[int(ri0.w)]" in star_source and \
+        "cb0[(4 + int(ri0.w))]" in star_source
+    env_source = nsxr_shader.glsl_es_source(
+        shaders["MapEnvFilter.nsh"]["records"][1])
+    assert "vec4 x0[25];" in env_source and \
+        "x0[int(ri2.w)].xy" in env_source and \
+        "intBitsToFloat(ri2.w)" in env_source
     try:
-        nsxr_shader.glsl_es_source(body["records"][1])
-        raise AssertionError("Body.nsh pixel emitted with branch opcodes")
+        nsxr_shader.glsl_es_source(shaders["MapLamp.nsh"]["records"][0])
+        raise AssertionError("MapLamp MOVC emitted without semantics")
     except ValueError as error:
-        assert "unsupported GLES opcodes" in str(error)
+        assert "unsupported GLES opcodes: MOVC" in str(error)
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)

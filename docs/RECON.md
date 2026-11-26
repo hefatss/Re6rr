@@ -209,10 +209,14 @@ opcodes in the corpus are classified for a GLES ES 3.00 backend: 11,184 direct
 instructions, 2,720 needing a small rewrite (`MAD`, `EXP`, `LOG`, `MOVC`),
 5,979 control-flow instructions following the decoded blocks and 680 `SAMPLE`
 instructions using RDEF bindings. `glsl_es_source()` emits GLSL ES 3.00 for
-252 straight-line records: #version/precision, ISGN/OSGN locations, temps,
-cbuffer vectors, sampler uniforms and the MOV/ADD/MUL/MAD/MIN/MAX/SAMPLE/dot/
-unary subset. Branch, integer and `MOVC` opcodes raise instead of emitting
-wrong code. `nsxr_shader.py --glsl Copy.nsh --stage 1` prints one example.
+404 of 446 records: #version/precision, ISGN/OSGN locations, float temps plus
+`ivec4` shadows for integer components, `vec4 xN[]` indexable temp arrays,
+cbuffer vectors, sampler uniforms, structured `switch`/`for`/`if`, float
+comparison masks, integer ops and relative cbuffer/array indices. SM4 registers
+are typeless: writes to one shadow mirror into the other through
+`floatBitsToInt`/`intBitsToFloat`. The 42 `MOVC` records raise instead of
+emitting guessed condition/data operand order.
+`nsxr_shader.py --glsl Copy.nsh --stage 1` prints one example.
 Details in `recon/RENDER_NSXR.md`.
 
 ## Lua

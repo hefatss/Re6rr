@@ -13,9 +13,9 @@ into instructions, declarations and SM4 operands (register type, mask/swizzle,
 immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
 blocks are matched by `control_flow()`; `uniform_usage()` resolves cbuffer
 operands against RDEF variables and `resource_usage()` maps texture/sampler
-registers to reflected resources. `glsl_es_source()` emits GLSL ES 3.00 for the
-straight-line opcode subset; branches raise explicitly. No game data is stored
-in this repository.
+registers to reflected resources. `glsl_es_source()` emits GLSL ES 3.00 with
+structured IF/LOOP/SWITCH, integer shadows and relative/array registers; MOVC
+raises explicitly. No game data is stored in this repository.
 """
 
 import argparse
@@ -305,15 +305,24 @@ for _name, _class, _glsl in (
         ("SAMPLE", "texture", "texture(sampler, uv)")):
     SM4_GLSL_ES[_name] = {"class": _class, "glsl": _glsl}
 
-# Straight-line subset emitted by glsl_es_source(). Branches, integer ops and
-# MOVC are deliberately rejected until their operand forms are proven.
+# Subset emitted by glsl_es_source(). Comparison masks are float 0.0/1.0,
+# integer register components get an ivec4 shadow, and structured control flow
+# follows control_flow(). MOVC stays rejected: its condition/data operand order
+# is not proven by the dump.
 GLSL_EMIT_BINARY = {"ADD": "+", "MUL": "*", "DIV": "/"}
 GLSL_EMIT_DOT = {"DP2": 2, "DP3": 3, "DP4": 4}
 GLSL_EMIT_UNARY = {"RSQ": "inversesqrt", "SQRT": "sqrt", "FRC": "fract",
                    "EXP": "exp2", "LOG": "log2", "ROUND_Z": "trunc"}
-GLSL_EMIT_OPS = ({"MOV", "MAD", "MIN", "MAX", "SAMPLE", "DISCARD", "RET"} |
+GLSL_EMIT_COMPARE = {"GE": ">=", "LT": "<", "EQ": "==", "NE": "!="}
+GLSL_EMIT_INT_BINARY = {"IADD": "+", "IEQ": "==", "ILT": "<", "IGE": ">="}
+GLSL_CONTROL_OPS = {"IF", "ELSE", "ENDIF", "LOOP", "ENDLOOP", "SWITCH",
+                    "CASE", "DEFAULT", "ENDSWITCH", "BREAK", "BREAKC",
+                    "CONTINUE"}
+GLSL_EMIT_OPS = ({"MOV", "MAD", "MIN", "MAX", "SAMPLE", "DISCARD", "RET",
+                  "AND", "IMAX", "ITOF"} |
                  set(GLSL_EMIT_BINARY) | set(GLSL_EMIT_DOT) |
-                 set(GLSL_EMIT_UNARY))
+                 set(GLSL_EMIT_UNARY) | set(GLSL_EMIT_COMPARE) |
+                 set(GLSL_EMIT_INT_BINARY) | GLSL_CONTROL_OPS)
 
 # Operand counts for the SM4 opcodes in OPCODE_NAMES. Declarations use
 # DECL_OPERAND_COUNTS below; CUSTOMDATA is not an instruction.
@@ -716,6 +725,70 @@ def _immediate(raw):
     return text if any(char in text for char in ".eE") else text + ".0"
 
 
+def _int_components(code):
+    """Temp components written or read as integers by integer opcodes."""
+    integer = set()
+
+    def add(operand):
+        if operand["type"] != "temp":
+            return
+        index = _operand_index(operand)
+        for component in (operand.get("components") or "xyzw"):
+            if component in COMPONENT_INDEX:
+                integer.add((index, component))
+
+    for instruction in code["instructions"]:
+        name = instruction["name"]
+        if name in GLSL_EMIT_INT_BINARY or name == "IMAX":
+            add(instruction["operands"][0])
+        elif name == "ITOF":
+            add(instruction["operands"][1])
+    # MOV copies integer components without conversion; propagate the type to
+    # its destination until stable.
+    changed = True
+    while changed:
+        changed = False
+        for instruction in code["instructions"]:
+            if instruction["name"] != "MOV":
+                continue
+            source, target = instruction["operands"][1], instruction["operands"][0]
+            if source["type"] != "temp" or target["type"] != "temp":
+                continue
+            index = _operand_index(source)
+            components = source.get("components") or "xyzw"
+            if not components or not all((index, item) in integer
+                                         for item in components):
+                continue
+            before = len(integer)
+            add(target)
+            changed = len(integer) != before
+    return integer
+
+
+def _index_expr(index, context):
+    """Render an SM4 immediate or relative register/cbuffer index."""
+    if index.get("kind") == "immediate32":
+        return str(index["value"])
+    if index.get("kind") in ("relative", "immediate32_plus_relative"):
+        operand = index["operand"]
+        expression = _source(operand, context,
+                             _is_int_operand(operand, context))
+        expression = "int(%s)" % expression
+        if index["kind"] == "immediate32_plus_relative":
+            expression = "(%d + %s)" % (index["value"], expression)
+        return expression
+    raise ValueError("unsupported GLES index %s" % index.get("kind"))
+
+
+def _is_int_operand(operand, context):
+    if operand["type"] != "temp":
+        return False
+    index = _operand_index(operand)
+    components = operand.get("components") or "x"
+    return bool(components) and all((index, item) in context["int_components"]
+                                    for item in components)
+
+
 def _source(operand, context, integral=False):
     kind = operand["type"]
     if kind == "immediate32":
@@ -728,11 +801,21 @@ def _source(operand, context, integral=False):
     elif kind == "sampler":
         expr = "sampler%d" % _operand_index(operand)
     elif kind == "constant_buffer":
-        expr = "cb%d[%d]" % (_operand_index(operand),
-                             _operand_index(operand, 1))
+        indices = operand["indices"]
+        expr = "cb%d[%s]" % (_operand_index(operand),
+                             _index_expr(indices[1], context))
+        if integral:
+            expr = "floatBitsToInt(%s)" % expr
+    elif kind == "indexable_temp":
+        indices = operand["indices"]
+        expr = "%s[%s]" % (context["indexable"][_operand_index(operand)],
+                           _index_expr(indices[1], context))
+        if integral:
+            expr = "floatBitsToInt(%s)" % expr
     elif kind in ("temp", "input", "output"):
-        expr = "%s%d" % ({"temp": "r", "input": "in",
-                          "output": "out"}[kind], _operand_index(operand))
+        prefix = {"temp": "ri" if integral else "r", "input": "in",
+                  "output": "out"}[kind]
+        expr = "%s%d" % (prefix, _operand_index(operand))
     else:
         raise ValueError("unsupported source operand %s" % kind)
     if operand.get("components") and kind not in ("immediate32", "resource",
@@ -749,10 +832,11 @@ def _source(operand, context, integral=False):
 
 
 def glsl_es_source(record):
-    """Emit GLSL ES 3.00 for one straight-line DXBC record.
+    """Emit GLSL ES 3.00 for one DXBC record.
 
-    Only GLSL_EMIT_OPS are supported; branch and integer opcodes raise. Output
-    is source text for inspection, not a compiled or runnable shader.
+    Supports the decoded structured IF/LOOP/SWITCH blocks, integer register
+    components and float comparison masks. MOVC and indexable temps raise.
+    Output is source text for inspection, not driver-validated code.
     """
     code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
                 if chunk["tag"] == "SHDR")
@@ -763,6 +847,10 @@ def glsl_es_source(record):
     if unsupported:
         raise ValueError("unsupported GLES opcodes: %s" %
                          ", ".join(sorted(set(unsupported))))
+    flow = control_flow(code["instructions"])
+    if flow["unmatched"]:
+        raise ValueError("unstructured GLES control flow: %s" %
+                         flow["unmatched"])
 
     def signature(tag, prefix, skip_system):
         chunk = next(item for item in record["dxbc"]["chunks"]
@@ -775,6 +863,8 @@ def glsl_es_source(record):
     inputs = signature("ISGN", "in", True)
     outputs = signature("OSGN", "out", False)
     cbuffers = {}
+    indexable = {}
+    indexable_counts = {}
     temps = 0
     for declaration in code["declarations"]:
         if declaration["name"] == "DCL_TEMPS":
@@ -782,10 +872,16 @@ def glsl_es_source(record):
         elif declaration["name"] == "DCL_CONSTANT_BUFFER":
             operand = declaration["operands"][0]
             cbuffers[_operand_index(operand)] = _operand_index(operand, 1)
+        elif declaration["name"] == "DCL_INDEXABLE_TEMP":
+            register, count, _size = declaration["trailing"]
+            indexable[register] = "x%d" % register
+            indexable_counts[register] = count
     resources = {item["bind_point"]: item["name"]
                  for item in reflection["resources"]
                  if item["type"] == "texture"}
-    context = {"resources": resources}
+    int_components = _int_components(code)
+    context = {"resources": resources, "int_components": int_components,
+               "indexable": indexable}
     for instruction in code["instructions"]:
         for operand in instruction["operands"]:
             if operand["type"] == "temp":
@@ -800,6 +896,10 @@ def glsl_es_source(record):
                      (register, name, entry["name"]))
     for index in range(temps):
         lines.append("vec4 r%d;" % index)
+    for index in sorted({index for index, _ in int_components}):
+        lines.append("ivec4 ri%d;" % index)
+    for register in sorted(indexable):
+        lines.append("vec4 x%d[%d];" % (register, indexable_counts[register]))
     for binding, size in sorted(cbuffers.items()):
         lines.append("uniform vec4 cb%d[%d];" % (binding, size))
     for binding, name in sorted(resources.items()):
@@ -807,23 +907,106 @@ def glsl_es_source(record):
                      (name, binding))
     lines.append("void main() {")
 
-    for instruction in code["instructions"]:
+    blocks = flow["blocks"]
+    opens = {block["start"]: block for block in blocks}
+    closes = {block["end"]: block for block in blocks}
+    elses = {block["else"]: block for block in blocks if "else" in block}
+    cases = {}
+    for block in blocks:
+        if block["kind"] != "switch":
+            continue
+        for case in block["cases"]:
+            cases[case["start"]] = (block, case)
+
+    def condition(operand):
+        integral = _is_int_operand(operand, context)
+        expression = _source(operand, context, integral)
+        return "%s != 0" % expression if integral else "%s != 0.0" % expression
+
+    level = 1
+    active_case = {}
+    for index, instruction in enumerate(code["instructions"]):
         name = instruction["name"]
         operands = instruction["operands"]
+        indent = "    " * level
+
+        if index in closes:
+            level -= 1
+            active_case.pop(closes[index]["start"], None)
+            lines.append("    " * level + "}")
+            continue
+        if index in elses:
+            lines.append("    " * (level - 1) + "} else {")
+            continue
+        if index in cases:
+            block, case = cases[index]
+            if block["start"] in active_case:
+                level -= 1
+            label = "default:" if case["kind"] == "default" else \
+                "case %d:" % operands[0]["values"][0]
+            lines.append("    " * (level - 1) + label)
+            level += 1
+            active_case[block["start"]] = index
+            continue
+        if index in opens:
+            block = opens[index]
+            if block["kind"] == "loop":
+                header = "for (;;) {"
+            elif block["kind"] == "if":
+                header = "if (%s) {" % condition(operands[0])
+            else:
+                selector = operands[0]
+                integral = selector["type"] != "constant_buffer"
+                expression = _source(selector, context, integral)
+                header = "switch (%s%s) {" % (
+                    "" if integral else "int(",
+                    expression if integral else expression + ")")
+            lines.append(indent + header)
+            level += 1
+            continue
+        if name == "BREAK":
+            lines.append(indent + "break;")
+            continue
+        if name == "BREAKC":
+            lines.append(indent + "if (%s) break;" % condition(operands[0]))
+            continue
+        if name == "CONTINUE":
+            lines.append(indent + "continue;")
+            continue
+        if name in GLSL_CONTROL_OPS or name == "CASE" or name == "DEFAULT":
+            continue
+
         if name == "RET":
-            lines.append("    return;")
+            lines.append(indent + "return;")
             continue
         if name == "DISCARD":
-            lines.append("    discard;")
+            lines.append(indent + "discard;")
             continue
+
         target = operands[0]
-        if target["type"] not in ("temp", "output"):
+        if target["type"] not in ("temp", "output", "indexable_temp"):
             raise ValueError("unsupported GLES target %s" % target["type"])
-        base = "%s%d" % ({"temp": "r", "output": "out"}[target["type"]],
-                         _operand_index(target))
-        mask = target.get("components", "xyzw")
-        args = [_source(item, context) for item in operands[1:]]
+        integral = _is_int_operand(target, context)
+        integral_source = integral or name in GLSL_EMIT_INT_BINARY or \
+            name in ("IMAX", "ITOF")
+
+        def source_integral(item):
+            if item["type"] in ("temp", "indexable_temp"):
+                return _is_int_operand(item, context)
+            if item["type"] == "constant_buffer":
+                return integral_source
+            return integral and item["type"] == "immediate32"
+
+        args = [_source(item, context, source_integral(item))
+                for item in operands[1:]]
         if name == "MOV":
+            if integral and not source_integral(operands[1]):
+                expression = "floatBitsToInt(%s)" % args[0]
+            elif not integral and source_integral(operands[1]):
+                expression = "intBitsToFloat(%s)" % args[0]
+            else:
+                expression = args[0]
+        elif name == "ITOF":
             expression = args[0]
         elif name in GLSL_EMIT_BINARY:
             expression = "(%s %s %s)" % (args[0], GLSL_EMIT_BINARY[name],
@@ -832,6 +1015,16 @@ def glsl_es_source(record):
             expression = "%s(%s, %s)" % (name.lower(), args[0], args[1])
         elif name == "MAD":
             expression = "(%s * %s + %s)" % tuple(args[:3])
+        elif name in GLSL_EMIT_COMPARE:
+            expression = "(%s %s %s)" % (args[0], GLSL_EMIT_COMPARE[name],
+                                         args[1])
+        elif name == "AND":
+            expression = "min(%s, %s)" % (args[0], args[1])
+        elif name in GLSL_EMIT_INT_BINARY:
+            expression = "(%s %s %s)" % (args[0], GLSL_EMIT_INT_BINARY[name],
+                                         args[1])
+        elif name == "IMAX":
+            expression = "max(%s, %s)" % (args[0], args[1])
         elif name in GLSL_EMIT_DOT:
             width = GLSL_EMIT_DOT[name]
             expression = "dot(vec%d(%s), vec%d(%s))" % (
@@ -845,13 +1038,34 @@ def glsl_es_source(record):
                     _operand_index(operands[2])), args[0])
         else:
             raise ValueError("unsupported GLES opcode %s" % name)
-        if instruction["flags"]["saturate"]:
+        if not integral and instruction["flags"]["saturate"]:
             expression = "clamp(%s, 0.0, 1.0)" % expression
-        if mask == "xyzw":
-            lines.append("    %s = vec4(%s);" % (base, expression))
+        if target["type"] == "indexable_temp":
+            base = "%s[%s]" % (indexable[_operand_index(target)],
+                               _index_expr(target["indices"][1], context))
         else:
-            lines.append("    %s.%s = vec4(%s).%s;" %
-                         (base, mask, expression, mask))
+            base = "%s%d" % ({"temp": "ri" if integral else "r",
+                              "output": "out"}[target["type"]],
+                             _operand_index(target))
+        mask = target.get("components") or "xyzw"
+        cast = "ivec4" if integral else "vec4"
+        if mask == "xyzw":
+            lines.append("%s%s = %s(%s);" % (indent, base, cast, expression))
+        else:
+            lines.append("%s%s.%s = %s(%s).%s;" %
+                         (indent, base, mask, cast, expression, mask))
+        if target["type"] == "temp":
+            index = _operand_index(target)
+            if integral:
+                lines.append("%sr%d.%s = %s(intBitsToFloat(ri%d.%s)).%s;" %
+                             (indent, index, mask, "vec4", index, mask, mask))
+            else:
+                for component in mask:
+                    if (index, component) in int_components:
+                        lines.append(
+                            "%sri%d.%s = ivec4(floatBitsToInt(r%d.%s)).%s;" %
+                            (indent, index, component, index, component,
+                             component))
     lines.append("}")
     return "\n".join(lines) + "\n"
 
