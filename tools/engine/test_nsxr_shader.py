@@ -12,6 +12,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import glsl_manifest  # noqa: E402
 import glsl_ubo  # noqa: E402
 import nsxr_shader  # noqa: E402
 
@@ -376,6 +377,11 @@ def check(dump):
         assert manifest == json.load(open(os.path.join(glsl_dir,
                                                        "manifest.json"),
                                           encoding="utf8"))["shaders"]
+        compiled = open(os.path.join(glsl_dir, "bindings.r6glsl"),
+                        "rb").read()
+        assert compiled == glsl_manifest.build({"shaders": manifest}) and \
+            compiled[:4] == glsl_manifest.MAGIC and \
+            glsl_manifest.HEADER.unpack_from(compiled)[3] == 446
         assert len(manifest) == 446
         assert sum(item["stage_kind"] == "vertex" for item in manifest) == 223
         assert sum(item["stage_kind"] == "pixel" for item in manifest) == 223

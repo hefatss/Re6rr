@@ -9,6 +9,8 @@
     python tools/engine/nsxr_shader.py --dump D:\\Games\\W6W-05 \
         --glsl-dir build/tmp/glsl
 
+`--glsl-dir` also writes `manifest.json` and `bindings.r6glsl`.
+
 `.nsh` files are raw `NSXR` containers. Each has two records; a record points
 0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
 into instructions, declarations and SM4 operands (register type, mask/swizzle,
@@ -27,6 +29,8 @@ import json
 import math
 import os
 import struct
+
+import glsl_manifest
 
 MAGIC = b"NSXR"
 DXBC_MAGIC = b"DXBC"
@@ -1402,6 +1406,8 @@ def export_glsl(data, directory):
               encoding="utf8") as stream:
         json.dump({"count": len(manifest), "shaders": manifest}, stream,
                   indent=2, ensure_ascii=False)
+    with open(os.path.join(directory, "bindings.r6glsl"), "wb") as stream:
+        stream.write(glsl_manifest.build({"shaders": manifest}))
     return manifest
 
 
