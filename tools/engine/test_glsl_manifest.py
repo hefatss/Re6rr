@@ -73,22 +73,86 @@ def configure(lib):
                                           ctypes.c_uint32]
 
 
-def build_body_manifest(dump):
-    path = os.path.join(dump, nsxr_shader.SHADER_DIR, "Body.nsh")
-    shader = nsxr_shader.parse_nsh(path)
+def manifest_entries(name, records):
     entries = []
-    for record in shader["records"]:
+    for record in records:
         reflection = next(chunk["reflection"] for chunk
                           in record["dxbc"]["chunks"] if chunk["tag"] == "RDEF")
-        entries.append({"shader": "Body.nsh", "stage": record["index"],
+        entries.append({"shader": name, "stage": record["index"],
                         "stage_kind": reflection["stage"],
                         "bindings": nsxr_shader.glsl_bindings(record)})
+    return entries
+
+
+def build_body_manifest(dump):
+    path = os.path.join(dump, nsxr_shader.SHADER_DIR, "Body.nsh")
+    return {"shaders": manifest_entries(
+        "Body.nsh", nsxr_shader.parse_nsh(path)["records"])}
+
+
+def build_corpus_manifest(dump):
+    shaders = nsxr_shader.collect(dump)["shaders"]
+    entries = []
+    for name, shader in sorted(shaders.items()):
+        entries.extend(manifest_entries(name, shader["records"]))
     return {"shaders": entries}
 
 
 def check(condition, label, failures):
     if not condition:
         failures.append(label)
+
+
+def check_corpus(lib, manifest, failures):
+    blob = glsl_manifest.build(manifest)
+    buffer = ctypes.create_string_buffer(blob, len(blob))
+    view = View()
+    check(lib.r6_glsl_bindings_init(ctypes.byref(view), buffer,
+                                    len(blob)) == R6_OK and
+          view.count == len(manifest["shaders"]), "corpus init", failures)
+    totals = [0, 0, 0]
+    for index, entry in enumerate(manifest["shaders"]):
+        want = entry["bindings"]
+        flags = 0 if want["stage"] == "vertex" else 1
+        if want["ubo"]:
+            flags |= 0x100
+        record = Record()
+        rc = lib.r6_glsl_bindings_get_record(ctypes.byref(view), index,
+                                             ctypes.byref(record))
+        check(rc == R6_OK and record.flags == flags and
+              record.cbuffers == len(want["cbuffers"]) and
+              record.samplers == len(want["samplers"]),
+              "corpus record %d" % index, failures)
+        if rc != R6_OK:
+            continue
+        totals[0] += record.cbuffers
+        totals[2] += record.samplers
+        for cb_index, block_want in enumerate(want["cbuffers"]):
+            block = Cbuffer()
+            rc = lib.r6_glsl_bindings_get_cbuffer(
+                ctypes.byref(view), ctypes.byref(record), cb_index,
+                ctypes.byref(block))
+            check(rc == R6_OK and block.binding == block_want["binding"] and
+                  block.regions == len(block_want["regions"]),
+                  "corpus cbuffer %d/%d" % (index, cb_index), failures)
+            if rc != R6_OK:
+                continue
+            totals[1] += block.regions
+            for region_index in range(block.regions):
+                region = Region()
+                check(lib.r6_glsl_bindings_region(
+                    ctypes.byref(view), ctypes.byref(block), region_index,
+                    ctypes.byref(region)) == R6_OK,
+                    "corpus region %d/%d/%d" % (index, cb_index,
+                                                region_index), failures)
+        for sampler_index in range(record.samplers):
+            sampler = Sampler()
+            check(lib.r6_glsl_bindings_get_sampler(
+                ctypes.byref(view), ctypes.byref(record), sampler_index,
+                ctypes.byref(sampler)) == R6_OK,
+                "corpus sampler %d/%d" % (index, sampler_index), failures)
+    check(totals == [797, 2029, 526], "corpus totals %s" % totals, failures)
+    return len(blob)
 
 
 def main():
@@ -174,13 +238,16 @@ def main():
     check(lib.r6_glsl_bindings_get_record(ctypes.byref(view), 2,
                                       ctypes.byref(record)) == R6_ERR_ARG,
           "bad record index", failures)
+    corpus_bytes = check_corpus(lib, build_corpus_manifest(args.dump),
+                                failures)
 
     if failures:
         for item in failures:
             print("FAIL " + item)
         return 1
-    print("GLSL binding manifest: 2 records, %d bytes, cbuffers, regions, "
-          "samplers and error checks: OK" % len(blob))
+    print("GLSL binding manifest: 2 records + 446-record corpus, %d/%d bytes, "
+          "797 cbuffers, 2029 regions, 526 samplers, error checks: OK" %
+          (len(blob), corpus_bytes))
     return 0
 
 
