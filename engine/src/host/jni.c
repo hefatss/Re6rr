@@ -23,6 +23,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_emtis.h"
 #include "r6/r6_engmap.h"
 #include "r6/r6_game.h"
+#include "r6/r6_lua_globals.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -38,6 +39,9 @@ extern double pow(double base, double exponent);
 static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
 }
+
+static int raw_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
+                         size_t *length);
 
 /* Parse a packed descriptor from Java into caller-owned vertex storage. */
 static int course_from_descriptor(JNIEnv *env, jbyteArray descriptor,
@@ -146,6 +150,77 @@ Java_com_wmmt_re6rr_Re6Engine_nativeLoadScript(JNIEnv *env, jclass cls,
     }
     free(buffer);
     return (jint)rc;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaGlobals_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_lua_globals_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_globals_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.count;
+    values[1] = (jlong)header.strings_off;
+    values[2] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LuaGlobals_nativeName(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    char name[R6_LUA_GLOBALS_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_globals_row(bytes, length, (uint32_t)index, name,
+                           sizeof(name), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaGlobals_nativeRow(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    char name[R6_LUA_GLOBALS_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t calls = 0;
+    uint32_t category = 0;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_globals_row(bytes, length, (uint32_t)index, name,
+                           sizeof(name), &calls, &category) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)calls;
+    values[1] = (jlong)category;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
 }
 
 JNIEXPORT jobjectArray JNICALL

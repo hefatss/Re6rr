@@ -9,6 +9,7 @@ set(R6_CORE
     engine/src/core/engine.c
     engine/src/core/lua_host.c
     engine/src/core/context.c
+    engine/src/core/lua_globals.c
     engine/src/assets/xmd.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
