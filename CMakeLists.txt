@@ -15,6 +15,7 @@ set(R6_CORE
     engine/src/core/pe_inventory.c
     engine/src/core/name_runs.c
     engine/src/core/lua_reg_tables.c
+    engine/src/core/path_strings.c
     engine/src/game/honor_schema.c
     engine/src/game/enma_enums.c
     engine/src/game/enma_defaults.c

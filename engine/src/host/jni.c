@@ -35,6 +35,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_pe_inventory.h"
 #include "r6/r6_name_runs.h"
 #include "r6/r6_lua_reg_tables.h"
+#include "r6/r6_path_strings.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -1848,6 +1849,121 @@ Java_com_wmmt_re6rr_LuaRegTables_nativeFind(JNIEnv *env, jclass cls,
     (*env)->ReleaseStringUTFChars(env, name, text);
     free(bytes);
     values[0] = (jlong)table;
+    values[1] = (jlong)local;
+    values[2] = (jlong)global;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PathStrings_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_path_strings_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    (void)cls;
+    if (!bytes ||
+        r6_path_strings_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.group_count;
+    values[2] = (jlong)header.string_count;
+    values[3] = (jlong)header.strings_size;
+    return pe_new_longs(env, values, 4);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PathStrings_nativeGroup(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    uint32_t kind = 0;
+    uint32_t count = 0;
+    uint32_t first = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    (void)cls;
+    if (!bytes ||
+        r6_path_strings_group(bytes, length, (uint32_t)index, &kind, &count,
+                              &first) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)kind;
+    values[1] = (jlong)count;
+    values[2] = (jlong)first;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PathStrings_nativeGet(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    char text[R6_PATH_STRINGS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_path_strings_get(bytes, length, (uint32_t)index, text,
+                            sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, text);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PathStrings_nativeGroupGet(JNIEnv *env, jclass cls,
+                                               jbyteArray blob,
+                                               jint group_index,
+                                               jint local_index) {
+    char text[R6_PATH_STRINGS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_path_strings_group_get(bytes, length, (uint32_t)group_index,
+                                  (uint32_t)local_index, text,
+                                  sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, text);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PathStrings_nativeFind(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jstring text) {
+    uint32_t group = 0;
+    uint32_t local = 0;
+    uint32_t global = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    const char *needle = NULL;
+    jlong values[3];
+    (void)cls;
+    if (!bytes || !text) {
+        free(bytes);
+        return NULL;
+    }
+    needle = (*env)->GetStringUTFChars(env, text, NULL);
+    if (!needle) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_path_strings_find(bytes, length, needle, &group, &local,
+                             &global) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, text, needle);
+        free(bytes);
+        return NULL;
+    }
+    (*env)->ReleaseStringUTFChars(env, text, needle);
+    free(bytes);
+    values[0] = (jlong)group;
     values[1] = (jlong)local;
     values[2] = (jlong)global;
     return pe_new_longs(env, values, 3);
