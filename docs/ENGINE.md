@@ -19,6 +19,7 @@ engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice rec
 engine/include/r6/r6_config_3d.h  config_3d.bin section reader and dB amplitude conversion
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
+engine/include/r6/r6_nsh.h       bounds-checked NSXR container and DXBC chunk table reader
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
 engine/include/r6/r6_vertex_layout.h  compiled vertex input locations, semantics and masks
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
@@ -33,7 +34,7 @@ engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
 engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, nuSound2 string tables and Lua bindings, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
-engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
+engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, NSXR/DXBC container reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs and stage-effect sounds
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
@@ -145,6 +146,10 @@ platform/android/java/        Java side of the JNI bridge
   the host pow hook. Malformed versions, strides, counts and short buffers are
   rejected, as are globals outside the recovered validators (`>0`, `>0`,
   `1..99`, `0..9.9`).
+- `r6_nsh_parse()` — validate an `NSXR` header, its two `0x10`-byte records and
+  each `DXBC` digest/version/size, then return the five chunk tags, offsets and
+  sizes per record. SHDR/RDEF/ISGN/OSGN payload decoding stays in the export
+  tools; no D3D or file access is involved.
 - `r6_gles_program_count()/program()` and
   `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
   — pair stage records by shader name (223 programs from 446 records), then
@@ -316,8 +321,9 @@ Verified on this dump:
 | config_3d reader | 5 sections × 10 records and 6 tail words match `audio_events.parse_config_3d()`; dB amplitude matches Python with a host pow callback; bad version, stride, count, truncation, short section capacity and all four global float validators rejected, boundary values accepted |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
+| NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; short input, bad magic and bad sizes rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

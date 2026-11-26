@@ -64,7 +64,8 @@ still sees only bytes.
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
 3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
-blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
+blocks from reflected region order, `NshContainer` validates shipped NSXR
+headers and DXBC chunk tables, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
@@ -93,7 +94,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+`GlslBindings.java`, `NshContainer.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK

@@ -20,6 +20,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
+#include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
 #include "r6/r6_engine_sound.h"
@@ -3486,6 +3487,64 @@ Java_com_wmmt_re6rr_EesContainer_nativeParse(JNIEnv *env, jclass cls,
     out = (*env)->NewIntArray(env, 22);
     if (out) {
         (*env)->SetIntArrayRegion(env, out, 0, 22, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeParse(JNIEnv *env, jclass cls,
+                                             jbyteArray raw) {
+    r6_nsh_t nsh;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[98];
+    jlongArray out = NULL;
+    uint32_t index;
+    uint32_t chunk;
+    uint32_t word;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_nsh_parse(bytes, length, &nsh) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)nsh.file_size;
+    values[1] = (jlong)nsh.version;
+    values[2] = (jlong)nsh.subversion;
+    values[3] = (jlong)nsh.flags;
+    values[4] = (jlong)nsh.record_count;
+    for (index = 0; index < 5u; index++) {
+        values[5u + index] = (jlong)nsh.table[index];
+    }
+    for (index = 0; index < R6_NSH_RECORD_MAX; index++) {
+        const r6_nsh_record_t *record = &nsh.records[index];
+        jlong *row = values + 10u + index * 44u;
+        row[0] = (jlong)record->offset;
+        row[1] = (jlong)record->count;
+        row[2] = (jlong)record->dxbc_size;
+        row[3] = (jlong)record->reserved;
+        row[4] = (jlong)record->dxbc_offset;
+        row[5] = (jlong)record->dxbc_version;
+        row[6] = (jlong)record->dxbc_actual_size;
+        row[7] = (jlong)record->chunk_count;
+        for (word = 0; word < 4u; word++) {
+            row[8u + word] = (jlong)(
+                (uint32_t)record->digest[word * 4u] |
+                ((uint32_t)record->digest[word * 4u + 1u] << 8) |
+                ((uint32_t)record->digest[word * 4u + 2u] << 16) |
+                ((uint32_t)record->digest[word * 4u + 3u] << 24));
+        }
+        for (chunk = 0; chunk < R6_NSH_CHUNK_MAX; chunk++) {
+            row[12u + chunk * 4u] = (jlong)record->chunks[chunk].tag;
+            row[13u + chunk * 4u] = (jlong)record->chunks[chunk].offset;
+            row[14u + chunk * 4u] = (jlong)record->chunks[chunk].size;
+            row[15u + chunk * 4u] = (jlong)record->chunks[chunk].data_offset;
+        }
+    }
+    out = (*env)->NewLongArray(env, 98);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 98, values);
     }
     return out;
 }

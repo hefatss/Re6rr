@@ -15,6 +15,7 @@ set(R6_CORE
     engine/src/assets/nut_texture.c
     engine/src/render/glsl_ubo.c
     engine/src/render/glsl_manifest.c
+    engine/src/render/nsh.c
     engine/src/render/gles_host.c
     engine/src/render/vertex_layout.c
     engine/src/assets/inflate.c
