@@ -152,8 +152,10 @@ Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. SM4 control flow is
 structured: 272 `SWITCH`, 22 `LOOP` and 9 `IF` blocks match cleanly across all
 446 blobs with no label operands or unmatched closers;
-`nsxr_shader.control_flow()` builds the nested block map. Details in
-`recon/RENDER_NSXR.md`.
+`nsxr_shader.control_flow()` builds the nested block map. `uniform_usage()`
+resolves cbuffer operands to named RDEF variables by byte offset: 5,502 static
+operands map across all 446 blobs, 8 use dynamic indices and none are unresolved.
+Details in `recon/RENDER_NSXR.md`.
 
 ## Lua
 

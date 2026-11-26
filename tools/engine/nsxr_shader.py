@@ -9,8 +9,8 @@
 0x20 bytes ahead of a DirectX bytecode (`DXBC`) blob. SHDR tokens are decoded
 into instructions, declarations and SM4 operands (register type, mask/swizzle,
 immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
-blocks are matched by `control_flow()`. No game data is stored in this
-repository.
+blocks are matched by `control_flow()`; `uniform_usage()` resolves cbuffer
+operands against RDEF variables. No game data is stored in this repository.
 """
 
 import argparse
@@ -541,6 +541,50 @@ def control_flow(instructions):
             blocks.append(block)
     unmatched.extend(block["start"] for block in stack)
     return {"blocks": blocks, "unmatched": unmatched}
+
+
+COMPONENT_INDEX = {"x": 0, "y": 1, "z": 2, "w": 3}
+
+
+def uniform_usage(record):
+    """Resolve SHDR cbuffer operands to RDEF variables.
+
+    Reflection offsets are bytes; a cbuffer operand selects a 16-byte vector
+    plus a component, so scalar variables packed into one vector still resolve.
+    """
+    reflection = next(chunk["reflection"] for chunk
+                      in record["dxbc"]["chunks"] if chunk["tag"] == "RDEF")
+    code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                if chunk["tag"] == "SHDR")
+    buffers = {item["name"]: item for item in reflection["cbuffers"]}
+    bindings = {item["bind_point"]: buffers.get(item["name"])
+                for item in reflection["resources"]
+                if item["type"] == "cbuffer"}
+    usage = {}
+    dynamic = 0
+    for instruction in code["instructions"]:
+        for operand in instruction["operands"]:
+            if operand["type"] != "constant_buffer":
+                continue
+            indices = [index.get("value") for index in operand["indices"][:2]]
+            if len(indices) < 2 or any(value is None for value in indices):
+                dynamic += 1
+                continue
+            buffer = bindings.get(indices[0])
+            component = COMPONENT_INDEX.get(
+                (operand.get("components") or "x")[:1], 0)
+            byte = indices[1] * 16 + component * 4
+            name = None
+            if buffer:
+                for variable in buffer["variables"]:
+                    if variable["offset"] <= byte < variable["offset"] + \
+                            variable["size"]:
+                        name = variable["name"]
+                        break
+            key = "%s.%s" % (buffer["name"] if buffer else "cb%d" % indices[0],
+                             name or "?")
+            usage[key] = usage.get(key, 0) + 1
+    return {"usage": usage, "dynamic": dynamic}
 
 
 def parse_nsh(path):

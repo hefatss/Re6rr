@@ -29,7 +29,7 @@ Status legend: **Done** = implemented and checked against shipped data;
 | Audio tables + dispatch | Done | 142 BGM ids, 12 Lua bindings, `config.bin`/`config_3d.bin` layouts, Sound::Initialize config/Impl ABI, `KeyOn` defaults, positional SE stride, 64 bank/voice slots, BGM stream/fade ABI; stage-effect symbols resolved to bank 3 tones `0xe`/`0xf`. |
 | Audio playback internals | Partial | Mixer bus/fade ABI, dB↔volume conversion, 0xa0 voice-request layout and extended-KeyOn activation via 3D vectors recovered; envelope semantics and playback host unresolved. |
 | Scene data (`.EES`) | Partial | 1,129 containers parsed; camera fields through `+0x10c` named, `CAMID` → `CamData.EES` slot bridge proven; `car_effect` copy ABI mapped, field semantics and remaining camera bytes uninterpreted. |
-| Renderer | Partial | Shipped SM4 DXBC operands and structured IF/LOOP/SWITCH blocks decoded; no GLSL/Vulkan translation and no renderer host. |
+| Renderer | Partial | Shipped SM4 DXBC operands, structured IF/LOOP/SWITCH blocks and RDEF uniform usage decoded; no GLSL/Vulkan translation and no renderer host. |
 | Android host | Partial | C core + JNI and Java bridge syntax-checked; NDK/SDK absent, no APK built. |
 | Test suite | Done | `build_host.py --test` plus all `test_*.py` green against the dump. |
 | Online / DRM | Out of scope | No dongle (HASP) or All.Net circumvention. |

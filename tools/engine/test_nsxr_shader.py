@@ -105,6 +105,19 @@ def check(dump):
     assert not depth_flow["unmatched"]
     assert depth_flow["blocks"][1]["continues"] == [31]
 
+    vertex_uniforms = nsxr_shader.uniform_usage(body["records"][0])
+    pixel_uniforms = nsxr_shader.uniform_usage(body["records"][1])
+    assert vertex_uniforms["dynamic"] == pixel_uniforms["dynamic"] == 0
+    assert vertex_uniforms["usage"]["PerDraw.LocalToWorldMatrix"] > 0
+    assert vertex_uniforms["usage"]["PerDraw.LocalToProjectionMatrix"] > 0
+    assert "PerDraw.LocalToViewMatrix" not in vertex_uniforms["usage"]
+    assert vertex_uniforms["usage"]["CustomParameter.cVSEyePos"] == 1
+    assert pixel_uniforms["usage"]["AlphaTest.AlphaTestRef"] > 0
+    assert pixel_uniforms["usage"]["AlphaTest.AlphaTestFunc"] > 0
+    assert not any(name.endswith(".?") for name in
+                   vertex_uniforms["usage"].keys() |
+                   pixel_uniforms["usage"].keys())
+
     first_mul = next(item for item in vertex_code["instructions"]
                      if item["name"] == "MUL")
     assert first_mul["offset"] == 196 and first_mul["consumed"] == 8
@@ -160,6 +173,10 @@ def check(dump):
     records = [record for shader in shaders.values()
                for record in shader["records"]]
     assert len(records) == 446
+    usage = [nsxr_shader.uniform_usage(record) for record in records]
+    assert sum(item["dynamic"] for item in usage) == 8
+    assert not any(name.endswith(".?") for item in usage
+                   for name in item["usage"])
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)
