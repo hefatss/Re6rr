@@ -14,6 +14,7 @@
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
+#include "r6/r6_engine_sound.h"
 #include "r6/r6_glsl.h"
 #include "r6/r6_glsl_manifest.h"
 #include "r6/r6_physics.h"
@@ -2172,6 +2173,89 @@ Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
         }
     }
     free(tones);
+    free(bytes);
+    return out;
+}
+
+/* Engine-sound bridge: packed blob in, plain mapping/layer values out. */
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_EngineSound_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_esnd_header header;
+    jint values[4];
+    jintArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_esnd_parse(bytes, length, &header) == R6_OK) {
+        values[0] = (jint)header.mapping_count;
+        values[1] = (jint)header.sound_count;
+        values[2] = (jint)header.tunes_per_car;
+        values[3] = (jint)header.layer_count;
+        out = glsl_ints(env, values, 4);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_EngineSound_nativeFind(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jint car_type,
+                                           jint tune) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_esnd_mapping mapping;
+    jint values[20];
+    jintArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_esnd_find(bytes, length, (uint8_t)car_type, (uint8_t)tune,
+                     &mapping) == R6_OK) {
+        values[0] = mapping.car_type;
+        values[1] = mapping.tune;
+        values[2] = mapping.group;
+        values[3] = mapping.engine_sound;
+        for (i = 0; i < R6_ESND_LAYER_COUNT; i++) {
+            values[4 + i] = mapping.tones[i];
+        }
+        out = glsl_ints(env, values, 20);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_EngineSound_nativeLayer(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint sound,
+                                            jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_esnd_layer layer;
+    jdouble values[13];
+    jdoubleArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_esnd_get_layer(bytes, length, (uint16_t)sound, (uint32_t)index,
+                          &layer) == R6_OK) {
+        values[0] = layer.layer;
+        values[1] = layer.source;
+        values[2] = layer.flags;
+        values[3] = layer.index;
+        values[4] = layer.tone;
+        for (i = 0; i < 5; i++) {
+            values[5 + i] = layer.envelope[i];
+        }
+        values[10] = layer.rpm_limit;
+        values[11] = layer.scale;
+        values[12] = layer.base;
+        out = (*env)->NewDoubleArray(env, 13);
+        if (out) {
+            (*env)->SetDoubleArrayRegion(env, out, 0, 13, values);
+        }
+    }
     free(bytes);
     return out;
 }

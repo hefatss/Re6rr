@@ -30,8 +30,8 @@ tree to app external files:
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
 CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
-`story.r6story`, every `*.r6course` in that directory, and `glsl/bindings.r6glsl`
-through `GlslBindings`. `AssetProvider` uses the native gzip inflater; the core
+`story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
+through `GlslBindings`, and `engine_sound.r6esnd` through `EngineSound`. `AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
 
 ## UI
@@ -50,16 +50,17 @@ stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
 3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
 blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
-inflated NTWD/NTLX containers, and `Re6Audio` reads `.nub` bank metadata,
-tone control fields and PCM bytes; none makes GL or audio-device calls. The
+inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
+control fields and PCM bytes, and `EngineSound` selects car/tune layer tones
+and envelopes; none makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `Re6Texture.java` and `Re6Audio.java` via
-`tools/engine/build_host.py`. `MainActivity.java` is
+`GlslBindings.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK
 build remains unverified in this repository.

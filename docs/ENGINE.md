@@ -95,8 +95,9 @@ and SConfigPlay byte round-trip) and the `nativeCarCatalog*` family (model and
 numeric lookup). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`.
 `Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, and `Re6Audio` reads
-`.nub` headers, tone records, control fields and PCM bytes; neither opens an
-audio or GL device. JNI C
+`.nub` headers, tone records, control fields and PCM bytes, and `EngineSound`
+selects car/tune mappings with 16 layer envelopes; none opens an audio or GL
+device. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
 `build_host.py`. `CMakeLists.txt` links `r6core` into `libr6engine.so` for
@@ -142,7 +143,7 @@ Verified on this dump:
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture` and `Re6Audio` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio` and `EngineSound` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
