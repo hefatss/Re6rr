@@ -14,6 +14,7 @@ engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and 
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
+engine/include/r6/r6_vertex_layout.h  compiled vertex input locations, semantics and masks
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
 engine/include/r6/r6_course.h road polyline projection and surface flags
 engine/include/r6/r6_physics.h  vehicle config, state and simulation API
@@ -25,7 +26,7 @@ engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
 engine/src/audio/             bounds-checked .nub bank parser, no audio device
-engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader and a host-sink GLES call layer; no GL linkage
+engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
 engine/src/host/jni.c         Android JNI bridge (not in the host DLL)
@@ -68,6 +69,10 @@ platform/android/java/        Java side of the JNI bridge
   validate GLSL ES version, reflected regions, UBO packing and RGBA8
   descriptors before forwarding calls through a host-provided sink. The core
   has no GL symbols.
+- `r6_vertex_init()/get_attrib()/find()/name()` — read a compiled `R6GV`
+  vertex-input layout with explicit GLSL locations, DXBC semantics and masks.
+  The blob is built by `tools/engine/vertex_layout.py` from the same shader
+  export; mesh-to-attribute binding stays with the host.
 - `r6_vehicle_init/reset/step/get_state()`, `r6_vehicle_set_surface()`,
   `r6_vehicle_clamp_to_course()` and `r6_vehicle_config_from_lua()` —
   deterministic car dynamics driven by the loaded spec/tire context, with
@@ -123,6 +128,8 @@ python tools/engine/test_physics.py --dump D:\Games\W6W-05
 python tools/engine/test_race.py --dump D:\Games\W6W-05
 python tools/engine/test_game.py --dump D:\Games\W6W-05
 python tools/engine/engine_sound_catalog.py --dump D:\Games\W6W-05 --out build\tmp\engine_sound.r6esnd
+python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 --glsl-dir build\tmp\glsl
+python tools/engine/vertex_layout.py --manifest build\tmp\glsl\manifest.json --out build\tmp\glsl\vertex.r6gv
 python tools/engine/car_catalog.py --list
 python tools/engine/test_catalog.py --dump D:\Games\W6W-05
 python tools/engine/course_descriptor.py --list-routes
@@ -151,6 +158,7 @@ Verified on this dump:
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
+| compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
 | JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio` and `EngineSound` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |

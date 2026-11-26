@@ -396,8 +396,9 @@ def check(dump):
             bindings = item["bindings"]
             assert bindings["stage"] == item["stage_kind"]
             for value in bindings["inputs"]:
-                assert "in vec4 %s; // %s" % (value["name"],
-                                              value["semantic"]) in source
+                assert "layout(location=%d) in vec4 %s; // %s" % (
+                    value["register"], value["name"],
+                    value["semantic"]) in source
             for value in bindings["outputs"]:
                 assert "layout(location=%d) out vec4 %s; // %s" % (
                     value["register"], value["name"],

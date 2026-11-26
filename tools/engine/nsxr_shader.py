@@ -1079,7 +1079,8 @@ def glsl_es_source(record):
     lines = ["#version 300 es", "precision highp float;",
              "precision highp int;"]
     for item in layout["inputs"]:
-        lines.append("in vec4 %s; // %s" % (item["name"], item["semantic"]))
+        lines.append("layout(location=%d) in vec4 %s; // %s" %
+                     (item["register"], item["name"], item["semantic"]))
     for item in layout["outputs"]:
         lines.append("layout(location=%d) out vec4 %s; // %s" %
                      (item["register"], item["name"], item["semantic"]))
