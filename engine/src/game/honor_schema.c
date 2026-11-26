@@ -82,6 +82,43 @@ int r6_honor_schema_type(const void *data, size_t size, uint32_t type,
     return result;
 }
 
+int r6_honor_schema_find_type(const void *data, size_t size,
+                              const char *name, uint32_t *index) {
+    r6_honor_schema_header header;
+    size_t wanted;
+    uint32_t at;
+    int result = honor_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.type_count; at++) {
+        char found[R6_HONOR_NAME_CAP];
+        result = r6_honor_schema_type(data, size, at, found, sizeof(found),
+                                      NULL);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 int r6_honor_schema_field(const void *data, size_t size, uint32_t type,
                           uint32_t field, char *out, size_t capacity) {
     const unsigned char *bytes = (const unsigned char *)data;

@@ -2660,6 +2660,33 @@ Java_com_wmmt_re6rr_EnmaDefaults_nativeFindStruct(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeFindType(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jstring name) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    const char *text = NULL;
+    (void)cls;
+    if (!bytes || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_honor_schema_find_type(bytes, length, text, &index) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jlong)index;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {

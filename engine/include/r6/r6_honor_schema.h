@@ -32,6 +32,10 @@ R6_API int r6_honor_schema_type(const void *data, size_t size, uint32_t type,
                                 char *name, size_t capacity,
                                 uint32_t *field_count);
 
+/* First exact type-name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_honor_schema_find_type(const void *data, size_t size,
+                                     const char *name, uint32_t *index);
+
 R6_API int r6_honor_schema_field(const void *data, size_t size, uint32_t type,
                                  uint32_t field, char *out, size_t capacity);
 

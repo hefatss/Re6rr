@@ -17,6 +17,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 NAME_CAP = 0x80
 
 
@@ -35,6 +36,10 @@ def check(dump, lib):
                                          ctypes.c_uint32, ctypes.c_char_p,
                                          ctypes.c_size_t,
                                          ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_honor_schema_find_type.restype = ctypes.c_int
+    lib.r6_honor_schema_find_type.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                              ctypes.c_char_p,
+                                              ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_honor_schema_field.restype = ctypes.c_int
     lib.r6_honor_schema_field.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                           ctypes.c_uint32, ctypes.c_uint32,
@@ -66,6 +71,16 @@ def check(dump, lib):
             assert name.value.decode("ascii") == want
             fields += 1
     assert fields == 60
+
+    found = ctypes.c_uint32()
+    for index, row in enumerate(rows):
+        assert lib.r6_honor_schema_find_type(
+            source, len(blob), row["name"].encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == index
+    assert lib.r6_honor_schema_find_type(
+        source, len(blob), b"R6_NO_SUCH_TYPE",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
 
     assert lib.r6_honor_schema_type(source, len(blob), 13, name, len(name),
                                     None) == R6_ERR_ARG
@@ -99,8 +114,8 @@ def check(dump, lib):
     assert lib.r6_honor_schema_field(source, len(bad), 0, 0, name,
                                      len(name)) == R6_ERR_FORMAT
     print("honor schema: 13 shipped type names and 60 ordered fields match "
-          "STORY_NATIVE.md and the exe pointer table; bad blob, type, field "
-          "and capacity rejected")
+          "STORY_NATIVE.md and the exe pointer table; find, bad blob, type, "
+          "field and capacity rejected")
 
 
 def main():

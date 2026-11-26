@@ -15,6 +15,11 @@ public final class HonorSchema {
         return nativeType(blob, type);
     }
 
+    /** Type row index for an exact name match; -1 if absent. */
+    public static long findType(byte[] blob, String name) {
+        return nativeFindType(blob, name);
+    }
+
     /** Number of ordered fields, or -1 for an invalid type. */
     public static int fieldCount(byte[] blob, int type) {
         return nativeFieldCount(blob, type);
@@ -28,6 +33,8 @@ public final class HonorSchema {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeType(byte[] blob, int type);
+
+    private static native long nativeFindType(byte[] blob, String name);
 
     private static native int nativeFieldCount(byte[] blob, int type);
 
