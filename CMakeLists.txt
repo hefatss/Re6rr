@@ -20,6 +20,7 @@ set(R6_CORE
     engine/src/assets/inflate.c
     engine/src/audio/nub.c
     engine/src/audio/engine_sound.c
+    engine/src/audio/bgm.c
     engine/src/physics/vehicle.c
     engine/src/physics/lua_config.c
     engine/src/physics/course.c

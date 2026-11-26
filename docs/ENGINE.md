@@ -10,6 +10,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
 engine/include/r6/r6_audio.h  nuSound2 .nub header, tone and control structures
+engine/include/r6/r6_bgm.h  packed BGM id/name/path lookups from wmn6r.exe
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
@@ -25,7 +26,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank parser, no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalog readers, no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs
@@ -59,6 +60,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_pcm()` — bounds-checked
   nuSound2 bank parse, playback control fields and a zero-copy PCM view over
   host-owned bytes. No mixer, resampling or audio device.
+- `r6_bgm_parse()` / `r6_bgm_find_id()` / `r6_bgm_find_name()` /
+  `r6_bgm_string()` — read packed BGM ids, names and paths recovered from
+  `wmn6r.exe`; name matching mirrors `audio_events.bgm_by_name()`, and the
+  stop/random ids are flagged. No stream or playback host.
 - `r6_esnd_parse()` / `r6_esnd_find()` / `r6_esnd_get_layer()` — read a packed
   car/tune engine-sound mapping and its resolved 16 layer envelopes. The blob
   is built by `tools/engine/engine_sound_catalog.py` from `engmap.tbl` and
@@ -128,6 +133,7 @@ python tools/engine/test_physics.py --dump D:\Games\W6W-05
 python tools/engine/test_race.py --dump D:\Games\W6W-05
 python tools/engine/test_game.py --dump D:\Games\W6W-05
 python tools/engine/engine_sound_catalog.py --dump D:\Games\W6W-05 --out build\tmp\engine_sound.r6esnd
+python tools/engine/bgm_catalog.py --dump D:\Games\W6W-05 --out build\tmp\bgm.r6bgm
 python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 --glsl-dir build\tmp\glsl
 python tools/engine/vertex_layout.py --manifest build\tmp\glsl\manifest.json --out build\tmp\glsl\vertex.r6gv
 python tools/engine/car_catalog.py --list
@@ -156,6 +162,7 @@ Verified on this dump:
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
+| packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
