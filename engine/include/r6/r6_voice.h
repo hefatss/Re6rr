@@ -115,6 +115,34 @@ R6_API float r6_voice_clamp_unit(float value);
 R6_API int r6_voice_cents_to_pitch(const r6_envelope_math *math, double cents,
                                    double *out);
 
+/* Recovered status codes and call-site facts for extended KeyOn / 3D SE.
+ * Values are copied only; no native method is called and no pointer is used. */
+#define R6_VOICE_BANK_ERR_BAD_INDEX 0x8000001Eu
+#define R6_VOICE_BANK_ERR_BAD_FORMAT 0x8000001Du
+#define R6_VOICE_BANK_ERR_BYTE0 0x80000042u
+#define R6_VOICE_BANK_ERR_NO_SLOT 0x8000001Bu
+#define R6_VOICE_BANK_ERR_NULL_DATA 0x80000024u
+#define R6_VOICE_BANK_ERR_ALREADY_SET 0x80000021u
+#define R6_VOICE_BANK_ERR_VOICE_FAIL 0x80000026u
+#define R6_VOICE_BANK_ERR_STREAM_FAIL 0x80000027u
+#define R6_VOICE_3D_ERR_NULL_SECONDARY 0x80000031u
+#define R6_VOICE_3D_ERR_NULL_THIRD 0x80000032u
+#define R6_VOICE_3D_ERR_NULL_POSITION 0x80000033u
+#define R6_VOICE_CHAIN_ERR_LAST_TONE 0x8000004Bu
+
+typedef struct r6_voice_dispatch_facts_t {
+    uint32_t bank_errors[8];
+    uint32_t null_errors[3];
+    uint32_t chain_error;
+    uint32_t chain_modes[3];
+    uint32_t ext_offsets[2];
+    uint32_t ext_sizes[2];
+    uint32_t game_layout[5];
+    uint64_t addresses[8];
+} r6_voice_dispatch_facts_t;
+
+R6_API void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out);
+
 #ifdef __cplusplus
 }
 #endif

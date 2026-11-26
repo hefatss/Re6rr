@@ -15,7 +15,7 @@ engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversion
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
 engine/include/r6/r6_envelope.h  pitch/volume curve evaluation with host math hooks
 engine/include/r6/r6_engine_runtime.h  full 16-layer state evaluation and runtime constants
-engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice records and chain arithmetic
+engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice records, chain arithmetic and dispatch status facts
 engine/include/r6/r6_config_3d.h  config_3d.bin section reader and dB amplitude conversion
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
@@ -130,6 +130,9 @@ platform/android/java/        Java side of the JNI bridge
   0xd0-byte chained-voice records as 52 f32 slots, and `r6_voice_chain_apply()`
   writes the seven established core-voice fields with native clamp/pitch.
   Speaker matrix, mode and core-voice lookup targets are not written.
+- `r6_voice_dispatch_facts()` — copy the recovered bank/3D null error codes,
+  chained-tone error and modes, extension blob layout, game vector sources and
+  call-site addresses. No native method is called or pointer dereferenced.
 - `r6_config_3d_init()` / `r6_config_3d_amplitude()` — parse the shipped
   `config_3d.bin` into caller-owned section storage (10 records plus 6 tail
   words each, angles shifted by 90 degrees) and convert dB to amplitude with
@@ -216,7 +219,8 @@ config.bin, `BankSlots` finds free registration slots, `SoundStrings` reads
 bank/tone names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding
 rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
 resolves camera records, `EesCamera` reads the 31 named camera fields, `EesCarEffect` copies the 40
-runtime fields, `SceneConfig` packs scenes and resolves native names, and
+runtime fields, `VoiceDispatchFacts` exposes recovered status codes and call
+sites, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect`
 resolves symbolic sounds;
 the JNI host supplies
@@ -281,6 +285,7 @@ Verified on this dump:
 | sound dispatch arrays | 8 bank slots, 34 loop records and 2 positional 0x24 records match `audio_events.dispatch_facts()`; out-of-range indices and short buffers rejected |
 | config.bin header | shipped 2640-byte file yields the same 0x50 header, float offset 0x70 and six count/offset pairs as `audio_events.config_header()`; bad magic, version, size and section offsets rejected |
 | chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
+| voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources and 8 addresses match `audio_events.py`; null output is a no-op |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |
@@ -290,7 +295,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesCamera`, `EesCarEffect`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesCamera`, `EesCarEffect`, `VoiceDispatchFacts`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

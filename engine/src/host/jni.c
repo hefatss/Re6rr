@@ -3619,6 +3619,39 @@ Java_com_wmmt_re6rr_SceneConfig_nativeName(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VoiceDispatchFacts_nativeAll(JNIEnv *env, jclass cls) {
+    r6_voice_dispatch_facts_t facts;
+    jlong values[32];
+    jlongArray out = NULL;
+    uint32_t index;
+    (void)cls;
+    r6_voice_dispatch_facts(&facts);
+    for (index = 0; index < 8u; index++) {
+        values[index] = (jlong)facts.bank_errors[index];
+    }
+    for (index = 0; index < 3u; index++) {
+        values[8u + index] = (jlong)facts.null_errors[index];
+        values[12u + index] = (jlong)facts.chain_modes[index];
+    }
+    values[11] = (jlong)facts.chain_error;
+    for (index = 0; index < 2u; index++) {
+        values[15u + index] = (jlong)facts.ext_offsets[index];
+        values[17u + index] = (jlong)facts.ext_sizes[index];
+    }
+    for (index = 0; index < 5u; index++) {
+        values[19u + index] = (jlong)facts.game_layout[index];
+    }
+    for (index = 0; index < 8u; index++) {
+        values[24u + index] = (jlong)facts.addresses[index];
+    }
+    out = (*env)->NewLongArray(env, 32);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 32, values);
+    }
+    return out;
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_VoiceChain_nativeRead(JNIEnv *env, jclass cls,
                                           jbyteArray data, jint index) {

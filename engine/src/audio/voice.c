@@ -209,3 +209,42 @@ int r6_voice_cents_to_pitch(const r6_envelope_math *math, double cents,
                            cents / (double)R6_VOICE_CENTS_DIVISOR);
     return R6_OK;
 }
+
+void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->bank_errors[0] = R6_VOICE_BANK_ERR_BAD_INDEX;
+    out->bank_errors[1] = R6_VOICE_BANK_ERR_BAD_FORMAT;
+    out->bank_errors[2] = R6_VOICE_BANK_ERR_BYTE0;
+    out->bank_errors[3] = R6_VOICE_BANK_ERR_NO_SLOT;
+    out->bank_errors[4] = R6_VOICE_BANK_ERR_NULL_DATA;
+    out->bank_errors[5] = R6_VOICE_BANK_ERR_ALREADY_SET;
+    out->bank_errors[6] = R6_VOICE_BANK_ERR_VOICE_FAIL;
+    out->bank_errors[7] = R6_VOICE_BANK_ERR_STREAM_FAIL;
+    out->null_errors[0] = R6_VOICE_3D_ERR_NULL_SECONDARY;
+    out->null_errors[1] = R6_VOICE_3D_ERR_NULL_THIRD;
+    out->null_errors[2] = R6_VOICE_3D_ERR_NULL_POSITION;
+    out->chain_error = R6_VOICE_CHAIN_ERR_LAST_TONE;
+    out->chain_modes[0] = 1u;
+    out->chain_modes[1] = 2u;
+    out->chain_modes[2] = 3u;
+    out->ext_offsets[0] = R6_VOICE_EXT_A_OFFSET;
+    out->ext_offsets[1] = R6_VOICE_EXT_B_OFFSET;
+    out->ext_sizes[0] = R6_VOICE_EXT_A_SIZE;
+    out->ext_sizes[1] = R6_VOICE_EXT_B_SIZE;
+    out->game_layout[0] = 0x60u;
+    out->game_layout[1] = 2u;
+    out->game_layout[2] = 0x0Cu;
+    out->game_layout[3] = 0x1Cu;
+    out->game_layout[4] = 8u;
+    out->addresses[0] = 0x18001A4E0ull;
+    out->addresses[1] = 0x1800237D0ull;
+    out->addresses[2] = 0x180026A60ull;
+    out->addresses[3] = 0x1800363B0ull;
+    out->addresses[4] = 0x1800361F0ull;
+    out->addresses[5] = 0x180034E70ull;
+    out->addresses[6] = 0x140C50D80ull;
+    out->addresses[7] = 0x140DEE20Aull;
+}
