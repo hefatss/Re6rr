@@ -3286,6 +3286,82 @@ Java_com_wmmt_re6rr_SoundStrings_nativeRowId(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_LuaAudioBindings_nativeCount(JNIEnv *env, jclass cls) {
+    (void)env;
+    (void)cls;
+    return (jint)r6_audio_binding_count();
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_LuaAudioBindings_nativeNames(JNIEnv *env, jclass cls,
+                                                 jint index) {
+    r6_audio_binding_t binding;
+    jobjectArray out = NULL;
+    jclass string_class;
+    jstring value;
+    (void)cls;
+    if (r6_audio_binding((uint32_t)index, &binding) != R6_OK) {
+        return NULL;
+    }
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if (string_class) {
+        out = (*env)->NewObjectArray(env, 2, string_class, NULL);
+    }
+    if (!out) {
+        return NULL;
+    }
+    value = (*env)->NewStringUTF(env, binding.name);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 0, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    value = (*env)->NewStringUTF(env, binding.call);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 1, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaAudioBindings_nativeNumbers(JNIEnv *env, jclass cls,
+                                                   jint index) {
+    r6_audio_binding_t binding;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (r6_audio_binding((uint32_t)index, &binding) != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jlong)binding.address;
+    values[1] = (jlong)binding.bank;
+    values[2] = (jlong)binding.tone;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_LuaAudioBindings_nativeFind(JNIEnv *env, jclass cls,
+                                                jstring name) {
+    const char *text;
+    int found;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    found = r6_audio_binding_find(text, NULL);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return found >= 0 ? (jint)found : -1;
+}
+
+JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_BankSlots_nativeFind(JNIEnv *env, jclass cls,
                                          jbyteArray slots) {
     unsigned char *bytes = NULL;

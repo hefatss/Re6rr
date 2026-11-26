@@ -32,7 +32,7 @@ engine/include/r6/r6_custom.h packed customization catalog parser
 engine/include/r6/r6_story.h  packed story catalog parser
 engine/src/core/              Lua host, engine lifecycle, context bundling
 engine/src/assets/            bounds-checked asset parsers + gzip inflate
-engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, nuSound2 string tables, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
+engine/src/audio/             bounds-checked .nub bank, BGM and engine-sound catalogs, nuSound2 string tables and Lua bindings, mixer bus/fade/dB, full 16-layer engine evaluation, KeyOn request builder, config_3d.bin reader and bank-registration view; no audio device
 engine/src/render/            std140 UBO packing, RGBA8 upload descriptors, binding manifest reader, compiled vertex layout reader and a host-sink GLES call layer; no GL linkage
 engine/src/physics/           freestanding vehicle dynamics, course projection, race rules
 engine/src/game/              freestanding flow, car/custom/story catalogs and stage-effect sounds
@@ -84,6 +84,10 @@ platform/android/java/        Java side of the JNI bridge
   bytes. Bank rows yield a name and id; tone rows yield a name and source WAV
   path. The final truncated `ENGINE` bank row has id 0, matching the Python
   parser.
+- `r6_audio_binding_count()` / `r6_audio_binding()` /
+  `r6_audio_binding_find()` — expose the twelve `luaL_Reg` sound bindings with
+  their function addresses, native calls and fixed bank/tone ids. `-1` marks a
+  value that is supplied as a Lua argument; no native method is called.
 - `r6_mixer_bus_read()/bus_write()/bus_fade()` and
   `r6_mixer_db_to_volume()/volume_to_db()` — access the recovered 68 buses at
   a 0x48 stride and port nuSound2 linear fade and piecewise dB conversions.
@@ -198,8 +202,9 @@ fade timing and stream reservation, `VoiceChain` copies chained-voice records
 and applies core fields, `SoundInit` validates the Sound::Initialize config,
 `SoundDispatch` copies bank/loop/positional SE records, `SoundConfig` parses
 config.bin, `BankSlots` finds free registration slots, `SoundStrings` reads
-bank/tone names and WAV paths, `CourseSurface` classifies road names,
-`SceneBridge` copies camid and resolves camera records,
+bank/tone names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding
+rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
+resolves camera records,
 and `StageEffect` resolves symbolic sounds;
 the JNI host supplies
 pow/exp2 from libm and sizes tone arrays, but
@@ -255,6 +260,7 @@ Verified on this dump:
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | bank slot scan | first free slot found across all 64 slots at stride 0x804; full table, short buffer and null arguments rejected |
 | nuSound2 string tables | 1 bank table and 8 tone tables (648 rows) match `nub_audio.parse_string_table()`; bank ids 1–7, truncated ENGINE id 0 and SYSTEM tone 47 `select.wav` checked; bad version/size/kind, short and out-of-range inputs rejected |
+| Lua sound bindings | all 12 `luaL_Reg` rows match `audio_events.resolved_bindings()`: address, native call and fixed bank/tone; SELECT/CANCEL/CURSOR resolved, bad index and missing name rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
 | Sound::Initialize config | 0x28 config counts, three opaque pointer slots and 0x98 Impl vector sizes match `audio_events.sound_init_facts()` on the shipped exe; bad counts and short input rejected |
 | stream fade state | nine fields at the recovered offsets read exact; 2000 ms produces the same frames/step as `audio_events.stream_fade_frames()`/`.stream_fade_step()`, and already-fading, not-playing and fallback-stop paths match the native statuses |
@@ -271,7 +277,7 @@ Verified on this dump:
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `CourseSurface`, `SceneBridge` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

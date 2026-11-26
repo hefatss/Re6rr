@@ -463,3 +463,57 @@ int r6_sound_strings_row(const void *data, size_t size, int kind,
     }
     return R6_OK;
 }
+
+#define R6_AUDIO_BINDING_NONE (-1)
+
+static const r6_audio_binding_t audio_bindings[] = {
+    {"PlaySE", 0x1407815D0ull, "playSe", 2, R6_AUDIO_BINDING_NONE},
+    {"PlaySEOfBank", 0x140781650ull, "playSe", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE},
+    {"PlaySELoop", 0x140781740ull, "playSeLoop", 2, R6_AUDIO_BINDING_NONE},
+    {"PlaySELoopOfBank", 0x140781830ull, "playSeLoop", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE},
+    {"StopSELoop", 0x140781990ull, "stopSeLoop", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE},
+    {"PlaySEDecide", 0x140781A10ull, "playSe", 2, 0x2F},
+    {"PlaySECancel", 0x140781A40ull, "playSe", 2, 0x07},
+    {"PlaySEMove", 0x140781A70ull, "playSe", 2, 0x0F},
+    {"PlayBGM", 0x140781AA0ull, "playBgm", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE},
+    {"PlayBGMByName", 0x140781B20ull, "playBgmByName",
+     R6_AUDIO_BINDING_NONE, R6_AUDIO_BINDING_NONE},
+    {"FadeOutBGM", 0x140781BA0ull, "fadeOutBgm", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE},
+    {"StopBGM", 0x140781CA0ull, "stopBgm", R6_AUDIO_BINDING_NONE,
+     R6_AUDIO_BINDING_NONE}
+};
+
+uint32_t r6_audio_binding_count(void) {
+    return (uint32_t)(sizeof(audio_bindings) / sizeof(audio_bindings[0]));
+}
+
+int r6_audio_binding(uint32_t index, r6_audio_binding_t *out) {
+    if (!out || index >= r6_audio_binding_count()) {
+        return R6_ERR_ARG;
+    }
+    r6_memcpy(out, &audio_bindings[index], sizeof(*out));
+    return R6_OK;
+}
+
+int r6_audio_binding_find(const char *name, r6_audio_binding_t *out) {
+    uint32_t index;
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    for (index = 0; index < r6_audio_binding_count(); index++) {
+        if (r6_strlen(audio_bindings[index].name) == r6_strlen(name) &&
+            r6_memcmp(audio_bindings[index].name, name,
+                      r6_strlen(name)) == 0) {
+            if (out) {
+                r6_memcpy(out, &audio_bindings[index], sizeof(*out));
+            }
+            return (int)index;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
