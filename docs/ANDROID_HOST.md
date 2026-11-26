@@ -24,12 +24,15 @@ tree to app external files:
         --out <dump>/story.r6story
     python tools/engine/course_descriptor.py --dump D:\Games\W6W-05 \
         --route FUKUOKA --out <dump>/FUKUOKA.r6course
+    python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 \
+        --glsl-dir <dump>/glsl
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
 CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
-`story.r6story`, and every `*.r6course` in that directory.
-`AssetProvider` uses the native gzip inflater; the core still sees only bytes.
+`story.r6story`, every `*.r6course` in that directory, and `glsl/bindings.r6glsl`
+through `GlslBindings`. `AssetProvider` uses the native gzip inflater; the core
+still sees only bytes.
 
 ## UI
 
@@ -44,12 +47,14 @@ CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 
 `Game.selectCourse()` uses the descriptor list index as `course`, area `0`,
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
-3 s countdown. The story catalog is data-only; no unlock progression, renderer,
-audio or All.Net code exists.
+3 s countdown. `GlslBindings` exposes record flags, UBO regions and sampler
+units from the compiled manifest; it makes no GL calls. The story catalog is
+data-only; no unlock progression, renderer, audio or All.Net code exists.
 
 ## Validation
 
-Desktop checks compile `Re6Engine.java` + `AssetProvider.java` via
-`tools/engine/build_host.py`. `MainActivity.java` is Android-only; its syntax
+Desktop checks compile `Re6Engine.java`, `AssetProvider.java` and
+`GlslBindings.java` via `tools/engine/build_host.py`. `MainActivity.java` is
+Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK
 build remains unverified in this repository.

@@ -132,7 +132,8 @@ def check_jni(dump):
         classes = os.path.join(ROOT, "build", "tmp", "jni-classes")
         os.makedirs(classes, exist_ok=True)
         sources = [os.path.join(java_dir, name)
-                   for name in ("Re6Engine.java", "AssetProvider.java")]
+                   for name in ("Re6Engine.java", "AssetProvider.java",
+                                "GlslBindings.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"

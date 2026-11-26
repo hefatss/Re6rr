@@ -13,6 +13,8 @@
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
+#include "r6/r6_glsl.h"
+#include "r6/r6_glsl_manifest.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
@@ -1581,4 +1583,201 @@ Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogFindKey(
     }
     free(bytes);
     return result;
+}
+
+/* GLSL binding manifest. Java owns the byte[]; the reader copies nothing and
+ * all returned arrays are plain jints so no native pointers cross the bridge. */
+static int glsl_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
+                          r6_glsl_bindings_view *view) {
+    jsize length;
+    jint rc;
+    *bytes = NULL;
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    if ((*env)->ExceptionCheck(env)) {
+        return R6_ERR_ARG;
+    }
+    *bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!*bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)*bytes);
+    if ((*env)->ExceptionCheck(env)) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_ARG;
+    }
+    rc = (jint)r6_glsl_bindings_init(view, *bytes, (size_t)length);
+    if (rc != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+    }
+    return rc;
+}
+
+static jintArray glsl_ints(JNIEnv *env, const jint *values, jsize count) {
+    jintArray out = (*env)->NewIntArray(env, count);
+    if (out) {
+        (*env)->SetIntArrayRegion(env, out, 0, count, values);
+    }
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeCount(JNIEnv *env, jclass cls,
+                                             jbyteArray data) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    jint result;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) != R6_OK) {
+        return -1;
+    }
+    result = (jint)view.count;
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeRecord(JNIEnv *env, jclass cls,
+                                              jbyteArray data, jint index) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    r6_glsl_bindings_record_info record;
+    jint values[5];
+    jintArray out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) == R6_OK &&
+        r6_glsl_bindings_get_record(&view, (uint32_t)index, &record) ==
+        R6_OK) {
+        values[0] = (jint)record.flags;
+        values[1] = record.cbuffers;
+        values[2] = record.samplers;
+        values[3] = (jint)record.cbuffer_first;
+        values[4] = (jint)record.name_off;
+        out = glsl_ints(env, values, 5);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeName(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint offset) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    const char *name;
+    jstring out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) == R6_OK) {
+        name = r6_glsl_bindings_name(&view, (uint32_t)offset);
+        if (name) {
+            out = (*env)->NewStringUTF(env, name);
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeCbuffer(JNIEnv *env, jclass cls,
+                                               jbyteArray data, jint record,
+                                               jint index) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    r6_glsl_bindings_record_info info;
+    r6_glsl_bindings_cbuffer_info block;
+    jint values[7];
+    jintArray out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) == R6_OK &&
+        r6_glsl_bindings_get_record(&view, (uint32_t)record, &info) == R6_OK &&
+        r6_glsl_bindings_get_cbuffer(&view, &info, (uint32_t)index,
+                                     &block) == R6_OK) {
+        values[0] = (jint)block.binding;
+        values[1] = (jint)block.name_off;
+        values[2] = (jint)block.size;
+        values[3] = block.slots;
+        values[4] = block.ubo;
+        values[5] = block.regions;
+        values[6] = (jint)block.region_first;
+        out = glsl_ints(env, values, 7);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeRegion(JNIEnv *env, jclass cls,
+                                              jbyteArray data, jint record,
+                                              jint cbuffer, jint index) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    r6_glsl_bindings_record_info info;
+    r6_glsl_bindings_cbuffer_info block;
+    r6_glsl_manifest_region region;
+    jint values[4];
+    jintArray out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) == R6_OK &&
+        r6_glsl_bindings_get_record(&view, (uint32_t)record, &info) == R6_OK &&
+        r6_glsl_bindings_get_cbuffer(&view, &info, (uint32_t)cbuffer,
+                                     &block) == R6_OK &&
+        r6_glsl_bindings_region(&view, &block, (uint32_t)index,
+                                &region) == R6_OK) {
+        values[0] = (jint)region.offset;
+        values[1] = region.size;
+        values[2] = region.kind;
+        values[3] = region.type;
+        out = glsl_ints(env, values, 4);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeSampler(JNIEnv *env, jclass cls,
+                                               jbyteArray data, jint record,
+                                               jint index) {
+    unsigned char *bytes;
+    r6_glsl_bindings_view view;
+    r6_glsl_bindings_record_info info;
+    r6_glsl_bindings_sampler_info sampler;
+    jint values[3];
+    jintArray out = NULL;
+    (void)cls;
+    if (glsl_from_blob(env, data, &bytes, &view) == R6_OK &&
+        r6_glsl_bindings_get_record(&view, (uint32_t)record, &info) == R6_OK &&
+        r6_glsl_bindings_get_sampler(&view, &info, (uint32_t)index,
+                                     &sampler) == R6_OK) {
+        values[0] = (jint)sampler.unit;
+        values[1] = (jint)sampler.texture_off;
+        values[2] = (jint)sampler.sampler_off;
+        out = glsl_ints(env, values, 3);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeTextureUpload(
+        JNIEnv *env, jclass cls, jint unit, jint format, jint width,
+        jint height) {
+    r6_glsl_texture_desc desc;
+    jint values[6];
+    (void)cls;
+    if (r6_glsl_texture_upload((uint32_t)unit, (uint8_t)format,
+                               (uint32_t)width, (uint32_t)height,
+                               &desc) != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jint)desc.internal_format;
+    values[1] = (jint)desc.format;
+    values[2] = (jint)desc.type;
+    values[3] = (jint)desc.width;
+    values[4] = (jint)desc.height;
+    values[5] = (jint)desc.size;
+    return glsl_ints(env, values, 6);
 }
