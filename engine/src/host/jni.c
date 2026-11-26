@@ -38,6 +38,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_path_strings.h"
 #include "r6/r6_enma_sim.h"
 #include "r6/r6_ref_words.h"
+#include "r6/r6_pdata_stats.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -2190,6 +2191,143 @@ Java_com_wmmt_re6rr_RefWords_nativeFind(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes ||
         r6_ref_words_find(bytes, length, (uint32_t)value, &index) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)index;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_pdata_stats_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[14];
+    (void)cls;
+    if (!bytes || r6_pdata_stats_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.function_count;
+    values[2] = (jlong)header.code_bytes;
+    values[3] = (jlong)header.text_bytes;
+    values[4] = (jlong)header.leaf;
+    values[5] = (jlong)header.chained;
+    values[6] = (jlong)header.with_eh;
+    values[7] = (jlong)header.min_size;
+    values[8] = (jlong)header.max_size;
+    values[9] = (jlong)header.median;
+    values[10] = (jlong)header.bucket_count;
+    values[11] = (jlong)header.largest_count;
+    values[12] = (jlong)header.strings_size;
+    values[13] = (jlong)header.strings_off;
+    return pe_new_longs(env, values, 14);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeBucket(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    char label[R6_PDATA_STATS_NAME_CAP];
+    uint32_t count = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pdata_stats_bucket(bytes, length, (uint32_t)index, label,
+                              sizeof(label), &count) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)count;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeBucketLabel(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jint index) {
+    char label[R6_PDATA_STATS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pdata_stats_bucket(bytes, length, (uint32_t)index, label,
+                              sizeof(label), NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, label);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeLargest(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index) {
+    uint32_t begin = 0;
+    uint32_t end = 0;
+    uint32_t size = 0;
+    uint32_t unwind = 0;
+    uint32_t flags = 0;
+    uint32_t leaf = 0;
+    uint32_t chain_begin = 0;
+    uint32_t chain_end = 0;
+    uint32_t chain_unwind = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    (void)cls;
+    if (!bytes ||
+        r6_pdata_stats_largest(bytes, length, (uint32_t)index, &begin, &end,
+                               &size, &unwind, &flags, &leaf, &chain_begin,
+                               &chain_end, &chain_unwind, NULL, 0) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)begin;
+    values[1] = (jlong)end;
+    values[2] = (jlong)size;
+    values[3] = (jlong)unwind;
+    values[4] = (jlong)flags;
+    values[5] = (jlong)leaf;
+    values[6] = (jlong)chain_begin;
+    values[7] = (jlong)chain_end;
+    values[8] = (jlong)chain_unwind;
+    return pe_new_longs(env, values, 9);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeLargestSection(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char section[R6_PDATA_STATS_NAME_CAP];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pdata_stats_largest(bytes, length, (uint32_t)index, NULL, NULL,
+                               NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                               section, sizeof(section)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    return (*env)->NewStringUTF(env, section);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PdataStats_nativeFind(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jlong begin) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes ||
+        r6_pdata_stats_find(bytes, length, (uint32_t)begin, &index) != R6_OK) {
         free(bytes);
         return -1;
     }
