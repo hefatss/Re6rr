@@ -18,6 +18,7 @@ set(R6_CORE
     engine/src/game/enma_exports.c
     engine/src/game/scene_env.c
     engine/src/assets/xmd.c
+    engine/src/assets/asset_inventory.c
     engine/src/assets/ndwd.c
     engine/src/assets/ntwd.c
     engine/src/assets/nut_texture.c

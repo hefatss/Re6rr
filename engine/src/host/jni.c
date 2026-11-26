@@ -31,6 +31,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_lua_globals.h"
 #include "r6/r6_lua_xrefs.h"
 #include "r6/r6_lua_inventory.h"
+#include "r6/r6_asset_inventory.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -963,6 +964,258 @@ Java_com_wmmt_re6rr_LuaInventory_nativeFind(JNIEnv *env, jclass cls,
     }
     free(bytes);
     (*env)->ReleaseStringUTFChars(env, name, text);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeHeader(JNIEnv *env, jclass cls,
+                                                jbyteArray blob) {
+    r6_asset_inventory_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[11];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.root_count;
+    values[1] = (jlong)header.classified[0];
+    values[2] = (jlong)header.classified[1];
+    values[3] = (jlong)header.ext_count[0];
+    values[4] = (jlong)header.ext_count[1];
+    values[5] = (jlong)header.magic_count[0];
+    values[6] = (jlong)header.magic_count[1];
+    values[7] = (jlong)header.folder_count[0];
+    values[8] = (jlong)header.folder_count[1];
+    values[9] = (jlong)header.shader_count;
+    values[10] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 11);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 11, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeExt(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t root = 0;
+    uint32_t files = 0;
+    uint32_t lo = 0;
+    uint32_t hi = 0;
+    uint32_t kinds[R6_ASSET_INVENTORY_KINDS];
+    jlong values[10];
+    jlongArray out = NULL;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_ext(bytes, length, (uint32_t)index, name,
+                               sizeof(name), &root, &files, &lo, &hi,
+                               kinds) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)root;
+    values[1] = (jlong)files;
+    values[2] = ((jlong)lo | ((jlong)hi << 32));
+    for (at = 0; at < R6_ASSET_INVENTORY_KINDS; at++) {
+        values[3 + at] = (jlong)kinds[at];
+    }
+    out = (*env)->NewLongArray(env, 10);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 10, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeMagic(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t root = 0;
+    uint32_t count = 0;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_magic(bytes, length, (uint32_t)index, name,
+                                 sizeof(name), &root, &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)root;
+    values[1] = (jlong)count;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeFolder(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t root = 0;
+    uint32_t files = 0;
+    uint32_t lo = 0;
+    uint32_t hi = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_folder(bytes, length, (uint32_t)index, name,
+                                  sizeof(name), &root, &files, &lo,
+                                  &hi) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)root;
+    values[1] = (jlong)files;
+    values[2] = ((jlong)lo | ((jlong)hi << 32));
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeShaderSize(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char path[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t size = 0;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_shader(bytes, length, (uint32_t)index, path,
+                                  sizeof(path), &size, NULL) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)size;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeExtName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_ext(bytes, length, (uint32_t)index, name,
+                               sizeof(name), NULL, NULL, NULL, NULL,
+                               NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeMagicName(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_magic(bytes, length, (uint32_t)index, name,
+                                 sizeof(name), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeFolderName(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char name[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_folder(bytes, length, (uint32_t)index, name,
+                                  sizeof(name), NULL, NULL, NULL,
+                                  NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeShaderPath(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char path[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_shader(bytes, length, (uint32_t)index, path,
+                                  sizeof(path), NULL, NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, path);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_AssetInventory_nativeShaderHead(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char path[R6_ASSET_INVENTORY_NAME_CAP];
+    unsigned char head[16];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_asset_inventory_shader(bytes, length, (uint32_t)index, path,
+                                  sizeof(path), NULL, head) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewByteArray(env, 16);
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, 16, (const jbyte *)head);
+    }
     return out;
 }
 
