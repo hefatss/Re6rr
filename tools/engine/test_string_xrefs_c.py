@@ -133,6 +133,13 @@ def check(lib):
         ctypes.byref(count)) == R6_ERR_FORMAT
 
     bad = bytearray(blob)
+    struct.pack_into("<I", bad, NAME_OFF + 12 + 4, 0)
+    source = ctypes.create_string_buffer(bytes(bad), len(bad))
+    assert lib.r6_string_xref_name(
+        source, len(bad), 1, name, len(name), ctypes.byref(first),
+        ctypes.byref(count)) == R6_ERR_FORMAT
+
+    bad = bytearray(blob)
     struct.pack_into("<I", bad, RVA_OFF, 0xffffffff)
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_string_xref_rva(

@@ -85,8 +85,6 @@ int r6_string_xref_name(const void *data, size_t size, uint32_t index,
     uint32_t row_off;
     uint32_t first;
     uint32_t count;
-    uint32_t at;
-    uint32_t expected = 0;
     int result = string_xref_header(data, size, &header);
     if (result != R6_OK) {
         return result;
@@ -94,13 +92,13 @@ int r6_string_xref_name(const void *data, size_t size, uint32_t index,
     if (index >= header.name_count) {
         return R6_ERR_ARG;
     }
-    for (at = 0; at < index; at++) {
-        expected += r6_u32(bytes, R6_STRING_XREF_NAME_OFF + at * 12u + 8u);
-    }
     row_off = R6_STRING_XREF_NAME_OFF + index * 12u;
     first = r6_u32(bytes, row_off + 4u);
     count = r6_u32(bytes, row_off + 8u);
-    if (first != expected || first + count > header.rva_count) {
+    if ((index == 0 && first != 0u) ||
+        (index && first != r6_u32(bytes, row_off - 12u + 4u) +
+                         r6_u32(bytes, row_off - 12u + 8u)) ||
+        first + count > header.rva_count) {
         return R6_ERR_FORMAT;
     }
     if (name || capacity) {
