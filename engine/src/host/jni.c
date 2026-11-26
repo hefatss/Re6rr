@@ -20,6 +20,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_course.h"
 #include "r6/r6_custom.h"
 #include "r6/r6_game.h"
+#include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
 #include "r6/r6_engine_sound.h"
 #include "r6/r6_glsl.h"
@@ -3270,4 +3271,123 @@ Java_com_wmmt_re6rr_VoiceChain_nativeApply(JNIEnv *env, jclass cls,
                                    (const jbyte *)voice);
     }
     return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StageEffect_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_stage_effect_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[4];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_stage_effect_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.count;
+    values[2] = (jlong)header.strings_off;
+    values[3] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 4);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 4, values);
+    }
+    return out;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_StageEffect_nativeStrings(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_stage_effect_record record;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t offsets[5];
+    jobjectArray out = NULL;
+    jclass string_class;
+    uint32_t i;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_stage_effect_get(bytes, length, (uint32_t)index, &record) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    offsets[0] = record.set_off;
+    offsets[1] = record.symbol_off;
+    offsets[2] = record.file_off;
+    offsets[3] = record.tone_name_off;
+    offsets[4] = record.wav_off;
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if (string_class) {
+        out = (*env)->NewObjectArray(env, 5, string_class, NULL);
+    }
+    for (i = 0; out && i < 5; i++) {
+        const char *text = r6_stage_effect_string(bytes, length, offsets[i]);
+        jstring value = (*env)->NewStringUTF(env, text ? text : "");
+        if (value) {
+            (*env)->SetObjectArrayElement(env, out, (jsize)i, value);
+            (*env)->DeleteLocalRef(env, value);
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_StageEffect_nativeNumbers(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_stage_effect_record record;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jdouble values[7];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_stage_effect_get(bytes, length, (uint32_t)index, &record) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jdouble)record.bank;
+    values[1] = (jdouble)record.tone;
+    values[2] = (jdouble)record.native_tone;
+    values[3] = (jdouble)record.loop;
+    values[4] = (jdouble)record.x;
+    values[5] = (jdouble)record.y;
+    values[6] = (jdouble)record.z;
+    out = (*env)->NewDoubleArray(env, 7);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 7, values);
+    }
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_StageEffect_nativeFind(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jstring symbol) {
+    r6_stage_effect_record record;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    jint result = -1;
+    (void)cls;
+    if (!symbol) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, symbol, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK) {
+        result = (jint)r6_stage_effect_find_symbol(bytes, length, text,
+                                                   &record);
+        free(bytes);
+    }
+    (*env)->ReleaseStringUTFChars(env, symbol, text);
+    return result;
 }

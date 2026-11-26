@@ -48,6 +48,7 @@ SOURCES = [
     "engine/src/physics/course.c",
     "engine/src/physics/race.c",
     "engine/src/game/game.c",
+    "engine/src/game/stage_effect.c",
     "engine/src/game/car.c",
     "engine/src/game/custom.c",
     "engine/src/game/story.c",
@@ -150,7 +151,8 @@ def check_jni(dump):
                                 "Config3D.java", "BankSetup.java",
                                 "AudioStream.java", "VoiceChain.java",
                                 "SoundInit.java", "BgmFade.java",
-                                "SoundDispatch.java", "SceneBridge.java")]
+                                "SoundDispatch.java", "SceneBridge.java",
+                                "StageEffect.java")]
         subprocess.run([javac, "-d", classes] + sources, check=True)
         print("Java bridge compiles OK")
         subprocess.run([os.path.join(java_home, "bin", "java.exe" if os.name == "nt"

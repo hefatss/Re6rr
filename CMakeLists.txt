@@ -31,6 +31,7 @@ set(R6_CORE
     engine/src/physics/course.c
     engine/src/physics/race.c
     engine/src/game/game.c
+    engine/src/game/stage_effect.c
     engine/src/game/car.c
     engine/src/game/custom.c
     engine/src/game/story.c

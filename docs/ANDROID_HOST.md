@@ -32,6 +32,8 @@ tree to app external files:
         --out <dump>/bgm.r6bgm
     python tools/engine/engine_runtime_catalog.py --dump D:\Games\W6W-05 \
         --out <dump>/engine_runtime.r6ers
+    python tools/engine/stage_effect_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/stage_effect.r6stg
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
@@ -39,8 +41,9 @@ CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 `story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
 through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`,
 `engine_sound.r6esnd` through `EngineSound`, `bgm.r6bgm` through
-`BgmCatalog`, and `engine_runtime.r6ers` plus `engine_sound.r6esnd` through
-`EngineRuntime`. `AssetProvider` uses the native gzip inflater; the core
+`BgmCatalog`, `stage_effect.r6stg` through `StageEffect`, and
+`engine_runtime.r6ers` plus `engine_sound.r6esnd` through `EngineRuntime`.
+`AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
 
 ## UI
@@ -69,8 +72,9 @@ copied extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
 `SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
 stream fade state, `SoundDispatch` copies bank/loop/positional SE records, and
-`SceneBridge` copies camid and resolves camera containers/records; none makes
-GL or audio-device calls. The
+`SceneBridge` copies camid and resolves camera containers/records, and
+`StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
+audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 
