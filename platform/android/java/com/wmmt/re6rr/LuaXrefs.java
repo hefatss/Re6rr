@@ -1,0 +1,54 @@
+package com.wmmt.re6rr;
+
+/** Shipped Lua names mapped to native function and pointer-table references. */
+public final class LuaXrefs {
+    private LuaXrefs() {
+    }
+
+    public static final int VIA_CODE = 0;
+    public static final int VIA_TABLE = 1;
+    public static final int VIA_POINTER = 2;
+    public static final int KIND_STRINGS = 0;
+    public static final int KIND_POINTER = 1;
+
+    /** count, strings offset and strings size. */
+    public static long[] header(byte[] blob) {
+        return nativeHeader(blob);
+    }
+
+    public static String name(byte[] blob, int index) {
+        return nativeName(blob, index);
+    }
+
+    /** via, function count and table count; null for an invalid index. */
+    public static long[] row(byte[] blob, int index) {
+        return nativeRow(blob, index);
+    }
+
+    /** Function RVAs in native order. */
+    public static long[] funcs(byte[] blob, int index) {
+        return nativeFuncs(blob, index);
+    }
+
+    /** Flat table triples: rva, kind and user count. */
+    public static long[] tables(byte[] blob, int index) {
+        return nativeTables(blob, index);
+    }
+
+    /** Function RVAs that load one pointer table. */
+    public static long[] users(byte[] blob, int index, int table) {
+        return nativeUsers(blob, index, table);
+    }
+
+    private static native long[] nativeHeader(byte[] blob);
+
+    private static native String nativeName(byte[] blob, int index);
+
+    private static native long[] nativeRow(byte[] blob, int index);
+
+    private static native long[] nativeFuncs(byte[] blob, int index);
+
+    private static native long[] nativeTables(byte[] blob, int index);
+
+    private static native long[] nativeUsers(byte[] blob, int index, int table);
+}

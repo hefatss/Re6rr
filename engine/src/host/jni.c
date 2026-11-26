@@ -25,6 +25,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_game.h"
 #include "r6/r6_honor_schema.h"
 #include "r6/r6_lua_globals.h"
+#include "r6/r6_lua_xrefs.h"
 #include "r6/r6_nsh.h"
 #include "r6/r6_stage_effect.h"
 #include "r6/r6_engine_runtime.h"
@@ -221,6 +222,205 @@ Java_com_wmmt_re6rr_LuaGlobals_nativeRow(JNIEnv *env, jclass cls,
     if (out) {
         (*env)->SetLongArrayRegion(env, out, 0, 2, values);
     }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeHeader(JNIEnv *env, jclass cls,
+                                          jbyteArray blob) {
+    r6_lua_xref_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.count;
+    values[1] = (jlong)header.strings_off;
+    values[2] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeName(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    char name[R6_LUA_XREF_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_name(bytes, length, (uint32_t)index, name,
+                         sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeRow(JNIEnv *env, jclass cls,
+                                       jbyteArray blob, jint index) {
+    r6_lua_xref_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.via;
+    values[1] = (jlong)row.func_count;
+    values[2] = (jlong)row.table_count;
+    out = (*env)->NewLongArray(env, 3);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 3, values);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeFuncs(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    r6_lua_xref_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t rva = 0;
+    jlong *values = NULL;
+    jlongArray out = NULL;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values = (jlong *)malloc((row.func_count ? row.func_count : 1u) *
+                             sizeof(jlong));
+    if (values) {
+        for (at = 0; at < row.func_count; at++) {
+            if (r6_lua_xref_func(bytes, length, (uint32_t)index, at,
+                                 &rva) != R6_OK) {
+                free(values);
+                values = NULL;
+                break;
+            }
+            values[at] = (jlong)rva;
+        }
+    }
+    free(bytes);
+    if (!values) {
+        return NULL;
+    }
+    out = (*env)->NewLongArray(env, (jsize)row.func_count);
+    if (out && row.func_count) {
+        (*env)->SetLongArrayRegion(env, out, 0, (jsize)row.func_count, values);
+    }
+    free(values);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeTables(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    r6_lua_xref_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t rva = 0;
+    uint32_t kind = 0;
+    uint32_t count = 0;
+    jlong *values = NULL;
+    jlongArray out = NULL;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values = (jlong *)malloc((row.table_count * 3u + 1u) * sizeof(jlong));
+    if (values) {
+        for (at = 0; at < row.table_count; at++) {
+            if (r6_lua_xref_table(bytes, length, (uint32_t)index, at,
+                                  &rva, &kind, &count) != R6_OK) {
+                free(values);
+                values = NULL;
+                break;
+            }
+            values[at * 3u] = (jlong)rva;
+            values[at * 3u + 1u] = (jlong)kind;
+            values[at * 3u + 2u] = (jlong)count;
+        }
+    }
+    free(bytes);
+    if (!values) {
+        return NULL;
+    }
+    out = (*env)->NewLongArray(env, (jsize)(row.table_count * 3u));
+    if (out && row.table_count) {
+        (*env)->SetLongArrayRegion(env, out, 0,
+                                   (jsize)(row.table_count * 3u), values);
+    }
+    free(values);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeUsers(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index,
+                                         jint table) {
+    r6_lua_xref_row_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t count = 0;
+    uint32_t rva = 0;
+    jlong *values = NULL;
+    jlongArray out = NULL;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_xref_row(bytes, length, (uint32_t)index, &row) != R6_OK ||
+        r6_lua_xref_table(bytes, length, (uint32_t)index, (uint32_t)table,
+                          NULL, NULL, &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values = (jlong *)malloc((count ? count : 1u) * sizeof(jlong));
+    if (values) {
+        for (at = 0; at < count; at++) {
+            if (r6_lua_xref_user(bytes, length, (uint32_t)index,
+                                 (uint32_t)table, at, &rva) != R6_OK) {
+                free(values);
+                values = NULL;
+                break;
+            }
+            values[at] = (jlong)rva;
+        }
+    }
+    free(bytes);
+    if (!values) {
+        return NULL;
+    }
+    out = (*env)->NewLongArray(env, (jsize)count);
+    if (out && count) {
+        (*env)->SetLongArrayRegion(env, out, 0, (jsize)count, values);
+    }
+    free(values);
     return out;
 }
 
