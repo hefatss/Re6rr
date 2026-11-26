@@ -1,6 +1,7 @@
 """Check the 32 chained-voice 0xd0 state records in C."""
 
 import ctypes
+import math
 import os
 import struct
 import sys
@@ -24,6 +25,17 @@ class ChainState(ctypes.Structure):
     _fields_ = [("values", ctypes.c_float * FLOATS)]
 
 
+POW_FN = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_void_p,
+                          ctypes.c_double, ctypes.c_double)
+EXP2_FN = ctypes.CFUNCTYPE(ctypes.c_double, ctypes.c_void_p,
+                           ctypes.c_double)
+
+
+class Math(ctypes.Structure):
+    _fields_ = [("user", ctypes.c_void_p), ("pow_value", POW_FN),
+                ("exp2_value", EXP2_FN)]
+
+
 def configure(lib):
     lib.r6_voice_chain_read.restype = ctypes.c_int
     lib.r6_voice_chain_read.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -33,6 +45,10 @@ def configure(lib):
     lib.r6_voice_chain_write.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                         ctypes.c_uint32,
                                         ctypes.POINTER(ChainState)]
+    lib.r6_voice_chain_apply.restype = ctypes.c_int
+    lib.r6_voice_chain_apply.argtypes = [ctypes.POINTER(ChainState),
+                                         ctypes.c_void_p, ctypes.c_size_t,
+                                         ctypes.POINTER(Math)]
 
 
 def check(dump):
@@ -80,9 +96,55 @@ def check(dump):
     assert lib.r6_voice_chain_write(source, len(raw), 0, None) == R6_ERR_ARG
     assert lib.r6_voice_chain_read(None, len(raw), 0,
                                    ctypes.byref(state)) == R6_ERR_ARG
-    print("voice chain: %d records x %d f32 slots read and write exact bytes; "
-          "bad index, short buffer and null arguments rejected" %
-          (COUNT, FLOATS))
+
+    fields = facts["fields"]
+    voice_offsets = facts["voice_fields"]
+    values = [0.0] * FLOATS
+    values[fields["volume"]] = float("nan")
+    values[fields["fx_volume"]] = 2.0
+    values[fields["pitch_cents"]] = 1200.0
+    values[fields["filter_a"]] = -0.5
+    values[fields["filter_b"]] = 0.25
+    values[fields["bus"]] = 6.0
+    values[fields["channel"]] = 21.0
+    state.values = (ctypes.c_float * FLOATS)(*values)
+    voice = ctypes.create_string_buffer(b"\xcc" * 0x4C, 0x4C)
+    pow_cb = POW_FN(lambda user, base, exponent: math.pow(base, exponent))
+    exp2_cb = EXP2_FN(lambda user, exponent: math.pow(2.0, exponent))
+    sink = Math(None, pow_cb, exp2_cb)
+    assert lib.r6_voice_chain_apply(ctypes.byref(state), voice, len(voice),
+                                    ctypes.byref(sink)) == R6_OK
+    expected = {
+        voice_offsets["volume"]: struct.pack(
+            "<f", audio_events.clamp_unit(float("nan"))),
+        voice_offsets["fx_volume"]: struct.pack("<f", 1.0),
+        voice_offsets["pitch"]: struct.pack(
+            "<f", audio_events.cents_to_pitch(1200.0)),
+        voice_offsets["filter_a"]: struct.pack("<f", 0.0),
+        voice_offsets["filter_b"]: struct.pack("<f", 0.25),
+        voice_offsets["bus"]: struct.pack("<I", 6),
+        voice_offsets["channel"]: struct.pack("<I", 21),
+    }
+    for offset, blob in expected.items():
+        assert voice.raw[offset:offset + len(blob)] == blob, offset
+    for offset in range(len(voice.raw)):
+        if not any(offset in range(at, at + len(blob))
+                   for at, blob in expected.items()):
+            assert voice.raw[offset] == 0xCC, offset
+
+    assert lib.r6_voice_chain_apply(ctypes.byref(state), voice, 0x4B,
+                                    ctypes.byref(sink)) == R6_ERR_ARG
+    assert lib.r6_voice_chain_apply(None, voice, len(voice),
+                                    ctypes.byref(sink)) == R6_ERR_ARG
+    assert lib.r6_voice_chain_apply(ctypes.byref(state), None, len(voice),
+                                    ctypes.byref(sink)) == R6_ERR_ARG
+    assert lib.r6_voice_chain_apply(ctypes.byref(state), voice, len(voice),
+                                    None) == R6_ERR_ARG
+    assert lib.r6_voice_chain_apply(ctypes.byref(state), voice, len(voice),
+                                    ctypes.byref(Math())) == R6_ERR_ARG
+    print("voice chain: %d records x %d f32 slots read and write exact bytes, "
+          "and 7 core fields applied with native clamp/pitch; bad index, "
+          "short buffer and null arguments rejected" % (COUNT, FLOATS))
 
 
 def main():

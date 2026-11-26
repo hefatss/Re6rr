@@ -164,6 +164,35 @@ int r6_voice_chain_write(void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+int r6_voice_chain_apply(const r6_voice_chain_state *state, void *voice,
+                         size_t size, const r6_envelope_math *math) {
+    unsigned char *at = (unsigned char *)voice;
+    double pitch = 0.0;
+    int rc;
+    if (!state || !at || !math || size < R6_VOICE_CORE_MIN_SIZE) {
+        return R6_ERR_ARG;
+    }
+    rc = r6_voice_cents_to_pitch(
+        math, (double)state->values[R6_VOICE_CHAIN_PITCH_CENTS], &pitch);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    voice_put_f32(at + R6_VOICE_CORE_VOLUME,
+                  r6_voice_clamp_unit(state->values[R6_VOICE_CHAIN_VOLUME]));
+    voice_put_f32(at + R6_VOICE_CORE_FX_VOLUME,
+                  r6_voice_clamp_unit(state->values[R6_VOICE_CHAIN_FX_VOLUME]));
+    voice_put_f32(at + R6_VOICE_CORE_PITCH, (float)pitch);
+    voice_put_f32(at + R6_VOICE_CORE_FILTER_A,
+                  r6_voice_clamp_unit(state->values[R6_VOICE_CHAIN_FILTER_A]));
+    voice_put_f32(at + R6_VOICE_CORE_FILTER_B,
+                  r6_voice_clamp_unit(state->values[R6_VOICE_CHAIN_FILTER_B]));
+    voice_put_u32(at + R6_VOICE_CORE_BUS,
+                  (uint32_t)state->values[R6_VOICE_CHAIN_BUS]);
+    voice_put_u32(at + R6_VOICE_CORE_CHANNEL,
+                  (uint32_t)state->values[R6_VOICE_CHAIN_CHANNEL]);
+    return R6_OK;
+}
+
 float r6_voice_clamp_unit(float value) {
     if (value != value || value < 0.0f) {
         return 0.0f;

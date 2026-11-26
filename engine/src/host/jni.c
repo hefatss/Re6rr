@@ -3007,3 +3007,37 @@ Java_com_wmmt_re6rr_VoiceChain_nativeWrite(JNIEnv *env, jclass cls,
     free(bytes);
     return out;
 }
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_VoiceChain_nativeApply(JNIEnv *env, jclass cls,
+                                           jdoubleArray values) {
+    r6_voice_chain_state state;
+    r6_envelope_math math_sink = {NULL, engine_pow, engine_exp2};
+    unsigned char voice[R6_VOICE_CORE_MIN_SIZE];
+    jdouble input[R6_VOICE_CHAIN_FLOATS];
+    jbyteArray out = NULL;
+    uint32_t i;
+    (void)cls;
+    if (!values || (*env)->GetArrayLength(env, values) !=
+                       R6_VOICE_CHAIN_FLOATS) {
+        return NULL;
+    }
+    (*env)->GetDoubleArrayRegion(env, values, 0, R6_VOICE_CHAIN_FLOATS,
+                                 input);
+    if ((*env)->ExceptionCheck(env)) {
+        return NULL;
+    }
+    for (i = 0; i < R6_VOICE_CHAIN_FLOATS; i++) {
+        state.values[i] = (float)input[i];
+    }
+    if (r6_voice_chain_apply(&state, voice, sizeof(voice), &math_sink) !=
+        R6_OK) {
+        return NULL;
+    }
+    out = (*env)->NewByteArray(env, (jsize)sizeof(voice));
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)sizeof(voice),
+                                   (const jbyte *)voice);
+    }
+    return out;
+}

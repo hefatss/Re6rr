@@ -96,8 +96,9 @@ platform/android/java/        Java side of the JNI bridge
   defaults. `r6_voice_clamp_unit()` and `r6_voice_cents_to_pitch()` port the
   chained-voice appliers; pointer fields are copied as opaque integers and
   never dereferenced. `r6_voice_chain_read()/write()` access the 32 host-owned
-  0xd0-byte chained-voice records as 52 f32 slots. No voice playback or audio
-  device.
+  0xd0-byte chained-voice records as 52 f32 slots, and `r6_voice_chain_apply()`
+  writes the seven established core-voice fields with native clamp/pitch.
+  Speaker matrix, mode and core-voice lookup targets are not written.
 - `r6_config_3d_init()` / `r6_config_3d_amplitude()` — parse the shipped
   `config_3d.bin` into caller-owned section storage (10 records plus 6 tail
   words each, angles shifted by 90 degrees) and convert dB to amplitude with
@@ -151,11 +152,11 @@ gzip reads and passes plain bytes; the core never touches `AssetManager`.
 layer envelopes, `VertexLayout` reads vertex locations, semantics and masks,
 `BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates 16 layers
 from both engine blobs, `VoiceRequest` builds and reads 0xa0 KeyOn records with
-their extension blobs, `Config3D` reads 3D sound sections, and `BankSetup`
-`BankSetup` reads .nub registration views, `AudioStream` exposes fade timing
-and stream reservation, and `VoiceChain` copies chained-voice records; the JNI
-host supplies pow/exp2 from libm and
-sizes tone arrays, but none opens an audio or GL device. JNI C
+their extension blobs, `Config3D` reads 3D sound sections, `BankSetup` reads
+.nub registration views, `AudioStream` exposes fade timing and stream
+reservation, and `VoiceChain` copies chained-voice records and applies core
+fields; the JNI host supplies pow/exp2 from libm and sizes tone arrays, but
+none opens an audio or GL device. JNI C
 is syntax-checked against
 `JAVA_HOME/include`, and the Java class is compiled with `javac` by
 `build_host.py`. `CMakeLists.txt` links `r6core` into `libr6engine.so` for
@@ -206,7 +207,7 @@ Verified on this dump:
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
-| chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; bad index, short buffer and null arguments rejected |
+| chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |

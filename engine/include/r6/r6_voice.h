@@ -46,7 +46,15 @@ enum {
     R6_VOICE_CHAIN_BUS = 0x30,
     R6_VOICE_CHAIN_BANK = 0x31,
     R6_VOICE_CHAIN_TONE = 0x32,
-    R6_VOICE_CHAIN_VOICE = 0x33
+    R6_VOICE_CHAIN_VOICE = 0x33,
+    R6_VOICE_CORE_FILTER_A = 0x08,
+    R6_VOICE_CORE_CHANNEL = 0x14,
+    R6_VOICE_CORE_VOLUME = 0x2C,
+    R6_VOICE_CORE_FX_VOLUME = 0x30,
+    R6_VOICE_CORE_BUS = 0x38,
+    R6_VOICE_CORE_FILTER_B = 0x44,
+    R6_VOICE_CORE_PITCH = 0x48,
+    R6_VOICE_CORE_MIN_SIZE = 0x4C
 };
 
 typedef struct r6_voice_request {
@@ -93,6 +101,12 @@ R6_API int r6_voice_chain_read(const void *data, size_t size, uint32_t index,
                                r6_voice_chain_state *out);
 R6_API int r6_voice_chain_write(void *data, size_t size, uint32_t index,
                                 const r6_voice_chain_state *state);
+
+/* Apply the recovered clamped volumes, cents pitch, filters, bus and channel
+ * to a host-owned core voice. Speaker matrix, mode and core-voice lookup are
+ * not written: their destination offsets are not established. */
+R6_API int r6_voice_chain_apply(const r6_voice_chain_state *state, void *voice,
+                                size_t size, const r6_envelope_math *math);
 
 /* FUN_18001bf00/b1b0/bd30: NaN or negative -> 0, above one -> 1. */
 R6_API float r6_voice_clamp_unit(float value);
