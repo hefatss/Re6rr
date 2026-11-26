@@ -3860,6 +3860,55 @@ Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NativeNames_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_native_names_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[20];
+    jlongArray out = NULL;
+    uint32_t index;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_native_names_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (index = 0; index < R6_NATIVE_NAMES_KINDS; index++) {
+        values[index] = (jlong)header.counts[index];
+        values[9u + index] = (jlong)header.offsets[index];
+    }
+    values[18] = (jlong)header.strings_off;
+    values[19] = (jlong)header.strings_size;
+    out = (*env)->NewLongArray(env, 20);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 20, values);
+    }
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NativeNames_nativeName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint kind,
+                                           jint index) {
+    char name[0x100];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_native_names_get(bytes, length, (int)kind, (uint32_t)index,
+                            name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_SceneConfig_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {
     r6_scene_names_header header;

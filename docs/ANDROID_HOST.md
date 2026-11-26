@@ -36,6 +36,8 @@ tree to app external files:
         --out <dump>/stage_effect.r6stg
     python tools/engine/scene_config_catalog.py --dump D:\Games\W6W-05 \
         --out <dump>/scene_config.r6scn
+    python tools/engine/native_names_catalog.py --dump D:\Games\W6W-05 \
+        --out <dump>/native_names.r6nam
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
@@ -44,8 +46,8 @@ CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`,
 `engine_sound.r6esnd` through `EngineSound`, `bgm.r6bgm` through
 `BgmCatalog`, `stage_effect.r6stg` through `StageEffect`,
-`scene_config.r6scn` through `SceneConfig`, and
-`engine_runtime.r6ers` plus `engine_sound.r6esnd` through `EngineRuntime`.
+`scene_config.r6scn` through `SceneConfig`, `native_names.r6nam` through
+`NativeNames`, and `engine_runtime.r6ers` plus `engine_sound.r6esnd` through `EngineRuntime`.
 `AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
 
@@ -87,8 +89,8 @@ last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 r
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
 192-entry lookup layout,
-`EnvironmentLua` parses scene scripts, `SceneConfig` packs scenes and resolves
-native names, and
+`EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
+names, `SceneConfig` packs scenes and resolves native names, and
 `StageEffect` resolves shipped symbolic sounds to bank/tone; none makes GL or
 audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
@@ -97,7 +99,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
+`GlslBindings.java`, `NshContainer.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `Re6Texture.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax
 was checked against minimal local stubs under `build/tmp`. A real NDK/SDK

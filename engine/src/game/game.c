@@ -795,3 +795,67 @@ int r6_scene_names_get(const void *data, size_t size, int kind,
     result = scene_copy_name(bytes, size, offset, out, capacity);
     return result == R6_ERR_ARG ? R6_ERR_FORMAT : result;
 }
+
+static const unsigned char native_names_magic[8] = {
+    'R', '6', 'N', 'A', 'M', 0, 1, 0
+};
+
+int r6_native_names_parse(const void *data, size_t size,
+                          r6_native_names_header *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint64_t total = 0;
+    uint32_t index;
+    uint32_t strings_off;
+    if (!bytes || !out || size < 100u ||
+        r6_memcmp(bytes, native_names_magic, sizeof(native_names_magic)) != 0 ||
+        read_u32(bytes, 8) != 1u) {
+        return R6_ERR_FORMAT;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    for (index = 0; index < R6_NATIVE_NAMES_KINDS; index++) {
+        out->counts[index] = read_u32(bytes, 12u + index * 4u);
+        total += out->counts[index];
+    }
+    strings_off = 92u + (uint32_t)(total * 4u);
+    if (total > (size - 92u) / 4u || strings_off >= size) {
+        return R6_ERR_FORMAT;
+    }
+    for (index = 0; index < R6_NATIVE_NAMES_KINDS; index++) {
+        out->offsets[index] = read_u32(bytes, 48u + index * 4u);
+        if (out->offsets[index] != strings_off) {
+            return R6_ERR_FORMAT;
+        }
+    }
+    out->strings_off = strings_off;
+    out->strings_size = read_u32(bytes, 88u);
+    if (read_u32(bytes, 84u) != strings_off || out->strings_size < 1u ||
+        (uint64_t)strings_off + out->strings_size != size) {
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+int r6_native_names_get(const void *data, size_t size, int kind,
+                        uint32_t index, char *out, size_t capacity) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_native_names_header header;
+    uint32_t row = index;
+    uint32_t offset;
+    int result;
+    int table;
+    if (r6_native_names_parse(data, size, &header) != R6_OK || !out ||
+        kind < R6_NATIVE_NAMES_SEQUENCE ||
+        kind >= R6_NATIVE_NAMES_KINDS ||
+        index >= header.counts[kind]) {
+        return R6_ERR_ARG;
+    }
+    for (table = R6_NATIVE_NAMES_SEQUENCE; table < kind; table++) {
+        row += header.counts[table];
+    }
+    offset = read_u32(bytes, 92u + row * 4u);
+    if (offset < header.strings_off || offset >= size) {
+        return R6_ERR_FORMAT;
+    }
+    result = scene_copy_name(bytes, size, offset, out, capacity);
+    return result == R6_ERR_ARG ? R6_ERR_FORMAT : result;
+}

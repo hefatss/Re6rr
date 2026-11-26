@@ -270,6 +270,35 @@ R6_API int r6_scene_names_parse(const void *data, size_t size,
 R6_API int r6_scene_names_get(const void *data, size_t size, int kind,
                               int32_t value, char *out, size_t capacity);
 
+/* R6NAM blob built by tools/engine/native_names_catalog.py from the shipped
+ * pointer-name runs (sequence, tk_ari, stage_time, tips_end, flash, parts,
+ * honor, check_honor and vinyl_blend). */
+enum {
+    R6_NATIVE_NAMES_SEQUENCE = 0,
+    R6_NATIVE_NAMES_TK_ARI = 1,
+    R6_NATIVE_NAMES_STAGE_TIME = 2,
+    R6_NATIVE_NAMES_TIPS_END = 3,
+    R6_NATIVE_NAMES_FLASH = 4,
+    R6_NATIVE_NAMES_PARTS = 5,
+    R6_NATIVE_NAMES_HONOR = 6,
+    R6_NATIVE_NAMES_CHECK_HONOR = 7,
+    R6_NATIVE_NAMES_VINYL_BLEND = 8,
+    R6_NATIVE_NAMES_KINDS = 9
+};
+
+typedef struct r6_native_names_header {
+    uint32_t counts[R6_NATIVE_NAMES_KINDS];
+    uint32_t offsets[R6_NATIVE_NAMES_KINDS];
+    uint32_t strings_off;
+    uint32_t strings_size;
+} r6_native_names_header;
+
+R6_API int r6_native_names_parse(const void *data, size_t size,
+                                 r6_native_names_header *out);
+
+R6_API int r6_native_names_get(const void *data, size_t size, int kind,
+                               uint32_t index, char *out, size_t capacity);
+
 #ifdef __cplusplus
 }
 #endif

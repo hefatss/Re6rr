@@ -215,6 +215,10 @@ platform/android/java/        Java side of the JNI bridge
   blob built by `tools/engine/scene_config_catalog.py` and apply the shipped
   car/stage/day indexing: `-1` and out-of-range cars give `PLC_NON`, stage uses
   `value-1`, day uses the raw value.
+- `r6_native_names_parse()` / `r6_native_names_get()` read the `R6NAM` blob
+  built by `tools/engine/native_names_catalog.py` from nine shipped pointer-name
+  runs (sequence, tk_ari, stage_time, tips_end, flash, parts, honor,
+  check_honor and vinyl_blend). No name tables are fabricated.
 - `r6_car_catalog_parse()` and `r6_car_catalog_find_model/find_id()` — parse a
   packed `.r6car` blob built by `tools/engine/car_catalog.py`; see
   `docs/P5_CARS.md`.
@@ -255,8 +259,9 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `EnvironmentLua` parses scene scripts, `SceneConfig`
-packs scenes and resolves native names, and
+192-entry lookup layout, `EnvironmentLua` parses scene scripts, `NativeNames`
+resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
+native names, and
 `StageEffect`
 resolves symbolic sounds;
 the JNI host supplies
@@ -336,7 +341,7 @@ Verified on this dump:
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; short input, bad magic and bad sizes rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `EnvironmentLua`, `SceneConfig` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `EnvironmentLua`, `NativeNames`, `SceneConfig` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -351,6 +356,7 @@ Verified on this dump:
 | EES car_info | all 10800 shipped ids match the `0x8c` record words; short and null inputs rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |
+| native names | all 1036 names in 9 shipped pointer tables match PE reads; bad kind, index, blob and capacity rejected |
 | scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |
 | stage-effect catalog | 6 shipped symbolic sounds read from the `R6STG` blob with matching set/symbol/file/tone name/wav, bank 3 tones 14/15, positions and loop flags; symbol lookup, bad magic and short blob checked |
 | car catalog | 151 `PLC_*` specs packed to 21,768 bytes, all fields match Python; `PLC_928GT` found by model and id; malformed blobs rejected |
