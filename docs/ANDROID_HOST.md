@@ -62,8 +62,9 @@ blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
-`BgmCatalog` resolves BGM ids and names, and `EngineRuntime` evaluates the 16
-layers using host libm; none makes GL or audio-device calls. The
+`BgmCatalog` resolves BGM ids and names, `EngineRuntime` evaluates the 16
+layers using host libm, and `VoiceRequest` builds and reads 0xa0 KeyOn records
+with copied extension blobs; none makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 

@@ -27,6 +27,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
 #include "r6/r6_vertex_layout.h"
+#include "r6/r6_voice.h"
 
 static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
@@ -2562,5 +2563,127 @@ Java_com_wmmt_re6rr_EngineRuntime_nativeEvaluate(
     }
     free(esnd_bytes);
     free(runtime_bytes);
+    return out;
+}
+
+/* Voice-request bridge: Java holds the raw 0xa0 bytes and extension blobs.
+ * Native pointer fields stay zero; no pointer or audio device crosses JNI. */
+static int voice_copy_ext(JNIEnv *env, jbyteArray blob,
+                          r6_voice_request *request, int a) {
+    unsigned char bytes[0x34];
+    jsize size;
+    size_t capacity = (size_t)(a ? R6_VOICE_EXT_B_SIZE : R6_VOICE_EXT_A_SIZE);
+    if (!blob) {
+        return r6_voice_request_set_ext(request, a, NULL, 0);
+    }
+    size = (*env)->GetArrayLength(env, blob);
+    if ((*env)->ExceptionCheck(env) || (size_t)size > capacity) {
+        return R6_ERR_ARG;
+    }
+    if (size) {
+        (*env)->GetByteArrayRegion(env, blob, 0, size, (jbyte *)bytes);
+        if ((*env)->ExceptionCheck(env)) {
+            return R6_ERR_ARG;
+        }
+    }
+    return r6_voice_request_set_ext(request, a, size ? bytes : NULL,
+                                    (size_t)size);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_VoiceRequest_nativeBuild(
+        JNIEnv *env, jclass cls, jint request, jint bank, jint tone,
+        jint bank_info, jint chain_tone, jint extended, jbyteArray ext_a,
+        jbyteArray ext_b, jdouble volume, jdouble pan, jint flags,
+        jdouble extra_a, jdouble extra_b, jdouble extra_c) {
+    r6_voice_request record;
+    unsigned char raw[R6_VOICE_REQUEST_SIZE];
+    jbyteArray out = NULL;
+    (void)cls;
+    if (r6_voice_request_init(&record) != R6_OK) {
+        return NULL;
+    }
+    record.request = (int32_t)request;
+    record.bank = (int32_t)bank;
+    record.bank_info = (int32_t)bank_info;
+    record.tone = (uint32_t)tone;
+    record.chain_tone = (int32_t)chain_tone;
+    record.extended = (uint32_t)extended;
+    record.volume = (float)volume;
+    record.pan = (float)pan;
+    record.flags = (uint32_t)flags;
+    record.extra_a = (float)extra_a;
+    record.extra_b = (float)extra_b;
+    record.extra_c = (float)extra_c;
+    if (voice_copy_ext(env, ext_a, &record, 0) != R6_OK ||
+        voice_copy_ext(env, ext_b, &record, 1) != R6_OK ||
+        r6_voice_request_pack(&record, raw, sizeof(raw)) != R6_OK) {
+        return NULL;
+    }
+    out = (*env)->NewByteArray(env, (jsize)sizeof(raw));
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)sizeof(raw),
+                                   (const jbyte *)raw);
+    }
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_VoiceRequest_nativeFields(JNIEnv *env, jclass cls,
+                                              jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_voice_request record;
+    jdouble values[13];
+    jdoubleArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_voice_request_unpack(bytes, length, &record) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jdouble)record.request;
+    values[1] = (jdouble)record.bank;
+    values[2] = (jdouble)record.bank_info;
+    values[3] = (jdouble)record.tone;
+    values[4] = (jdouble)record.chain_tone;
+    values[5] = (jdouble)record.extended;
+    values[6] = (jdouble)record.reserved;
+    values[7] = (jdouble)record.volume;
+    values[8] = (jdouble)record.pan;
+    values[9] = (jdouble)record.flags;
+    values[10] = (jdouble)record.extra_a;
+    values[11] = (jdouble)record.extra_b;
+    values[12] = (jdouble)record.extra_c;
+    out = (*env)->NewDoubleArray(env, 13);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 13, values);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_VoiceRequest_nativeExt(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jboolean a) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_voice_request record;
+    const unsigned char *slot;
+    jsize size;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) != R6_OK ||
+        r6_voice_request_unpack(bytes, length, &record) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    slot = a ? record.ext_b : record.ext_a;
+    size = (jsize)(a ? R6_VOICE_EXT_B_SIZE : R6_VOICE_EXT_A_SIZE);
+    out = (*env)->NewByteArray(env, size);
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, size, (const jbyte *)slot);
+    }
+    free(bytes);
     return out;
 }
