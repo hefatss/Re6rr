@@ -222,7 +222,7 @@ def check(dump):
                 not used_array - declared_array and \
                 "None" not in source
             emitted += 1
-    assert emitted == 404
+    assert emitted == 446
     copy_source = nsxr_shader.glsl_es_source(shaders["Copy.nsh"]["records"][1])
     assert "uniform sampler2D texture00;" in copy_source and \
         "texture(texture00, vec2(in1.xyxx))" in copy_source and \
@@ -243,11 +243,14 @@ def check(dump):
     assert "vec4 x0[25];" in env_source and \
         "x0[int(ri2.w)].xy" in env_source and \
         "intBitsToFloat(ri2.w)" in env_source
-    try:
-        nsxr_shader.glsl_es_source(shaders["MapLamp.nsh"]["records"][0])
-        raise AssertionError("MapLamp MOVC emitted without semantics")
-    except ValueError as error:
-        assert "unsupported GLES opcodes: MOVC" in str(error)
+    lamp_source = nsxr_shader.glsl_es_source(
+        shaders["MapLamp.nsh"]["records"][0])
+    assert "floatBitsToInt(r1.y) != 0 ? 1.0 : r0.z" in lamp_source and \
+        "floatBitsToInt(r0.x) != 0 ? 0.0 : r0.z" in lamp_source
+    depth_source = nsxr_shader.glsl_es_source(
+        shaders["MapDepthSC.nsh"]["records"][0])
+    assert "floatBitsToInt(r1.z) != 0 ? r1.x : -(r1.x)" in depth_source and \
+        "floatBitsToInt(r1.w) != 0 ? r1.y : -(r1.y)" in depth_source
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)

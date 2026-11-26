@@ -14,8 +14,9 @@ immediate and relative indices, neg/abs modifiers). Structured IF/LOOP/SWITCH
 blocks are matched by `control_flow()`; `uniform_usage()` resolves cbuffer
 operands against RDEF variables and `resource_usage()` maps texture/sampler
 registers to reflected resources. `glsl_es_source()` emits GLSL ES 3.00 with
-structured IF/LOOP/SWITCH, integer shadows and relative/array registers; MOVC
-raises explicitly. No game data is stored in this repository.
+structured IF/LOOP/SWITCH, integer shadows, relative/array registers and MOVC
+using the documented SM4 operand order. No game data is stored in this
+repository.
 """
 
 import argparse
@@ -306,9 +307,9 @@ for _name, _class, _glsl in (
     SM4_GLSL_ES[_name] = {"class": _class, "glsl": _glsl}
 
 # Subset emitted by glsl_es_source(). Comparison masks are float 0.0/1.0,
-# integer register components get an ivec4 shadow, and structured control flow
-# follows control_flow(). MOVC stays rejected: its condition/data operand order
-# is not proven by the dump.
+# integer register components get an ivec4 shadow, structured control flow
+# follows control_flow(), and MOVC follows the documented SM4 operand order:
+# https://learn.microsoft.com/windows/win32/direct3dhlsl/movc--sm4---asm-
 GLSL_EMIT_BINARY = {"ADD": "+", "MUL": "*", "DIV": "/"}
 GLSL_EMIT_DOT = {"DP2": 2, "DP3": 3, "DP4": 4}
 GLSL_EMIT_UNARY = {"RSQ": "inversesqrt", "SQRT": "sqrt", "FRC": "fract",
@@ -319,7 +320,7 @@ GLSL_CONTROL_OPS = {"IF", "ELSE", "ENDIF", "LOOP", "ENDLOOP", "SWITCH",
                     "CASE", "DEFAULT", "ENDSWITCH", "BREAK", "BREAKC",
                     "CONTINUE"}
 GLSL_EMIT_OPS = ({"MOV", "MAD", "MIN", "MAX", "SAMPLE", "DISCARD", "RET",
-                  "AND", "IMAX", "ITOF"} |
+                  "AND", "IMAX", "ITOF", "MOVC"} |
                  set(GLSL_EMIT_BINARY) | set(GLSL_EMIT_DOT) |
                  set(GLSL_EMIT_UNARY) | set(GLSL_EMIT_COMPARE) |
                  set(GLSL_EMIT_INT_BINARY) | GLSL_CONTROL_OPS)
@@ -789,10 +790,12 @@ def _is_int_operand(operand, context):
                                     for item in components)
 
 
-def _source(operand, context, integral=False):
+def _source(operand, context, integral=False, component=None):
     kind = operand["type"]
     if kind == "immediate32":
-        raw = operand["values"][0]
+        values = operand["values"]
+        position = COMPONENT_INDEX.get(component, 0)
+        raw = values[min(position, len(values) - 1)]
         expr = str(raw if raw < 0x80000000 else raw - 0x100000000) \
             if integral else _immediate(raw)
     elif kind == "resource":
@@ -818,9 +821,9 @@ def _source(operand, context, integral=False):
         expr = "%s%d" % (prefix, _operand_index(operand))
     else:
         raise ValueError("unsupported source operand %s" % kind)
-    if operand.get("components") and kind not in ("immediate32", "resource",
-                                                  "sampler"):
-        expr += "." + operand["components"]
+    components = component or operand.get("components")
+    if components and kind not in ("immediate32", "resource", "sampler"):
+        expr += "." + components
     modifier = operand.get("modifier")
     if modifier == "neg":
         return "-(%s)" % expr
@@ -829,6 +832,20 @@ def _source(operand, context, integral=False):
     if modifier == "absneg":
         return "-abs(%s)" % expr
     return expr
+
+
+def _swizzle_component(operand, position):
+    """SM4 POS-swizzle component for destination component `position`."""
+    components = operand.get("components") or "xyzw"
+    return components[position % len(components)]
+
+
+def _movc_condition(operand, context, component):
+    """SM4 MOVC tests any bit in the condition component (Microsoft SM4 asm)."""
+    if operand["type"] == "immediate32":
+        return "%s != 0" % _source(operand, context, True, component)
+    expression = _source(operand, context, False, component)
+    return "floatBitsToInt(%s) != 0" % expression
 
 
 def glsl_es_source(record):
@@ -923,6 +940,27 @@ def glsl_es_source(record):
         expression = _source(operand, context, integral)
         return "%s != 0" % expression if integral else "%s != 0.0" % expression
 
+    def write_result(target, integral, mask, base, expression, indent):
+        cast = "ivec4" if integral else "vec4"
+        if mask == "xyzw":
+            lines.append("%s%s = %s(%s);" % (indent, base, cast, expression))
+        else:
+            lines.append("%s%s.%s = %s(%s).%s;" %
+                         (indent, base, mask, cast, expression, mask))
+        if target["type"] != "temp":
+            return
+        index = _operand_index(target)
+        if integral:
+            lines.append("%sr%d.%s = %s(intBitsToFloat(ri%d.%s)).%s;" %
+                         (indent, index, mask, "vec4", index, mask, mask))
+        else:
+            for component in mask:
+                if (index, component) in int_components:
+                    lines.append(
+                        "%sri%d.%s = ivec4(floatBitsToInt(r%d.%s)).%s;" %
+                        (indent, index, component, index, component,
+                         component))
+
     level = 1
     active_case = {}
     for index, instruction in enumerate(code["instructions"]):
@@ -999,6 +1037,31 @@ def glsl_es_source(record):
 
         args = [_source(item, context, source_integral(item))
                 for item in operands[1:]]
+        if name == "MOVC":
+            if target["type"] == "indexable_temp":
+                movc_base = "%s[%s]" % (
+                    indexable[_operand_index(target)],
+                    _index_expr(target["indices"][1], context))
+            else:
+                movc_base = "%s%d" % (
+                    {"temp": "ri" if integral else "r",
+                     "output": "out"}[target["type"]],
+                    _operand_index(target))
+            mask = target.get("components") or "xyzw"
+            for position, component in enumerate(mask):
+                condition_component = _swizzle_component(operands[1], position)
+                true_component = _swizzle_component(operands[2], position)
+                false_component = _swizzle_component(operands[3], position)
+                test = _movc_condition(operands[1], context,
+                                       condition_component)
+                true_value = _source(operands[2], context, integral,
+                                     true_component)
+                false_value = _source(operands[3], context, integral,
+                                      false_component)
+                write_result(target, integral, component, movc_base,
+                             "(%s ? %s : %s)" % (test, true_value,
+                                                 false_value), indent)
+            continue
         if name == "MOV":
             if integral and not source_integral(operands[1]):
                 expression = "floatBitsToInt(%s)" % args[0]
@@ -1048,24 +1111,7 @@ def glsl_es_source(record):
                               "output": "out"}[target["type"]],
                              _operand_index(target))
         mask = target.get("components") or "xyzw"
-        cast = "ivec4" if integral else "vec4"
-        if mask == "xyzw":
-            lines.append("%s%s = %s(%s);" % (indent, base, cast, expression))
-        else:
-            lines.append("%s%s.%s = %s(%s).%s;" %
-                         (indent, base, mask, cast, expression, mask))
-        if target["type"] == "temp":
-            index = _operand_index(target)
-            if integral:
-                lines.append("%sr%d.%s = %s(intBitsToFloat(ri%d.%s)).%s;" %
-                             (indent, index, mask, "vec4", index, mask, mask))
-            else:
-                for component in mask:
-                    if (index, component) in int_components:
-                        lines.append(
-                            "%sri%d.%s = ivec4(floatBitsToInt(r%d.%s)).%s;" %
-                            (indent, index, component, index, component,
-                             component))
+        write_result(target, integral, mask, base, expression, indent)
     lines.append("}")
     return "\n".join(lines) + "\n"
 
