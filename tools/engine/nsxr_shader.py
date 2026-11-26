@@ -950,6 +950,63 @@ def _cbuffer_member(binding, index, component, context, integral=False):
     raise ValueError("unmapped cbuffer byte %d in bind %d" % (byte, binding))
 
 
+def glsl_bindings(record):
+    """Describe the GLSL interface a host must bind for one DXBC record."""
+    code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                if chunk["tag"] == "SHDR")
+    reflection = next(chunk["reflection"] for chunk
+                      in record["dxbc"]["chunks"] if chunk["tag"] == "RDEF")
+
+    def signature(tag, prefix, skip_system):
+        chunk = next(item for item in record["dxbc"]["chunks"]
+                     if item["tag"] == tag)
+        return sorted(({
+            "register": entry["register"],
+            "name": "%s%d" % (prefix, entry["register"]),
+            "semantic": entry["name"],
+            "semantic_index": entry["semantic_index"],
+            "mask": entry["mask"],
+        } for entry in chunk["signature"]["entries"]
+            if not (skip_system and entry["name"].startswith("SV_"))),
+            key=lambda item: item["register"])
+
+    slots = {}
+    for declaration in code["declarations"]:
+        if declaration["name"] == "DCL_CONSTANT_BUFFER":
+            operand = declaration["operands"][0]
+            slots[_operand_index(operand)] = _operand_index(operand, 1)
+    symbols = cbuffer_symbols(reflection)
+    # ponytail: relative cbuffer indices keep raw named arrays. Add a generated
+    # slot selector if a host needs std140 blocks for those four shaders too.
+    ubo = not _dynamic_cbuffer(code) and all(
+        symbols.get(binding, {}).get("ubo") for binding in slots)
+    cbuffers = []
+    for binding, count in sorted(slots.items()):
+        info = symbols.get(binding, {})
+        cbuffers.append({
+            "binding": binding,
+            "name": info.get("name", "cb%d" % binding),
+            "slots": count,
+            "size": info.get("size", count * 16),
+            "ubo": ubo,
+            "regions": [dict(region) for region in info.get("regions", [])],
+            "variables": [{"name": name, "offset": offset}
+                          for name, offset in info.get("variables", [])],
+        })
+    return {
+        "stage": reflection["stage"],
+        "inputs": signature("ISGN", "in", True),
+        "outputs": signature("OSGN", "out", False),
+        "cbuffers": cbuffers,
+        "textures": sorted(
+            ({"binding": item["bind_point"], "name": item["name"]}
+             for item in reflection["resources"]
+             if item["type"] == "texture"),
+            key=lambda item: item["binding"]),
+        "ubo": ubo,
+    }
+
+
 def glsl_es_source(record):
     """Emit GLSL ES 3.00 for one DXBC record.
 
@@ -973,39 +1030,32 @@ def glsl_es_source(record):
         raise ValueError("unstructured GLES control flow: %s" %
                          flow["unmatched"])
 
-    def signature(tag, prefix, skip_system):
-        chunk = next(item for item in record["dxbc"]["chunks"]
-                     if item["tag"] == tag)
-        return {entry["register"]: (entry, "%s%d" %
-                                    (prefix, entry["register"]))
-                for entry in chunk["signature"]["entries"]
-                if not (skip_system and entry["name"].startswith("SV_"))}
-
-    inputs = signature("ISGN", "in", True)
-    outputs = signature("OSGN", "out", False)
-    cbuffers = {}
+    layout = glsl_bindings(record)
     indexable = {}
     indexable_counts = {}
     temps = 0
     for declaration in code["declarations"]:
         if declaration["name"] == "DCL_TEMPS":
             temps = max(temps, declaration["trailing"][0])
-        elif declaration["name"] == "DCL_CONSTANT_BUFFER":
-            operand = declaration["operands"][0]
-            cbuffers[_operand_index(operand)] = _operand_index(operand, 1)
         elif declaration["name"] == "DCL_INDEXABLE_TEMP":
             register, count, _size = declaration["trailing"]
             indexable[register] = "x%d" % register
             indexable_counts[register] = count
-    resources = {item["bind_point"]: item["name"]
-                 for item in reflection["resources"]
-                 if item["type"] == "texture"}
-    symbols = cbuffer_symbols(reflection)
-    dynamic_cb = _dynamic_cbuffer(code)
-    # ponytail: relative cbuffer indices keep raw named arrays. Add a generated
-    # slot selector if a host needs std140 blocks for those four shaders too.
-    ubo_mode = not dynamic_cb and all(
-        symbols.get(binding, {}).get("ubo") for binding in cbuffers)
+    symbols = {}
+    for item in layout["cbuffers"]:
+        symbols[item["binding"]] = {
+            "name": item["name"],
+            "variables": [(variable["name"], variable["offset"])
+                          for variable in item["variables"]],
+            "regions": item["regions"],
+            "declarations": [region["declaration"]
+                             for region in item["regions"]],
+            "ubo": item["ubo"],
+            "size": item["size"],
+        }
+    ubo_mode = layout["ubo"]
+    resources = {item["binding"]: item["name"]
+                 for item in layout["textures"]}
     int_components = _int_components(code)
     context = {"resources": resources, "int_components": int_components,
                "indexable": indexable, "cbuffers": symbols, "ubo": ubo_mode}
@@ -1016,34 +1066,34 @@ def glsl_es_source(record):
 
     lines = ["#version 300 es", "precision highp float;",
              "precision highp int;"]
-    for register, (entry, name) in sorted(inputs.items()):
-        lines.append("in vec4 %s; // %s" % (name, entry["name"]))
-    for register, (entry, name) in sorted(outputs.items()):
+    for item in layout["inputs"]:
+        lines.append("in vec4 %s; // %s" % (item["name"], item["semantic"]))
+    for item in layout["outputs"]:
         lines.append("layout(location=%d) out vec4 %s; // %s" %
-                     (register, name, entry["name"]))
+                     (item["register"], item["name"], item["semantic"]))
     for index in range(temps):
         lines.append("vec4 r%d;" % index)
     for index in sorted({index for index, _ in int_components}):
         lines.append("ivec4 ri%d;" % index)
     for register in sorted(indexable):
         lines.append("vec4 x%d[%d];" % (register, indexable_counts[register]))
-    for binding, size in sorted(cbuffers.items()):
-        info = symbols.get(binding, {})
-        name = info.get("name", "cb%d" % binding)
+    for item in layout["cbuffers"]:
+        name = item["name"]
         if ubo_mode:
             lines.append("layout(std140) uniform %s_block {" % name)
-            for declaration in info.get("declarations", []):
-                lines.append("    " + declaration)
+            for region in item["regions"]:
+                lines.append("    " + region["declaration"])
             lines.append("} %s; // cbuffer bind %d, %d bytes" %
-                         (name, binding, info.get("size", size * 16)))
+                         (name, item["binding"], item["size"]))
         else:
             lines.append("uniform vec4 %s[%d]; // cbuffer bind %d" %
-                         (name, size, binding))
-            for variable, offset in info.get("variables", []):
-                lines.append("//   %s @ byte %d" % (variable, offset))
-    for binding, name in sorted(resources.items()):
+                         (name, item["slots"], item["binding"]))
+            for variable in item["variables"]:
+                lines.append("//   %s @ byte %d" %
+                             (variable["name"], variable["offset"]))
+    for item in layout["textures"]:
         lines.append("uniform sampler2D %s; // texture bind %d" %
-                     (name, binding))
+                     (item["name"], item["binding"]))
     lines.append("void main() {")
 
     blocks = flow["blocks"]
@@ -1337,6 +1387,7 @@ def export_glsl(data, directory):
                 "file": relative,
                 "bytes": len(encoded),
                 "sha256": hashlib.sha256(encoded).hexdigest(),
+                "bindings": glsl_bindings(record),
             })
     manifest.sort(key=lambda item: (item["shader"], item["stage"]))
     with open(os.path.join(directory, "manifest.json"), "w",

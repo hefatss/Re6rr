@@ -248,6 +248,19 @@ def check(dump):
         symbols[13]["ubo"]
     assert any(member["name"] == "AlphaTestFunc" and
                member["offset"] == 4 for member in symbols[13]["regions"])
+    bindings = nsxr_shader.glsl_bindings(shaders["Body.nsh"]["records"][1])
+    assert bindings["stage"] == "pixel" and bindings["ubo"] and \
+        [item["name"] for item in bindings["inputs"]] == \
+        ["in1", "in2", "in3", "in4", "in5", "in6", "in7"] and \
+        bindings["outputs"][0]["semantic"] == "SV_TARGET"
+    assert [item["binding"] for item in bindings["cbuffers"]] == [0, 13]
+    assert bindings["cbuffers"][1]["regions"][1]["name"] == "AlphaTestFunc"
+    assert [item["name"] for item in bindings["textures"]] == \
+        ["texture00", "texture01", "custom_texture06"]
+    star_bindings = nsxr_shader.glsl_bindings(
+        shaders["StarPass00.nsh"]["records"][1])
+    assert not star_bindings["ubo"] and \
+        star_bindings["cbuffers"][0]["slots"] == 12
     vertex_source = nsxr_shader.glsl_es_source(shaders["Body.nsh"]["records"][0])
     assert "vec4 LocalToProjectionMatrix[4];" in vertex_source and \
         "PerDraw.LocalToProjectionMatrix[1].xyzw" in vertex_source
@@ -328,6 +341,7 @@ def check(dump):
         assert len(manifest) == 446
         assert sum(item["stage_kind"] == "vertex" for item in manifest) == 223
         assert sum(item["stage_kind"] == "pixel" for item in manifest) == 223
+        totals = [0] * 6
         for item in manifest:
             source = open(os.path.join(glsl_dir, item["file"]),
                           encoding="utf8").read()
@@ -335,9 +349,38 @@ def check(dump):
                 hashlib.sha256(source.encode("utf8")).hexdigest() == \
                 item["sha256"] and len(source.encode("utf8")) == \
                 item["bytes"]
+            bindings = item["bindings"]
+            assert bindings["stage"] == item["stage_kind"]
+            for value in bindings["inputs"]:
+                assert "in vec4 %s; // %s" % (value["name"],
+                                              value["semantic"]) in source
+            for value in bindings["outputs"]:
+                assert "layout(location=%d) out vec4 %s; // %s" % (
+                    value["register"], value["name"],
+                    value["semantic"]) in source
+            for value in bindings["textures"]:
+                assert "uniform sampler2D %s; // texture bind %d" % (
+                    value["name"], value["binding"]) in source
+            for value in bindings["cbuffers"]:
+                if bindings["ubo"]:
+                    assert "layout(std140) uniform %s_block {" % \
+                        value["name"] in source
+                else:
+                    assert "uniform vec4 %s[%d]; // cbuffer bind %d" % (
+                        value["name"], value["slots"],
+                        value["binding"]) in source
+            totals[0] += len(bindings["inputs"])
+            totals[1] += len(bindings["outputs"])
+            totals[2] += len(bindings["cbuffers"])
+            totals[3] += len(bindings["textures"])
+            totals[4] += bool(bindings["ubo"])
+            totals[5] += sum(len(value["regions"])
+                             for value in bindings["cbuffers"])
+        assert totals == [1590, 1457, 797, 526, 442, 2029]
         assert any(item["file"] == "Body.stage1.glsl" for item in manifest)
     print("  223 .nsh files, 446 DXBC blobs, 20563 instructions, "
-          "43827 decoded operands, one extract and one GLSL export "
+          "43827 decoded operands, 1590 inputs / 1457 outputs, "
+          "797 cbuffers and 526 samplers, one extract and one GLSL export "
           "round-trip: all shader checks passed")
 
 
