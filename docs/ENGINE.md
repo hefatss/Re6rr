@@ -225,7 +225,7 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_ees_car_disp()` — read one `0x180` display record: car id, flag byte,
   16-f32 matrix and yaw; non-finite yaw gives zero yaw units.
 - `r6_ees_car_info()` — read the int32 id of a `0x8c` car_info record.
-- `r6_lua_globals_parse()` / `r6_lua_globals_row()` — read the derived `R6LUA`
+- `r6_lua_globals_parse()` / `r6_lua_globals_row()` / `r6_lua_globals_find()` — read the derived `R6LUA`
   inventory of 219 globals looked up by the executable, with call counts and
   seven category indices. Lua bodies remain in shipped data scripts; no binding
   is invented.

@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 
 
 class Header(ctypes.Structure):
@@ -28,6 +29,10 @@ def check(lib):
     lib.r6_lua_globals_parse.restype = ctypes.c_int
     lib.r6_lua_globals_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                          ctypes.POINTER(Header)]
+    lib.r6_lua_globals_find.restype = ctypes.c_int
+    lib.r6_lua_globals_find.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                        ctypes.c_char_p,
+                                        ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_lua_globals_row.restype = ctypes.c_int
     lib.r6_lua_globals_row.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                        ctypes.c_uint32, ctypes.c_char_p,
@@ -55,6 +60,16 @@ def check(lib):
         assert name.value.decode("ascii") == row["name"], index
         assert calls.value == row["calls"], index
         assert category.value == row["category"], index
+
+    found = ctypes.c_uint32()
+    for index, row in enumerate(rows):
+        assert lib.r6_lua_globals_find(
+            source, len(blob), row["name"].encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == index
+    assert lib.r6_lua_globals_find(
+        source, len(blob), b"R6_NO_SUCH_GLOBAL",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
 
     assert lib.r6_lua_globals_row(source, len(blob), 219, name, len(name),
                                   None, None) == R6_ERR_ARG
@@ -88,7 +103,7 @@ def check(lib):
     assert lib.r6_lua_globals_parse(None, len(blob),
                                     ctypes.byref(header)) == R6_ERR_FORMAT
     print("lua globals: all 219 shipped names, call counts and 7 categories "
-          "match LUA_API.md; bad blob, index and capacity rejected")
+          "match LUA_API.md; find, bad blob, index and capacity rejected")
 
 
 def main():

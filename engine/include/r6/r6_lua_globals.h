@@ -31,6 +31,10 @@ R6_API int r6_lua_globals_row(const void *data, size_t size, uint32_t index,
                               char *name, size_t capacity, uint32_t *calls,
                               uint32_t *category);
 
+/* First exact global-name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_lua_globals_find(const void *data, size_t size, const char *name,
+                               uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif

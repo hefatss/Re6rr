@@ -15,6 +15,11 @@ public final class LuaGlobals {
         return nativeName(blob, index);
     }
 
+    /** row index for an exact global name; -1 if absent. */
+    public static long find(byte[] blob, String name) {
+        return nativeFind(blob, name);
+    }
+
     /** call count and category index, or null for an invalid index. */
     public static long[] row(byte[] blob, int index) {
         return nativeRow(blob, index);
@@ -23,6 +28,8 @@ public final class LuaGlobals {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
+
+    private static native long nativeFind(byte[] blob, String name);
 
     private static native long[] nativeRow(byte[] blob, int index);
 }
