@@ -195,6 +195,14 @@ def check(dump):
                for item in resources)
     assert not any("?" in name for item in resources
                    for name in item["declared"])
+    coverage = nsxr_shader.glsl_coverage(data)
+    assert coverage["total"] == 20563 and not coverage["unknown"]
+    assert {kind: coverage["counts"][kind] for kind in
+            ("direct", "lower", "control", "texture")} == {
+        "direct": 11184, "lower": 2720, "control": 5979, "texture": 680}
+    assert len(nsxr_shader.SM4_GLSL_ES) == 43 and all(
+        item["class"] in ("direct", "lower", "control", "texture")
+        for item in nsxr_shader.SM4_GLSL_ES.values())
     assert all(record["dxbc"]["size"] == record["dxbc_size"]
                for record in records)
     assert all(len(record["dxbc"]["chunks"]) == 5 for record in records)

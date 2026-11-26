@@ -204,8 +204,12 @@ structured: 272 `SWITCH`, 22 `LOOP` and 9 `IF` blocks match cleanly across all
 resolves cbuffer operands to named RDEF variables by byte offset: 5,502 static
 operands map across all 446 blobs, 8 use dynamic indices and none are unresolved.
 `resource_usage()` maps 680 texture and 680 sampler operands to RDEF resource
-names; all 1,052 declarations and uses match a reflection binding. Details in
-`recon/RENDER_NSXR.md`.
+names; all 1,052 declarations and uses match a reflection binding. The 43 SM4
+opcodes in the corpus are classified for a GLES ES 3.00 backend: 11,184 direct
+instructions, 2,720 needing a small rewrite (`MAD`, `EXP`, `LOG`, `MOVC`),
+5,979 control-flow instructions following the decoded blocks and 680 `SAMPLE`
+instructions using RDEF bindings. This is static coverage, not a GLSL emitter.
+Details in `recon/RENDER_NSXR.md`.
 
 ## Lua
 

@@ -267,6 +267,39 @@ PRECISION_NAMES = ["default", "float16", "float10", "unused", "sint16",
 EXTENDED_OPCODE_TYPES = ["empty", "sample_controls", "resource_dim",
                          "resource_return_type"]
 
+# Static GLES coverage for the SM4 opcodes present in the shipped corpus.
+# `direct` maps to a GLSL ES 3.00 expression, `lower` needs a small rewrite,
+# `control` follows the decoded IF/LOOP/SWITCH blocks and `texture` consumes the
+# RDEF resource/sampler bindings. This is opcode coverage, not a GLSL emitter.
+SM4_GLSL_ES = {}
+for _name, _class, _glsl in (
+        ("MOV", "direct", "assign"), ("ADD", "direct", "+"),
+        ("MUL", "direct", "*"), ("DIV", "direct", "/"),
+        ("MIN", "direct", "min"), ("MAX", "direct", "max"),
+        ("SQRT", "direct", "sqrt"), ("RSQ", "direct", "inversesqrt"),
+        ("FRC", "direct", "fract"), ("DP2", "direct", "dot(xy)"),
+        ("DP3", "direct", "dot(xyz)"), ("DP4", "direct", "dot"),
+        ("AND", "direct", "bitwise &"), ("IADD", "direct", "int +"),
+        ("IMAX", "direct", "int max"), ("ITOF", "direct", "float()"),
+        ("IEQ", "direct", "int equal"), ("ILT", "direct", "int lessThan"),
+        ("IGE", "direct", "int greaterThanEqual"),
+        ("EQ", "direct", "equal"), ("NE", "direct", "notEqual"),
+        ("LT", "direct", "lessThan"), ("GE", "direct", "greaterThanEqual"),
+        ("ROUND_Z", "direct", "trunc"), ("DISCARD", "direct", "discard"),
+        ("MAD", "lower", "mul + add (no fma in ES 3.00)"),
+        ("EXP", "lower", "exp2"), ("LOG", "lower", "log2"),
+        ("MOVC", "lower", "conditional select"),
+        ("BREAK", "control", "break"), ("CONTINUE", "control", "continue"),
+        ("RET", "control", "return"), ("IF", "control", "if"),
+        ("ELSE", "control", "else"), ("ENDIF", "control", "endif"),
+        ("LOOP", "control", "for"), ("ENDLOOP", "control", "end for"),
+        ("BREAKC", "control", "conditional break"),
+        ("SWITCH", "control", "switch"), ("CASE", "control", "case"),
+        ("DEFAULT", "control", "default"),
+        ("ENDSWITCH", "control", "end switch"),
+        ("SAMPLE", "texture", "texture(sampler, uv)")):
+    SM4_GLSL_ES[_name] = {"class": _class, "glsl": _glsl}
+
 # Operand counts for the SM4 opcodes in OPCODE_NAMES. Declarations use
 # DECL_OPERAND_COUNTS below; CUSTOMDATA is not an instruction.
 OPERAND_COUNTS = {}
@@ -634,6 +667,28 @@ def resource_usage(record):
             "unmapped": unmapped}
 
 
+def glsl_coverage(data):
+    """Count shipped instructions by GLES lowering class."""
+    counts = {}
+    unknown = {}
+    for shader in data["shaders"].values():
+        for record in shader["records"]:
+            code = next(chunk["code"] for chunk in record["dxbc"]["chunks"]
+                        if chunk["tag"] == "SHDR")
+            for instruction in code["instructions"]:
+                name = instruction["name"]
+                entry = SM4_GLSL_ES.get(name)
+                if entry is None:
+                    unknown[name] = unknown.get(name, 0) + 1
+                    continue
+                kind = entry["class"]
+                counts[kind] = counts.get(kind, 0) + 1
+                counts[name] = counts.get(name, 0) + 1
+    total = sum(counts.get(kind, 0) for kind in
+                ("direct", "lower", "control", "texture"))
+    return {"counts": counts, "unknown": unknown, "total": total}
+
+
 def parse_nsh(path):
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -712,6 +767,7 @@ def extract(dump, name, index, output):
 
 def report_text(data):
     shaders = data["shaders"]
+    coverage = glsl_coverage(data)
     records = [record for shader in shaders.values()
                for record in shader["records"]]
     chunks = {}
@@ -747,6 +803,8 @@ def report_text(data):
          sum(len(ins["operands"]) for item in code
              for ins in item["instructions"]),
          min(item["version"] for item in code)),
+        "GLES coverage: %d/%d instructions, unknown %d" %
+        (coverage["total"], instructions, sum(coverage["unknown"].values())),
     ])
 
 
