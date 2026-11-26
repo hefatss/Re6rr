@@ -348,6 +348,45 @@ int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
     return R6_OK;
 }
 
+static void ees_copy_field(const unsigned char *source, unsigned char *out,
+                           size_t source_at, size_t out_at, size_t width) {
+    size_t index;
+    for (index = 0; index < width; index++) {
+        out[out_at + index] = source[source_at + index];
+    }
+}
+
+int r6_ees_car_effect_copy(const void *source, size_t size,
+                           void *out, size_t out_size) {
+    const unsigned char *bytes = (const unsigned char *)source;
+    unsigned char *target = (unsigned char *)out;
+    uint32_t index;
+    uint32_t column;
+    uint32_t row;
+    if (!bytes || !target || size < R6_EES_CAR_EFFECT_STRIDE ||
+        out_size < R6_EES_CAR_EFFECT_COPY_SIZE) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(target, 0, R6_EES_CAR_EFFECT_COPY_SIZE);
+    for (index = 0; index < 0x0F; index++) {
+        ees_copy_field(bytes, target, index * 4u, 8u + index * 4u, 4u);
+    }
+    ees_copy_field(bytes, target, 0x3Cu, 0x44u, 1u);
+    for (column = 0; column < 4u; column++) {
+        for (row = 0; row < 4u; row++) {
+            ees_copy_field(bytes, target,
+                           0x40u + column * 4u + row * 0x10u,
+                           0x48u + column * 4u + row * 0x10u, 4u);
+        }
+    }
+    for (index = 0; index < 7u; index++) {
+        ees_copy_field(bytes, target, 0x80u + index * 4u,
+                       0x88u + index * 4u, 4u);
+    }
+    ees_copy_field(bytes, target, 0x9Cu, 0xDCu, 1u);
+    return R6_OK;
+}
+
 int r6_scene_pack(const r6_scene_values_t *values, void *out, size_t size) {
     unsigned char *bytes = (unsigned char *)out;
     uint32_t index;

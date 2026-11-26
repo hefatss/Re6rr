@@ -150,6 +150,17 @@ typedef struct r6_ees_camera_fields_t {
 R6_API int r6_ees_camera_fields(const void *data, size_t size, uint32_t offset,
                                 r6_ees_camera_fields_t *out);
 
+/* FUN_1401cc390 copies 40 fields from a 0xa0 car_effect record into the
+ * 0xe0-byte runtime SInfoCarEffectCopy record. */
+enum {
+    R6_EES_CAR_EFFECT_STRIDE = 0xA0,
+    R6_EES_CAR_EFFECT_COPY_SIZE = 0xE0,
+    R6_EES_CAR_EFFECT_COPIES = 40
+};
+
+R6_API int r6_ees_car_effect_copy(const void *source, size_t size,
+                                  void *out, size_t out_size);
+
 /* FUN_1401e3640 packs eight int32 environment slots into a 0x28 scene. */
 typedef struct r6_scene_values_t {
     int32_t stage;

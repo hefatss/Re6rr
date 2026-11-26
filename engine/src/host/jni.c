@@ -3509,6 +3509,29 @@ Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_EesCarEffect_nativeCopy(JNIEnv *env, jclass cls,
+                                            jbyteArray record) {
+    unsigned char target[R6_EES_CAR_EFFECT_COPY_SIZE];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, record, &bytes, &length) != R6_OK ||
+        r6_ees_car_effect_copy(bytes, length, target,
+                               sizeof(target)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewByteArray(env, (jsize)sizeof(target));
+    if (out) {
+        (*env)->SetByteArrayRegion(env, out, 0, (jsize)sizeof(target),
+                                   (const jbyte *)target);
+    }
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
                                            jint stage, jint stage_root,
                                            jint stage_day, jint cam_id,
