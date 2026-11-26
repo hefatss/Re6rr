@@ -20,6 +20,7 @@
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
+#include "r6/r6_vertex_layout.h"
 
 static r6_engine *from_handle(jlong handle) {
     return (r6_engine *)(size_t)handle;
@@ -2254,6 +2255,106 @@ Java_com_wmmt_re6rr_EngineSound_nativeLayer(JNIEnv *env, jclass cls,
         out = (*env)->NewDoubleArray(env, 13);
         if (out) {
             (*env)->SetDoubleArrayRegion(env, out, 0, 13, values);
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+/* Compiled vertex-layout bridge: blob in, plain attribute values out. */
+static int vertex_from_blob(JNIEnv *env, jbyteArray data,
+                            unsigned char **bytes, r6_vertex_view *view) {
+    size_t length = 0;
+    if (raw_from_blob(env, data, bytes, &length) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    if (r6_vertex_init(view, *bytes, length) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_VertexLayout_nativeCount(JNIEnv *env, jclass cls,
+                                             jbyteArray data) {
+    unsigned char *bytes = NULL;
+    r6_vertex_view view;
+    jint result = -1;
+    (void)cls;
+    if (vertex_from_blob(env, data, &bytes, &view) == R6_OK) {
+        result = (jint)view.count;
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_VertexLayout_nativeAttrib(JNIEnv *env, jclass cls,
+                                              jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    r6_vertex_view view;
+    r6_vertex_attrib attrib;
+    jint values[5];
+    jintArray out = NULL;
+    (void)cls;
+    if (vertex_from_blob(env, data, &bytes, &view) == R6_OK &&
+        r6_vertex_get_attrib(&view, (uint32_t)index, &attrib) == R6_OK) {
+        values[0] = (jint)attrib.shader_off;
+        values[1] = attrib.location;
+        values[2] = attrib.semantic_index;
+        values[3] = attrib.mask;
+        values[4] = (jint)attrib.semantic_off;
+        out = glsl_ints(env, values, 5);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_VertexLayout_nativeFind(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jstring shader,
+                                            jint location) {
+    unsigned char *bytes = NULL;
+    r6_vertex_view view;
+    r6_vertex_attrib attrib;
+    const char *name = NULL;
+    jint values[5];
+    jintArray out = NULL;
+    (void)cls;
+    if (!shader || location < 0 || location > 0xffff) {
+        return NULL;
+    }
+    name = (*env)->GetStringUTFChars(env, shader, NULL);
+    if (vertex_from_blob(env, data, &bytes, &view) == R6_OK && name &&
+        r6_vertex_find(&view, name, (uint16_t)location, &attrib) == R6_OK) {
+        values[0] = (jint)attrib.shader_off;
+        values[1] = attrib.location;
+        values[2] = attrib.semantic_index;
+        values[3] = attrib.mask;
+        values[4] = (jint)attrib.semantic_off;
+        out = glsl_ints(env, values, 5);
+    }
+    if (name) {
+        (*env)->ReleaseStringUTFChars(env, shader, name);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_VertexLayout_nativeName(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint offset) {
+    unsigned char *bytes = NULL;
+    r6_vertex_view view;
+    const char *name;
+    jstring out = NULL;
+    (void)cls;
+    if (vertex_from_blob(env, data, &bytes, &view) == R6_OK) {
+        name = r6_vertex_name(&view, (uint32_t)offset);
+        if (name) {
+            out = (*env)->NewStringUTF(env, name);
         }
     }
     free(bytes);

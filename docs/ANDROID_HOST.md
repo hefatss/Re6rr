@@ -26,12 +26,15 @@ tree to app external files:
         --route FUKUOKA --out <dump>/FUKUOKA.r6course
     python tools/engine/nsxr_shader.py --dump D:\Games\W6W-05 \
         --glsl-dir <dump>/glsl
+    python tools/engine/vertex_layout.py \
+        --manifest <dump>/glsl/manifest.json --out <dump>/glsl/vertex.r6gv
     adb push <dump> /sdcard/Android/data/com.wmmt.re6rr/files/dump
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
 CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
 `story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
-through `GlslBindings`, and `engine_sound.r6esnd` through `EngineSound`. `AssetProvider` uses the native gzip inflater; the core
+through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`, and
+`engine_sound.r6esnd` through `EngineSound`. `AssetProvider` uses the native gzip inflater; the core
 still sees only bytes.
 
 ## UI
@@ -51,8 +54,9 @@ stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
 blocks from reflected region order, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
-control fields and PCM bytes, and `EngineSound` selects car/tune layer tones
-and envelopes; none makes GL or audio-device calls. The
+control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
+envelopes, and `VertexLayout` reads vertex locations, semantics and masks;
+none makes GL or audio-device calls. The
 story catalog is data-only; no unlock progression, renderer, playback, mixer or
 All.Net code exists.
 
