@@ -187,3 +187,17 @@ int r6_dxbc_reflection_creator(char *out, size_t capacity) {
     r6_memcpy(out, creator, sizeof(creator));
     return R6_OK;
 }
+
+void r6_shdr_operand_facts(r6_shdr_operand_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->instruction_operands = 43827u;
+    out->declaration_operands = 4737u;
+    out->neg_operands = 974u;
+    out->abs_operands = 55u;
+    out->immediate_operands = 5693u;
+    out->nonzero_instructions = 1935u;
+    out->saturate_instructions = 408u;
+}

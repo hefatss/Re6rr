@@ -103,7 +103,7 @@ instructions in 43 opcodes), record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
 blocks from reflected region order, `NshContainer` validates shipped NSXR
 headers and DXBC chunk tables and returns the 29 summed STAT fields, 23 summed
-RDEF fields and one creator string, `ShaderControlFlow` resolves the 303 shipped
+RDEF fields, 7 SHDR operand/modifier totals and one creator string, `ShaderControlFlow` resolves the 303 shipped
 structured SM4 blocks by shader/stage with case and break/continue spans, `ShaderUsage`
 resolves reflected uniforms and texture/sampler keys with operand counts per stage,
 `Re6Texture` derives NTWD/NTLX mip payload layout and returns RGBA8 pixels from

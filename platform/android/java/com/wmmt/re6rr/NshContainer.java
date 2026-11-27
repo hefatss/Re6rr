@@ -41,6 +41,12 @@ public final class NshContainer {
         return nativeReflectionCreator();
     }
 
+    /** 7 values: instruction/declaration operand totals, neg/abs/immediate
+     *  operands and TestNonZero/Saturate instructions across the 446 SHDRs. */
+    public static long[] operandFacts() {
+        return nativeOperandFacts();
+    }
+
     private static native long[] nativeParse(byte[] raw);
 
     private static native long[] nativeChunkFind(byte[] raw, int record,
@@ -51,4 +57,6 @@ public final class NshContainer {
     private static native long[] nativeReflectionFacts();
 
     private static native String nativeReflectionCreator();
+
+    private static native long[] nativeOperandFacts();
 }

@@ -7579,6 +7579,22 @@ Java_com_wmmt_re6rr_NshContainer_nativeReflectionCreator(JNIEnv *env,
     return (*env)->NewStringUTF(env, text);
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeOperandFacts(JNIEnv *env, jclass cls) {
+    r6_shdr_operand_facts_t facts;
+    jlong values[7];
+    (void)cls;
+    r6_shdr_operand_facts(&facts);
+    values[0] = (jlong)facts.instruction_operands;
+    values[1] = (jlong)facts.declaration_operands;
+    values[2] = (jlong)facts.neg_operands;
+    values[3] = (jlong)facts.abs_operands;
+    values[4] = (jlong)facts.immediate_operands;
+    values[5] = (jlong)facts.nonzero_instructions;
+    values[6] = (jlong)facts.saturate_instructions;
+    return pe_new_longs(env, values, 7);
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
                                            jbyteArray raw, jint offset) {

@@ -28,6 +28,12 @@ REFLECTION_NAMES = [
 ]
 CREATOR = "Microsoft (R) HLSL Shader Compiler 9.29.952.3111"
 
+OPERAND_NAMES = [
+    "instruction_operands", "declaration_operands", "neg_operands",
+    "abs_operands", "immediate_operands", "nonzero_instructions",
+    "saturate_instructions",
+]
+
 
 class Chunk(ctypes.Structure):
     _fields_ = [("tag", ctypes.c_uint32), ("offset", ctypes.c_uint32),
@@ -66,6 +72,10 @@ class ReflectionFacts(ctypes.Structure):
     _fields_ = [(name, ctypes.c_uint32) for name in REFLECTION_NAMES]
 
 
+class OperandFacts(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint32) for name in OPERAND_NAMES]
+
+
 def check(dump, lib):
     lib.r6_nsh_parse.restype = ctypes.c_int
     lib.r6_nsh_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -80,6 +90,8 @@ def check(dump, lib):
     lib.r6_dxbc_reflection_creator.restype = ctypes.c_int
     lib.r6_dxbc_reflection_creator.argtypes = [ctypes.c_char_p,
                                                ctypes.c_size_t]
+    lib.r6_shdr_operand_facts.restype = None
+    lib.r6_shdr_operand_facts.argtypes = [ctypes.POINTER(OperandFacts)]
     root = os.path.join(dump, nsxr_shader.SHADER_DIR)
     names = sorted(name for name in os.listdir(root) if name.endswith(".nsh"))
     assert len(names) == 223
@@ -87,6 +99,7 @@ def check(dump, lib):
     stat_records = 0
     totals = {name: 0 for name in nsxr_shader.STAT_FIELDS[:29]}
     reflection = {name: 0 for name in REFLECTION_NAMES}
+    operands = {name: 0 for name in OPERAND_NAMES}
     creators = set()
     for name in names:
         with open(os.path.join(root, name), "rb") as stream:
@@ -184,6 +197,31 @@ def check(dump, lib):
                     reflection["sample_count_all"] += sum(
                         item["sample_count"] == 0xFFFFFFFF
                         for item in resources)
+                elif part["tag"] == "SHDR":
+                    code = part["code"]
+                    items = [operand
+                             for instruction in code["instructions"]
+                             for operand in instruction["operands"]]
+                    declarations = [operand
+                                    for declaration in code["declarations"]
+                                    for operand in declaration["operands"]]
+                    operands["instruction_operands"] += len(items)
+                    operands["declaration_operands"] += len(declarations)
+                    operands["neg_operands"] += sum(
+                        item.get("modifier") in ("neg", "absneg")
+                        for item in items)
+                    operands["abs_operands"] += sum(
+                        item.get("modifier") in ("abs", "absneg")
+                        for item in items)
+                    operands["immediate_operands"] += sum(
+                        item["type"] in ("immediate32", "immediate64")
+                        for item in items)
+                    operands["nonzero_instructions"] += sum(
+                        instruction["flags"]["nonzero"]
+                        for instruction in code["instructions"])
+                    operands["saturate_instructions"] += sum(
+                        instruction["flags"]["saturate"]
+                        for instruction in code["instructions"])
                 chunks += 1
 
     first_raw = open(os.path.join(root, names[0]), "rb").read()
@@ -260,11 +298,18 @@ def check(dump, lib):
     assert lib.r6_dxbc_reflection_creator(creator, 1) == R6_ERR_BUFFER
     assert lib.r6_dxbc_reflection_creator(None, len(creator)) == R6_ERR_ARG
     assert lib.r6_dxbc_reflection_creator(creator, 0) == R6_ERR_ARG
+
+    shdr = OperandFacts()
+    lib.r6_shdr_operand_facts(ctypes.byref(shdr))
+    for field in OPERAND_NAMES:
+        assert getattr(shdr, field) == operands[field], (
+            field, getattr(shdr, field), operands[field])
+    lib.r6_shdr_operand_facts(None)
     print("NSXR: %d files, 2 records each, %d DXBC chunks, all 29 summed "
-          "STAT fields and all 23 summed RDEF fields match "
-          "nsxr_shader.parse_nsh(); the one creator string and bad capacities "
-          "are checked, as are chunk find, short input, bad magic and bad "
-          "sizes" % (len(names), chunks))
+          "STAT fields, 23 summed RDEF fields and 7 SHDR operand/modifier "
+          "totals match nsxr_shader.parse_nsh(); the one creator string and "
+          "bad capacities are checked, as are chunk find, short input, bad "
+          "magic and bad sizes" % (len(names), chunks))
 
 
 def main():

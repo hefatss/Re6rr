@@ -1,7 +1,7 @@
 /* Freestanding reader for the shipped NSXR (.nsh) container and its DXBC
  * chunk tables. No files, allocation or D3D objects: the host supplies bytes.
  * Detailed SHDR/RDEF/ISGN/OSGN payload interpretation stays in the Python
- * recon tools; only aggregate RDEF/STAT facts are copied here.
+ * recon tools; only aggregate STAT/RDEF/SHDR facts are copied here.
  */
 #ifndef R6_NSH_H
 #define R6_NSH_H
@@ -133,6 +133,21 @@ R6_API void r6_dxbc_reflection_facts(r6_dxbc_reflection_facts_t *out);
 /* Copies the one shipped RDEF creator string; R6_ERR_BUFFER reports that
  * capacity is smaller than the terminated string. */
 R6_API int r6_dxbc_reflection_creator(char *out, size_t capacity);
+
+/* Summed SM4 operand and instruction-modifier facts across the 446 shipped
+ * SHDR chunks. neg/abs count operands carrying either modifier; no shader is
+ * translated and no per-record operand list is stored here. */
+typedef struct r6_shdr_operand_facts_t {
+    uint32_t instruction_operands;
+    uint32_t declaration_operands;
+    uint32_t neg_operands;
+    uint32_t abs_operands;
+    uint32_t immediate_operands;
+    uint32_t nonzero_instructions;
+    uint32_t saturate_instructions;
+} r6_shdr_operand_facts_t;
+
+R6_API void r6_shdr_operand_facts(r6_shdr_operand_facts_t *out);
 
 #ifdef __cplusplus
 }
