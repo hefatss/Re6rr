@@ -48,6 +48,7 @@ must come from imports, string references, RTTI and pattern matching.
 | `.nuf` | 22 | 0.7 MB | `NUF`/`NFH` — fonts; `tools/engine/nuf_headers_catalog.py` inventories paths, sizes and first 64 bytes |
 | `.mtmp` | 34 | 28.9 KB | `SCALE:` + `OBJECT:` text tables; `tools/engine/mtmp_catalog.py` copies 286 raw object lines |
 | `.med` | 28 + 39 | 3.9 MB | motion data |
+| `.gz` | 1,087 | 36.8 MB | stage effects; `tools/engine/gz_effect_catalog.py` verifies CRC/ISIZE and inventories gzip headers plus 16-byte inflated prefixes |
 
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64
 bytes are inventoried by `tools/engine/act_headers_catalog.py`, but no section

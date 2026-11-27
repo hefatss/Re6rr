@@ -86,6 +86,7 @@ SOURCES = [
     "engine/src/game/course_paths_catalog.c",
     "engine/src/game/story_key_namespace.c",
     "engine/src/game/loadlist_catalog.c",
+    "engine/src/game/gz_effect_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

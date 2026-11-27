@@ -63,6 +63,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_story_key_namespace.h"
 #include "r6/r6_loadlist_catalog.h"
 #include "r6/r6_reloc_inventory.h"
+#include "r6/r6_gz_effect_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6904,6 +6905,103 @@ Java_com_wmmt_re6rr_RelocInventory_nativeEntry(JNIEnv *env, jclass cls,
     values[2] = (jlong)entry.rva;
     values[3] = (jlong)entry.block_index;
     result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+/* Stage-effect gzip headers and inflated prefixes: copied values only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_GzEffectCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_gz_effect_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_gz_effect_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.flag0_count;
+    values[4] = (jlong)header.flag8_count;
+    values[5] = (jlong)header.known_count;
+    values[6] = (jlong)header.other_count;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_GzEffectCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_gz_effect_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_gz_effect_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.compressed_size;
+    values[3] = (jlong)file.flags;
+    values[4] = (jlong)file.mtime;
+    values[5] = (jlong)file.xfl;
+    values[6] = (jlong)file.operating_system;
+    values[7] = (jlong)file.isize;
+    values[8] = (jlong)file.inflated_size;
+    values[9] = (jlong)file.header_size;
+    values[10] = (jlong)file.prefix_length;
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_GzEffectCatalog_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char path[160];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_gz_effect_path(bytes, length, (uint32_t)index, path,
+                          sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_GzEffectCatalog_nativePrefix(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_gz_effect_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_gz_effect_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewByteArray(env, R6_GZ_EFFECT_PREFIX_SIZE);
+    if (result) {
+        (*env)->SetByteArrayRegion(env, result, 0, R6_GZ_EFFECT_PREFIX_SIZE,
+                                   (const jbyte *)file.prefix);
+    }
     return result;
 }
 
