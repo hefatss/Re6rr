@@ -59,6 +59,33 @@ int r6_honor_schema_parse(const void *data, size_t size,
     return honor_header(data, size, out);
 }
 
+void r6_honor_type1_facts(r6_honor_type1_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->object_size = 0xC0u;
+    out->clear_episode_offset = 0x18u;
+    out->clear_bits_offset = 0x68u;
+    out->power_handle_offset = 0x80u;
+    out->scratch_offset = 0xC4u;
+    out->clear_bits_min = 1u;
+    out->clear_bits_max = 20u;
+    out->property_offsets[0] = 0x58u;
+    out->property_offsets[1] = 0x5Cu;
+    out->property_offsets[2] = 0x60u;
+    out->property_offsets[3] = 0x64u;
+    out->property_offsets[4] = 0x68u;
+    out->property_offsets[5] = 0x6Cu;
+    out->property_offsets[6] = 0x70u;
+    out->property_offsets[7] = 0x71u;
+    out->property_offsets[8] = 0x72u;
+    out->property_offsets[9] = 0x73u;
+    out->addresses[0] = 0x140912530ull;
+    out->addresses[1] = 0x140911410ull;
+    out->addresses[2] = 0x1409121E0ull;
+}
+
 int r6_honor_schema_type(const void *data, size_t size, uint32_t type,
                          char *name, size_t capacity, uint32_t *field_count) {
     const unsigned char *bytes = (const unsigned char *)data;

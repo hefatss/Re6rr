@@ -35,6 +35,12 @@ public final class HonorSchema {
         return nativeFindField(blob, type, name);
     }
 
+    /** 20 values: object size, four field offsets, clear_bits range, ten
+     *  Property slots and three native addresses for predicate type 1. */
+    public static long[] type1Facts() {
+        return nativeType1Facts();
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeType(byte[] blob, int type);
@@ -47,4 +53,6 @@ public final class HonorSchema {
 
     private static native long nativeFindField(byte[] blob, int type,
                                                 String name);
+
+    private static native long[] nativeType1Facts();
 }

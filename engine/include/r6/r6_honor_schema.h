@@ -44,6 +44,22 @@ R6_API int r6_honor_schema_find_field(const void *data, size_t size,
                                       uint32_t type, const char *name,
                                       uint32_t *index);
 
+/* Verbatim type-1 debug::CheckHonorStoryMode ABI facts from STORY_NATIVE.md.
+ * No predicate instance is created and no object is read. */
+typedef struct r6_honor_type1_facts_t {
+    uint32_t object_size;
+    uint32_t clear_episode_offset;
+    uint32_t clear_bits_offset;
+    uint32_t power_handle_offset;
+    uint32_t scratch_offset;
+    uint32_t clear_bits_min;
+    uint32_t clear_bits_max;
+    uint32_t property_offsets[10];
+    uint64_t addresses[3];      /* deserializer, constructor, tune helper */
+} r6_honor_type1_facts_t;
+
+R6_API void r6_honor_type1_facts(r6_honor_type1_facts_t *out);
+
 #ifdef __cplusplus
 }
 #endif

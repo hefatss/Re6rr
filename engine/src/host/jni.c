@@ -3645,6 +3645,29 @@ Java_com_wmmt_re6rr_HonorSchema_nativeFindField(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeType1Facts(JNIEnv *env, jclass cls) {
+    r6_honor_type1_facts_t facts;
+    jlong values[20];
+    uint32_t index;
+    (void)cls;
+    r6_honor_type1_facts(&facts);
+    values[0] = (jlong)facts.object_size;
+    values[1] = (jlong)facts.clear_episode_offset;
+    values[2] = (jlong)facts.clear_bits_offset;
+    values[3] = (jlong)facts.power_handle_offset;
+    values[4] = (jlong)facts.scratch_offset;
+    values[5] = (jlong)facts.clear_bits_min;
+    values[6] = (jlong)facts.clear_bits_max;
+    for (index = 0; index < 10u; index++) {
+        values[7u + index] = (jlong)facts.property_offsets[index];
+    }
+    for (index = 0; index < 3u; index++) {
+        values[17u + index] = (jlong)facts.addresses[index];
+    }
+    return pe_new_longs(env, values, 20);
+}
+
 JNIEXPORT jobjectArray JNICALL
 Java_com_wmmt_re6rr_ContextPaths_nativeList(JNIEnv *env, jclass cls,
                                             jstring car, jstring model) {

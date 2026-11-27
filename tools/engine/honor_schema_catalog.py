@@ -17,6 +17,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 REPORT = os.path.join(ROOT, "docs", "recon", "STORY_NATIVE.md")
 
+# Verbatim type-1 native facts from STORY_NATIVE.md: deserializer 0x140912530,
+# ctor FUN_140911410 and the ten typed Property machine slots. These are ABI
+# facts, not per-episode instances.
+TYPE1_NATIVE = {
+    "object_size": 0xC0,
+    "clear_episode": 0x18,
+    "clear_bits": 0x68,
+    "power_handle": 0x80,
+    "scratch": 0xC4,
+    "clear_bits_min": 1,
+    "clear_bits_max": 20,
+    "properties": (0x58, 0x5C, 0x60, 0x64, 0x68, 0x6C,
+                   0x70, 0x71, 0x72, 0x73),
+    "deserializer": 0x140912530,
+    "constructor": 0x140911410,
+    "tune_helper": 0x1409121E0,
+}
+
 MAGIC = b"R6HON\0\1\0"
 VERSION = 1
 HEADER = struct.Struct("<8sIIII")

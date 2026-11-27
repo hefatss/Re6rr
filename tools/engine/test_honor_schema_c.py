@@ -27,6 +27,18 @@ class Header(ctypes.Structure):
                 ("strings_size", ctypes.c_uint32)]
 
 
+class Type1Facts(ctypes.Structure):
+    _fields_ = [("object_size", ctypes.c_uint32),
+                ("clear_episode_offset", ctypes.c_uint32),
+                ("clear_bits_offset", ctypes.c_uint32),
+                ("power_handle_offset", ctypes.c_uint32),
+                ("scratch_offset", ctypes.c_uint32),
+                ("clear_bits_min", ctypes.c_uint32),
+                ("clear_bits_max", ctypes.c_uint32),
+                ("property_offsets", ctypes.c_uint32 * 10),
+                ("addresses", ctypes.c_uint64 * 3)]
+
+
 def check(dump, lib):
     lib.r6_honor_schema_parse.restype = ctypes.c_int
     lib.r6_honor_schema_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -109,6 +121,23 @@ def check(dump, lib):
     assert lib.r6_honor_schema_parse(source, len(blob) - 1,
                                      ctypes.byref(header)) == R6_ERR_FORMAT
 
+    lib.r6_honor_type1_facts.restype = None
+    lib.r6_honor_type1_facts.argtypes = [ctypes.POINTER(Type1Facts)]
+    type1 = Type1Facts()
+    lib.r6_honor_type1_facts(ctypes.byref(type1))
+    native = honor_schema_catalog.TYPE1_NATIVE
+    assert (type1.object_size, type1.clear_episode_offset,
+            type1.clear_bits_offset, type1.power_handle_offset,
+            type1.scratch_offset, type1.clear_bits_min,
+            type1.clear_bits_max) == (
+        native["object_size"], native["clear_episode"], native["clear_bits"],
+        native["power_handle"], native["scratch"], native["clear_bits_min"],
+        native["clear_bits_max"])
+    assert list(type1.property_offsets) == list(native["properties"])
+    assert list(type1.addresses) == [
+        native["deserializer"], native["constructor"], native["tune_helper"]]
+    lib.r6_honor_type1_facts(None)
+
     bad = bytearray(blob)
     bad[0] = ord("X")
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
@@ -129,9 +158,9 @@ def check(dump, lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_honor_schema_field(source, len(bad), 0, 0, name,
                                      len(name)) == R6_ERR_FORMAT
-    print("honor schema: 13 shipped type names and 60 ordered fields match "
-          "STORY_NATIVE.md and the exe pointer table; type/field find, "
-          "bad blob, type, field and capacity rejected")
+    print("honor schema: 13 shipped type names, 60 ordered fields and type-1 "
+          "native offsets match STORY_NATIVE.md and the exe pointer table; "
+          "type/field find, bad blob, type, field and capacity rejected")
 
 
 def main():

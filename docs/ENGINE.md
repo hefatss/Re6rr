@@ -341,8 +341,11 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_honor_schema_parse()` / `r6_honor_schema_type()` /
   `r6_honor_schema_find_type()` / `r6_honor_schema_field()` /
   `r6_honor_schema_find_field()` — read the derived `R6HON` schema with 13 condition
-  types and 60 ordered field labels. No per-episode predicate instances are
-  present in the shipped dump, so none are inferred.
+  types and 60 ordered field labels. `r6_honor_type1_facts()` additionally
+  copies the type-1 ABI: 0xc0-byte object, four stored field offsets, 1..20
+  `clear_bits` domain, ten Property slots and the deserializer/constructor/
+  tune-helper addresses. No per-episode predicate instances are present in the
+  shipped dump, so none are inferred.
 - `r6_stage_effect_parse()` / `r6_stage_effect_get()` /
   `r6_stage_effect_find_symbol()` / `r6_stage_effect_string()` — read the
   `R6STG` blob built by `tools/engine/stage_effect_catalog.py` from the two
@@ -498,7 +501,7 @@ Verified on this dump:
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; struct/field find, bad blob, index and capacity rejected |
 | Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; find, bad blob, index, value and capacity rejected |
 | Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; find, bad blob, index and capacity rejected |
-| honor schema | all 13 type names match the exe pointer table and 60 ordered fields match `STORY_NATIVE.md`; type/field find, bad blob, type, field and capacity rejected |
+| honor schema | all 13 type names match the exe pointer table, 60 ordered fields and type-1 ABI offsets/PROPERTY slots/addresses match `STORY_NATIVE.md`; type/field find, bad blob, type, field and capacity rejected |
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; find, bad blob, index and capacity rejected |
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |
