@@ -5887,6 +5887,130 @@ Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
     return out;
 }
 
+/* XMD.001 stream bridge: an inflated container in, plain offsets/copied bytes
+ * out. Java never receives a pointer into the native copy. */
+static int xmd_stream_from_blob(JNIEnv *env, jbyteArray blob, jint index,
+                                unsigned char **bytes, size_t *length,
+                                r6_stream *stream) {
+    uint32_t version = 0;
+    uint32_t count = 0;
+    r6_stream *streams = NULL;
+    int rc;
+    if (raw_from_blob(env, blob, bytes, length) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    rc = r6_xmd_parse(*bytes, *length, NULL, 0, &version, &count);
+    if (rc != R6_OK && rc != R6_ERR_BUFFER) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    if (index < 0 || (uint32_t)index >= count) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_ARG;
+    }
+    streams = (r6_stream *)malloc((size_t)count * sizeof(*streams));
+    if (!streams) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_MEMORY;
+    }
+    rc = r6_xmd_parse(*bytes, *length, streams, count, &version, &count);
+    if (rc == R6_OK) {
+        *stream = streams[index];
+    }
+    free(streams);
+    if (rc != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6Container_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t version = 0;
+    uint32_t count = 0;
+    int rc;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK) {
+        rc = r6_xmd_parse(bytes, length, NULL, 0, &version, &count);
+        if (rc == R6_OK || rc == R6_ERR_BUFFER) {
+            values[0] = (jlong)version;
+            values[1] = (jlong)count;
+            out = pe_new_longs(env, values, 2);
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6Container_nativeStream(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_stream stream;
+    jlong values[2];
+    jlongArray out = NULL;
+    (void)cls;
+    if (xmd_stream_from_blob(env, blob, index, &bytes, &length,
+                             &stream) == R6_OK) {
+        values[0] = (jlong)stream.offset;
+        values[1] = (jlong)stream.size;
+        out = pe_new_longs(env, values, 2);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Container_nativeTag(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_stream stream;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (xmd_stream_from_blob(env, blob, index, &bytes, &length,
+                             &stream) == R6_OK && stream.size >= 4) {
+        out = (*env)->NewByteArray(env, 4);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, 4,
+                                       (const jbyte *)(bytes + stream.offset));
+        }
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Container_nativeStreamBytes(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_stream stream;
+    jbyteArray out = NULL;
+    (void)cls;
+    if (xmd_stream_from_blob(env, blob, index, &bytes, &length,
+                             &stream) == R6_OK) {
+        out = (*env)->NewByteArray(env, (jsize)stream.size);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, (jsize)stream.size,
+                                       (const jbyte *)(bytes + stream.offset));
+        }
+    }
+    free(bytes);
+    return out;
+}
+
 /* NDWD stream bridge: inflated stream bytes in, plain offsets/tokens/strings
  * out. The C parser owns no pointers into the Java array. */
 #define R6_NDWD_NAME_CAP 0x80

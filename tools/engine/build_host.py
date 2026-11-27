@@ -167,7 +167,8 @@ def check_jni(dump):
         sources = [os.path.join(java_dir, name)
                    for name in ("Re6Engine.java", "AssetProvider.java",
                                 "GlslBindings.java", "Re6Texture.java",
-                                "Re6Audio.java", "Re6MeshRecords.java",
+                                "Re6Audio.java", "Re6Container.java",
+                                "Re6MeshRecords.java",
                                 "EngineSound.java",
                                 "VertexLayout.java", "BgmCatalog.java",
                                 "EngineRuntime.java", "VoiceRequest.java",
