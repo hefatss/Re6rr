@@ -21,7 +21,7 @@ engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice rec
 engine/include/r6/r6_config_3d.h  config_3d.bin section reader and dB amplitude conversion
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
-engine/include/r6/r6_nsh.h       bounds-checked NSXR container and DXBC chunk table reader
+engine/include/r6/r6_nsh.h       bounds-checked NSXR container, DXBC chunk table and STAT totals reader
 engine/include/r6/r6_shader_cf.h  structured SM4 control-flow map reader
 engine/include/r6/r6_shader_usage.h  SHDR cbuffer and texture/sampler usage reader
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
@@ -197,6 +197,9 @@ platform/android/java/        Java side of the JNI bridge
   sizes per record. SHDR/RDEF/ISGN/OSGN payload decoding stays in the export
   tools; no D3D or file access is involved. `r6_nsh_chunk_find()` resolves a
   four-CC tag to the first matching chunk in one parsed record.
+  `r6_dxbc_stat_facts()` copies the summed 29-field `STAT` vector from the 446
+  shipped records, including 20,563 instructions, 2,888 declarations and 680
+  texture samples; `unknown_*` fields stay verbatim and no chunk is read.
 - `r6_shader_cf_parse()/record()/name()/find()/block()/case()/index()` — read
   the derived `R6SCF` map of 303 `IF`/`LOOP`/`SWITCH` blocks across the 446
   SHDR records, with 2,448 case starts and 2,478 break/continue instruction
@@ -477,7 +480,7 @@ Verified on this dump:
 | config_3d reader | 5 sections × 10 records and 6 tail words match `audio_events.parse_config_3d()`; dB amplitude matches Python with a host pow callback; bad version, stride, count, truncation, short section capacity and all four global float validators rejected, boundary values accepted |
 | packed engine-sound table | 320 mappings and 3,584 layer envelopes match `tools/engine/engine_sound.py` field-for-field; 195,104 bytes; bad magic, truncation and out-of-range indices rejected |
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
-| NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; chunk find, short input, bad magic and bad sizes rejected |
+| NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; all 29 summed `STAT` fields match too; chunk find, short input, bad magic and bad sizes rejected |
 | SM4 control flow | 446 records, 303 blocks, 2448 cases and 2478 break/continue indices match `nsxr_shader.control_flow()`; `Body.nsh` pixel has two 9-case switches; bad blob, index, stage and capacity rejected |
 | SHDR usage map | 446 records, 1645 uniform rows, 1052 resource rows and 1052 declarations match `nsxr_shader`; 5502 static cbuffer operands, 8 dynamic, 1360 resource uses, zero dynamic/unmapped; bad blob, index and stage rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |

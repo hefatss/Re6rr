@@ -58,6 +58,44 @@ R6_API int r6_nsh_parse(const void *data, size_t size, r6_nsh_t *out);
 R6_API int r6_nsh_chunk_find(const r6_nsh_t *nsh, uint32_t record,
                              uint32_t tag, r6_nsh_chunk_t *out);
 
+/* Sum of the 29-u32 DX10 STAT fields across the 446 shipped DXBC records.
+ * Field names are copied verbatim from nsxr_shader.STAT_FIELDS; unknown_* are
+ * kept rather than interpreted. No STAT chunk is read or rewritten here. */
+typedef struct r6_dxbc_stat_facts_t {
+    uint32_t record_count;
+    uint32_t instruction_count;
+    uint32_t temp_register_count;
+    uint32_t unknown_a;
+    uint32_t dcl_count;
+    uint32_t flt_instruction_count;
+    uint32_t int_instruction_count;
+    uint32_t uint_instruction_count;
+    uint32_t static_flow_control_count;
+    uint32_t dynamic_flow_control_count;
+    uint32_t unknown_b;
+    uint32_t temp_array_count;
+    uint32_t array_instruction_count;
+    uint32_t cut_instruction_count;
+    uint32_t emit_instruction_count;
+    uint32_t sample_tex_count;
+    uint32_t load_tex_count;
+    uint32_t cmp_tex_count;
+    uint32_t sample_bias_tex_count;
+    uint32_t sample_grad_tex_count;
+    uint32_t mov_instruction_count;
+    uint32_t unknown_c;
+    uint32_t conv_instruction_count;
+    uint32_t unknown_d;
+    uint32_t input_prim_count;
+    uint32_t gs_output_topology;
+    uint32_t gs_max_output_vtx_count;
+    uint32_t unknown_e0;
+    uint32_t unknown_e1;
+    uint32_t unknown_e2;
+} r6_dxbc_stat_facts_t;
+
+R6_API void r6_dxbc_stat_facts(r6_dxbc_stat_facts_t *out);
+
 #ifdef __cplusplus
 }
 #endif

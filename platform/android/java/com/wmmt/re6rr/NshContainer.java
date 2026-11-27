@@ -23,8 +23,16 @@ public final class NshContainer {
         return nativeChunkFind(raw, record, tag);
     }
 
+    /** 30 values: record count and the 29 summed DX10 STAT fields across the
+     *  446 shipped DXBC records; unknown_* fields stay uninterpretable. */
+    public static long[] statFacts() {
+        return nativeStatFacts();
+    }
+
     private static native long[] nativeParse(byte[] raw);
 
     private static native long[] nativeChunkFind(byte[] raw, int record,
                                                  int tag);
+
+    private static native long[] nativeStatFacts();
 }

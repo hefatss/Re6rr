@@ -107,3 +107,40 @@ int r6_nsh_chunk_find(const r6_nsh_t *nsh, uint32_t record, uint32_t tag,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+void r6_dxbc_stat_facts(r6_dxbc_stat_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->record_count = 446u;
+    out->instruction_count = 20563u;
+    out->temp_register_count = 1083u;
+    out->unknown_a = 0u;
+    out->dcl_count = 2888u;
+    out->flt_instruction_count = 6010u;
+    out->int_instruction_count = 1722u;
+    out->uint_instruction_count = 68u;
+    out->static_flow_control_count = 3175u;
+    out->dynamic_flow_control_count = 31u;
+    out->unknown_b = 0u;
+    out->temp_array_count = 232u;
+    out->array_instruction_count = 234u;
+    out->cut_instruction_count = 0u;
+    out->emit_instruction_count = 0u;
+    out->sample_tex_count = 680u;
+    out->load_tex_count = 0u;
+    out->cmp_tex_count = 0u;
+    out->sample_bias_tex_count = 0u;
+    out->sample_grad_tex_count = 0u;
+    out->mov_instruction_count = 7698u;
+    out->unknown_c = 57u;
+    out->conv_instruction_count = 126u;
+    out->unknown_d = 0u;
+    out->input_prim_count = 0u;
+    out->gs_output_topology = 0u;
+    out->gs_max_output_vtx_count = 0u;
+    out->unknown_e0 = 0u;
+    out->unknown_e1 = 0u;
+    out->unknown_e2 = 0u;
+}

@@ -46,6 +46,11 @@ class Nsh(ctypes.Structure):
                 ("records", Record * 2)]
 
 
+class StatFacts(ctypes.Structure):
+    _fields_ = [("record_count", ctypes.c_uint32)] + [
+        (name, ctypes.c_uint32) for name in nsxr_shader.STAT_FIELDS[:29]]
+
+
 def check(dump, lib):
     lib.r6_nsh_parse.restype = ctypes.c_int
     lib.r6_nsh_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -53,10 +58,14 @@ def check(dump, lib):
     lib.r6_nsh_chunk_find.restype = ctypes.c_int
     lib.r6_nsh_chunk_find.argtypes = [ctypes.POINTER(Nsh), ctypes.c_uint32,
                                       ctypes.c_uint32, ctypes.POINTER(Chunk)]
+    lib.r6_dxbc_stat_facts.restype = None
+    lib.r6_dxbc_stat_facts.argtypes = [ctypes.POINTER(StatFacts)]
     root = os.path.join(dump, nsxr_shader.SHADER_DIR)
     names = sorted(name for name in os.listdir(root) if name.endswith(".nsh"))
     assert len(names) == 223
     chunks = 0
+    stat_records = 0
+    totals = {name: 0 for name in nsxr_shader.STAT_FIELDS[:29]}
     for name in names:
         with open(os.path.join(root, name), "rb") as stream:
             raw = stream.read()
@@ -91,6 +100,12 @@ def check(dump, lib):
                 assert cpart.offset == part["offset"], (name, index)
                 assert cpart.size == part["size"], (name, index)
                 assert cpart.data_offset == part["data_offset"], (name, index)
+                if part["tag"] == "STAT":
+                    stats = part["statistics"]
+                    assert len(stats) == len(totals), (name, index)
+                    stat_records += 1
+                    for field in totals:
+                        totals[field] += stats[field]
                 chunks += 1
 
     first_raw = open(os.path.join(root, names[0]), "rb").read()
@@ -133,9 +148,18 @@ def check(dump, lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_nsh_parse(source, len(bad),
                             ctypes.byref(header)) == R6_ERR_FORMAT
-    print("NSXR: %d files, 2 records each and %d DXBC chunks match "
-          "nsxr_shader.parse_nsh(); chunk find, short, bad magic and bad "
-          "sizes rejected" % (len(names), chunks))
+
+    assert stat_records == 446
+    facts = StatFacts()
+    lib.r6_dxbc_stat_facts(ctypes.byref(facts))
+    assert facts.record_count == stat_records
+    for field in totals:
+        assert getattr(facts, field) == totals[field], (
+            field, getattr(facts, field), totals[field])
+    lib.r6_dxbc_stat_facts(None)
+    print("NSXR: %d files, 2 records each, %d DXBC chunks and all 29 summed "
+          "STAT fields match nsxr_shader.parse_nsh(); chunk find, short, bad "
+          "magic and bad sizes rejected" % (len(names), chunks))
 
 
 def main():

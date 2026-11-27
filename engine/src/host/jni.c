@@ -7496,6 +7496,45 @@ Java_com_wmmt_re6rr_NshContainer_nativeParse(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeStatFacts(JNIEnv *env, jclass cls) {
+    r6_dxbc_stat_facts_t facts;
+    jlong values[30];
+    (void)cls;
+    r6_dxbc_stat_facts(&facts);
+    values[0] = (jlong)facts.record_count;
+    values[1] = (jlong)facts.instruction_count;
+    values[2] = (jlong)facts.temp_register_count;
+    values[3] = (jlong)facts.unknown_a;
+    values[4] = (jlong)facts.dcl_count;
+    values[5] = (jlong)facts.flt_instruction_count;
+    values[6] = (jlong)facts.int_instruction_count;
+    values[7] = (jlong)facts.uint_instruction_count;
+    values[8] = (jlong)facts.static_flow_control_count;
+    values[9] = (jlong)facts.dynamic_flow_control_count;
+    values[10] = (jlong)facts.unknown_b;
+    values[11] = (jlong)facts.temp_array_count;
+    values[12] = (jlong)facts.array_instruction_count;
+    values[13] = (jlong)facts.cut_instruction_count;
+    values[14] = (jlong)facts.emit_instruction_count;
+    values[15] = (jlong)facts.sample_tex_count;
+    values[16] = (jlong)facts.load_tex_count;
+    values[17] = (jlong)facts.cmp_tex_count;
+    values[18] = (jlong)facts.sample_bias_tex_count;
+    values[19] = (jlong)facts.sample_grad_tex_count;
+    values[20] = (jlong)facts.mov_instruction_count;
+    values[21] = (jlong)facts.unknown_c;
+    values[22] = (jlong)facts.conv_instruction_count;
+    values[23] = (jlong)facts.unknown_d;
+    values[24] = (jlong)facts.input_prim_count;
+    values[25] = (jlong)facts.gs_output_topology;
+    values[26] = (jlong)facts.gs_max_output_vtx_count;
+    values[27] = (jlong)facts.unknown_e0;
+    values[28] = (jlong)facts.unknown_e1;
+    values[29] = (jlong)facts.unknown_e2;
+    return pe_new_longs(env, values, 30);
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
                                            jbyteArray raw, jint offset) {
