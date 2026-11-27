@@ -180,7 +180,9 @@ gaps (the two copied extension blobs) are in `recon/AUDIO_NUB.md`.
 load path. Two camera variants (`0x2712`/`0x2713`) hold 255 records of `0x50`
 plus `0x160` bytes; car files hold 10,800 records of `0x180`, `0xa0` and `0x8c`
 bytes. All 1,129 shipped files parse with exact size identity;
-`tools/engine/ees_scene.py` inventories and extracts the arrays. Native
+`tools/engine/ees_scene.py` inventories and extracts the arrays, and
+`tools/engine/ees_inventory_catalog.py` packs the 1129 header facts and 2667
+array records for the bounded C reader. Native
 consumers decode camera `+0x00` type, `+0x04` int32 start frame, `+0x08` float
 duration and `+0x0c` exact-frame flag (`FUN_1401c8f60`), plus car `+0x00` id,
 `+0x04` flags, `+0x10` transform matrix and `+0x150` yaw

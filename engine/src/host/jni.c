@@ -57,6 +57,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_lmd_catalog.h"
 #include "r6/r6_nuf_headers.h"
 #include "r6/r6_mtmp.h"
+#include "r6/r6_ees_inventory.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6213,6 +6214,123 @@ Java_com_wmmt_re6rr_MtmpTables_nativeObject(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, value);
+    return result;
+}
+
+/* .EES inventory: copied header, path and array facts, no scene bytes. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EesInventory_nativeHeader(JNIEnv *env, jclass cls,
+                                               jbyteArray blob) {
+    r6_ees_inventory_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes ||
+        r6_ees_inventory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.array_count;
+    values[3] = (jlong)header.strings_size;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EesInventory_nativeFile(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index) {
+    r6_ees_inventory_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ees_inventory_file(bytes, length, (uint32_t)index,
+                              &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.file_size;
+    values[1] = (jlong)file.kind;
+    values[2] = (jlong)file.version;
+    values[3] = (jlong)file.count;
+    values[4] = (jlong)file.effect_count;
+    values[5] = (jlong)file.header_size;
+    values[6] = (jlong)file.array_first;
+    values[7] = (jlong)file.array_count;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EesInventory_nativePath(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index) {
+    char path[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ees_inventory_path(bytes, length, (uint32_t)index, path,
+                              sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EesInventory_nativeArrayName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char name[R6_EES_INVENTORY_NAME_CAP];
+    r6_ees_inventory_array_t array;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ees_inventory_array(bytes, length, (uint32_t)index, name,
+                               sizeof(name), &array) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EesInventory_nativeArray(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char name[R6_EES_INVENTORY_NAME_CAP];
+    r6_ees_inventory_array_t array;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ees_inventory_array(bytes, length, (uint32_t)index, name,
+                               sizeof(name), &array) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)array.count;
+    values[1] = (jlong)array.stride;
+    values[2] = (jlong)array.offset;
+    values[3] = (jlong)array.size;
+    result = pe_new_longs(env, values, 4);
     return result;
 }
 

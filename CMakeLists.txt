@@ -61,6 +61,7 @@ set(R6_CORE
     engine/src/game/lmd_catalog.c
     engine/src/game/nuf_headers.c
     engine/src/game/mtmp.c
+    engine/src/game/ees_inventory.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
