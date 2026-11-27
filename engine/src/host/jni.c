@@ -6785,6 +6785,34 @@ Java_com_wmmt_re6rr_SceneConfig_nativePack(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_SceneConfig_nativeFind(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint kind,
+                                          jstring name) {
+    int32_t value = -1;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_scene_names_find(bytes, length, (int)kind, text, &value) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jlong)value;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_NativeNames_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {

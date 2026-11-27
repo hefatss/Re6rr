@@ -270,6 +270,11 @@ R6_API int r6_scene_names_parse(const void *data, size_t size,
 R6_API int r6_scene_names_get(const void *data, size_t size, int kind,
                               int32_t value, char *out, size_t capacity);
 
+/* First table row with the exact name. The returned value is the same id
+ * accepted by r6_scene_names_get(): stage is one-based, car and day are not. */
+R6_API int r6_scene_names_find(const void *data, size_t size, int kind,
+                               const char *name, int32_t *value);
+
 /* R6NAM blob built by tools/engine/native_names_catalog.py from the shipped
  * pointer-name runs (sequence, tk_ari, stage_time, tips_end, flash, parts,
  * honor, check_honor and vinyl_blend). */

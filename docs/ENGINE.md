@@ -279,7 +279,8 @@ platform/android/java/        Java side of the JNI bridge
   buffer. `r6_scene_names_parse()` / `r6_scene_names_get()` read the `R6SCN`
   blob built by `tools/engine/scene_config_catalog.py` and apply the shipped
   car/stage/day indexing: `-1` and out-of-range cars give `PLC_NON`, stage uses
-  `value-1`, day uses the raw value.
+  `value-1`, day uses the raw value. `r6_scene_names_find()` resolves an exact
+  name back to that id; stage ids returned are one-based.
 - `r6_native_names_parse()` / `r6_native_names_get()` read the `R6NAM` blob
   built by `tools/engine/native_names_catalog.py` from nine shipped pointer-name
   runs (sequence, tk_ari, stage_time, tips_end, flash, parts, honor,
@@ -455,7 +456,7 @@ Verified on this dump:
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |
 | native names | all 1036 names in 9 shipped pointer tables match PE reads; bad kind, index, blob and capacity rejected |
-| scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |
+| scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names resolve through `find` and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |
 | stage-effect catalog | 6 shipped symbolic sounds read from the `R6STG` blob with matching set/symbol/file/tone name/wav, bank 3 tones 14/15, positions and loop flags; symbol lookup, bad magic and short blob checked |
 | car catalog | 151 `PLC_*` specs packed to 21,768 bytes, all fields match Python; `PLC_928GT` found by model and id; malformed blobs rejected |
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |

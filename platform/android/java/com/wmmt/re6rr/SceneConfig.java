@@ -26,6 +26,11 @@ public final class SceneConfig {
         return nativeName(blob, kind, value);
     }
 
+    /** first id with an exact name; -1 if absent. Stage ids are one-based. */
+    public static long find(byte[] blob, int kind, String name) {
+        return nativeFind(blob, kind, name);
+    }
+
     private static native byte[] nativePack(int stage, int stageRoot,
                                             int stageDay, int camId,
                                             int[] actors);
@@ -33,4 +38,7 @@ public final class SceneConfig {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int kind, int value);
+
+    private static native long nativeFind(byte[] blob, int kind,
+                                           String name);
 }

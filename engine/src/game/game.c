@@ -796,6 +796,45 @@ int r6_scene_names_get(const void *data, size_t size, int kind,
     return result == R6_ERR_ARG ? R6_ERR_FORMAT : result;
 }
 
+int r6_scene_names_find(const void *data, size_t size, int kind,
+                        const char *name, int32_t *value) {
+    r6_scene_names_header header;
+    size_t wanted;
+    uint32_t at;
+    int result;
+    if (r6_scene_names_parse(data, size, &header) != R6_OK) {
+        return R6_ERR_FORMAT;
+    }
+    if (!name || kind < R6_SCENE_CAR_NAMES || kind > R6_SCENE_DAY_NAMES) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.counts[kind]; at++) {
+        int32_t candidate = kind == R6_SCENE_STAGE_NAMES ?
+                            (int32_t)at + 1 : (int32_t)at;
+        char found[0x100];
+        result = r6_scene_names_get(data, size, kind, candidate, found,
+                                    sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (value) {
+                *value = candidate;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 static const unsigned char native_names_magic[8] = {
     'R', '6', 'N', 'A', 'M', 0, 1, 0
 };

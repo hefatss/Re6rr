@@ -44,6 +44,12 @@ def configure(lib):
     lib.r6_scene_names_get.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                       ctypes.c_int, ctypes.c_int32,
                                       ctypes.c_char_p, ctypes.c_size_t]
+    lib.r6_scene_names_find.restype = ctypes.c_int
+    lib.r6_scene_names_find.argtypes = [ctypes.c_void_p,
+                                        ctypes.c_size_t,
+                                        ctypes.c_int,
+                                        ctypes.c_char_p,
+                                        ctypes.POINTER(ctypes.c_int32)]
 
 
 def check(dump):
@@ -113,6 +119,20 @@ def check(dump):
                                       len(name)) == R6_ERR_NOT_FOUND
         assert scene_config.day_name(value, tables["days"]) is None
 
+    found_value = ctypes.c_int32()
+    for kind, names in enumerate((tables["cars"], tables["stages"],
+                                  tables["days"])):
+        for index, want in enumerate(names):
+            expected = index + 1 if kind == 1 else index
+            assert lib.r6_scene_names_find(
+                source, len(blob), kind, want.encode("ascii"),
+                ctypes.byref(found_value)) == R6_OK
+            assert found_value.value == expected
+    assert lib.r6_scene_names_find(source, len(blob), 0, b"PLC_NON",
+                                   ctypes.byref(found_value)) == R6_ERR_NOT_FOUND
+    assert lib.r6_scene_names_find(source, len(blob), 3, b"Day_1",
+                                   ctypes.byref(found_value)) == R6_ERR_ARG
+
     assert lib.r6_scene_names_get(source, len(blob), 3, 0, name,
                                   len(name)) == R6_ERR_ARG
     assert lib.r6_scene_names_get(source, len(blob), 0, 0, None,
@@ -129,7 +149,8 @@ def check(dump):
     assert lib.r6_scene_names_parse(bad_source, len(bad),
                                     ctypes.byref(header)) == R6_ERR_FORMAT
     print("scene config: 0x28 packing and all 408 shipped car/stage/day names "
-          "match scene_config.py; out-of-range, bad blob and bad kind checked")
+          "match scene_config.py; find, out-of-range, bad blob and bad "
+          "kind checked")
 
 
 def main():
