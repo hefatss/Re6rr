@@ -6130,6 +6130,33 @@ Java_com_wmmt_re6rr_SoundStrings_nativeFind(JNIEnv *env, jclass cls,
     return result;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_SoundStrings_nativeFindValue(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jstring wavPath) {
+    uint32_t index = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    jlong result = -1;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK || !wavPath) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, wavPath, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_sound_strings_find_value(bytes, length, text, &index) == R6_OK) {
+        result = (jlong)index;
+    }
+    (*env)->ReleaseStringUTFChars(env, wavPath, text);
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_LuaAudioBindings_nativeCount(JNIEnv *env, jclass cls) {
     (void)env;

@@ -46,6 +46,11 @@ def configure(lib):
                                           ctypes.c_int,
                                           ctypes.c_char_p,
                                           ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_sound_strings_find_value.restype = ctypes.c_int
+    lib.r6_sound_strings_find_value.argtypes = [ctypes.c_void_p,
+                                                 ctypes.c_size_t,
+                                                 ctypes.c_char_p,
+                                                 ctypes.POINTER(ctypes.c_uint32)]
 
 
 def text(field):
@@ -87,6 +92,23 @@ def check_table(lib, path, kind, source_kind):
             source, len(raw), kind, want["name"].encode("ascii", "replace"),
             ctypes.byref(found)) == R6_OK
         assert found.value == index
+    found_value = ctypes.c_uint32()
+    if kind == 1:
+        firsts = {}
+        for index, want in enumerate(parsed["rows"]):
+            firsts.setdefault(want["value"], index)
+        for value, first in firsts.items():
+            assert lib.r6_sound_strings_find_value(
+                source, len(raw), value.encode("ascii", "replace"),
+                ctypes.byref(found_value)) == R6_OK
+            assert found_value.value == first
+        assert lib.r6_sound_strings_find_value(
+            source, len(raw), b"R6_NO_SUCH_WAV.wav",
+            ctypes.byref(found_value)) == R6_ERR_NOT_FOUND
+    else:
+        assert lib.r6_sound_strings_find_value(
+            source, len(raw), b"BGM",
+            ctypes.byref(found_value)) == R6_ERR_FORMAT
     assert lib.r6_sound_strings_find(source, len(raw), kind,
                                      b"R6_NO_SUCH_SOUND_STRING",
                                      ctypes.byref(found)) == R6_ERR_NOT_FOUND
@@ -143,9 +165,9 @@ def check(dump):
                                           ctypes.byref(header)) == \
             R6_ERR_FORMAT
     print("sound strings: 1 bank table and 8 tone tables (%d rows) match "
-          "nub_audio.parse_string_table(); bank ids, names, WAV paths, find, "
-          "bad version/size/kind, short and out-of-range inputs checked" %
-          (8 + tone_count))
+          "nub_audio.parse_string_table(); bank ids, names and 601 WAV "
+          "paths resolve through find/findValue; bad version/size/kind, "
+          "short and out-of-range inputs checked" % (8 + tone_count))
 
 
 def main():

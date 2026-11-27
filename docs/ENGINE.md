@@ -105,7 +105,9 @@ platform/android/java/        Java side of the JNI bridge
   bytes. Bank rows yield a name and id; tone rows yield a name and source WAV
   path. The final truncated `ENGINE` bank row has id 0, matching the Python
   parser. `r6_sound_strings_find()` resolves the first exact row name in
-  either table; the WAV path stays available through `r6_sound_strings_row()`.
+  either table; `r6_sound_strings_find_value()` resolves the first tone row with
+  an exact WAV path. Both leave the other row fields available through
+  `r6_sound_strings_row()`.
 - `r6_audio_binding_count()` / `r6_audio_binding()` /
   `r6_audio_binding_find()` — expose the twelve `luaL_Reg` sound bindings with
   their function addresses, native calls and fixed bank/tone ids. `-1` marks a
@@ -330,7 +332,7 @@ fade timing and stream reservation, `VoiceChain` copies chained-voice records
 and applies core fields, `SoundInit` validates the Sound::Initialize config,
 `SoundDispatch` copies bank/loop/positional SE records, `SoundConfig` parses
 config.bin, `BankSlots` finds free registration slots, `SoundStrings` finds
-bank/tone names and reads their WAV paths, `LuaAudioBindings` reads the twelve Lua binding
+bank/tone names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding
 rows, `CourseSurface` classifies road names, `SceneBridge` copies camid and
 resolves camera records, `EesContainer` parses the shipped headers, `EesCamera` reads the 31 named camera
 fields, filters type 0/2 and resolves frames with last-match semantics,
@@ -395,7 +397,7 @@ Verified on this dump:
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | bank slot scan | first free slot found across all 64 slots at stride 0x804; full table, short buffer and null arguments rejected |
-| nuSound2 string tables | 1 bank table and 8 tone tables (648 rows) match `nub_audio.parse_string_table()`; bank ids 1–7, truncated ENGINE id 0 and SYSTEM tone 47 `select.wav` checked; all 648 row names resolve through `find`, absent name rejected, bad version/size/kind, short and out-of-range inputs rejected |
+| nuSound2 string tables | 1 bank table and 8 tone tables (648 rows) match `nub_audio.parse_string_table()`; bank ids 1–7, truncated ENGINE id 0 and SYSTEM tone 47 `select.wav` checked; all 648 row names and 601 distinct WAV paths resolve through `find`/`findValue`, absent name/path rejected, bad version/size/kind, short and out-of-range inputs rejected |
 | Lua sound bindings | all 12 `luaL_Reg` rows match `audio_events.resolved_bindings()`: address, native call and fixed bank/tone; SELECT/CANCEL/CURSOR resolved, bad index and missing name rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
 | Sound::Initialize config | 0x28 config counts, three opaque pointer slots and 0x98 Impl vector sizes match `audio_events.sound_init_facts()` on the shipped exe; bad counts and short input rejected |

@@ -249,6 +249,11 @@ R6_API int r6_sound_strings_row(const void *data, size_t size, int kind,
 R6_API int r6_sound_strings_find(const void *data, size_t size, int kind,
                                  const char *name, uint32_t *index);
 
+/* First tone row whose copied WAV path matches exactly. Bank tables have no
+ * WAV path and fail with R6_ERR_FORMAT when passed here. */
+R6_API int r6_sound_strings_find_value(const void *data, size_t size,
+                                       const char *value, uint32_t *index);
+
 /* Twelve shipped Lua sound bindings (luaL_Reg at VA 0x141e1a070). Bank and
  * tone are -1 when the value is a Lua argument rather than a fixed constant.
  * Strings point to static core storage and remain valid for the process. */

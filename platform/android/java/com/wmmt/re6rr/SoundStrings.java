@@ -28,7 +28,14 @@ public final class SoundStrings {
         return nativeFind(blob, kind, name);
     }
 
+    /** first tone row index with an exact WAV path; -1 if absent. */
+    public static long findValue(byte[] blob, String wavPath) {
+        return nativeFindValue(blob, wavPath);
+    }
+
     private static native long[] nativeHeader(byte[] blob, int kind);
+
+    private static native long nativeFindValue(byte[] blob, String wavPath);
 
     private static native long nativeFind(byte[] blob, int kind, String name);
 
