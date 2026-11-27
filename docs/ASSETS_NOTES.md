@@ -146,6 +146,9 @@ other layouts, not padding.
 ## Remaining unknowns
 
 - Which subrecord layout selects each section-2 vertex format.
-- Meaning of the `u32` values at subrecord `+0x20`/`+0x24` (chain records and
-  texture hashes are decoded; their role in geometry is not).
+- Meaning of the `u32` at subrecord `+0x20` (the raw chain record stride). The
+  `u32` at `+0x24` is a string-table offset relative to
+  `0x30 + sum(section sizes)`: `FUN_140ca7990` reads it as `base+u32(chain+4)`
+  and all 44,176 shipped values resolve to NUL-terminated ASCII names. Their
+  role in geometry remains unproven.
 - The three NPOT BC3 entries that store one mip level fewer than declared.

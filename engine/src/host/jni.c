@@ -5867,6 +5867,181 @@ Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
     return out;
 }
 
+/* NDWD stream bridge: inflated stream bytes in, plain offsets/tokens/strings
+ * out. The C parser owns no pointers into the Java array. */
+#define R6_NDWD_NAME_CAP 0x80
+
+static int ndwd_header_from_blob(JNIEnv *env, jbyteArray blob,
+                                 unsigned char **bytes, size_t *length,
+                                 r6_ndwd_header *header) {
+    if (raw_from_blob(env, blob, bytes, length) != R6_OK) {
+        return R6_ERR_ARG;
+    }
+    if (r6_ndwd_parse_header(*bytes, *length, header) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+static int ndwd_group_from_blob(JNIEnv *env, jbyteArray blob, jint index,
+                                unsigned char **bytes, size_t *length,
+                                r6_ndwd_header *header,
+                                r6_ndwd_group *group) {
+    int rc = ndwd_header_from_blob(env, blob, bytes, length, header);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    if (index < 0 || r6_ndwd_parse_group(
+            *bytes, *length, header, (uint32_t)index, group) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_ARG;
+    }
+    return R6_OK;
+}
+
+static int ndwd_sub_from_blob(JNIEnv *env, jbyteArray blob, jint gi, jint si,
+                              unsigned char **bytes, size_t *length,
+                              r6_ndwd_header *header, r6_ndwd_group *group,
+                              r6_ndwd_subrecord_t *sub) {
+    int rc = ndwd_group_from_blob(env, blob, gi, bytes, length, header, group);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    if (si < 0 || r6_ndwd_parse_subrecord(
+            *bytes, *length, header, group, (uint32_t)si, sub) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_ARG;
+    }
+    return R6_OK;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6MeshRecords_nativeHeader(JNIEnv *env, jclass cls,
+                                                jbyteArray stream) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ndwd_header header;
+    jlong values[7];
+    jlongArray out = NULL;
+    (void)cls;
+    if (ndwd_header_from_blob(env, stream, &bytes, &length, &header) == R6_OK) {
+        values[0] = (jlong)header.id;
+        values[1] = (jlong)header.version;
+        values[2] = (jlong)header.group_count;
+        values[3] = (jlong)header.section_size[0];
+        values[4] = (jlong)header.section_size[1];
+        values[5] = (jlong)header.section_size[2];
+        values[6] = (jlong)header.section_size[3];
+        out = pe_new_longs(env, values, 7);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6MeshRecords_nativeGroup(JNIEnv *env, jclass cls,
+                                               jbyteArray stream, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ndwd_header header;
+    r6_ndwd_group group;
+    jlong values[4];
+    jlongArray out = NULL;
+    (void)cls;
+    if (ndwd_group_from_blob(env, stream, index, &bytes, &length, &header,
+                             &group) == R6_OK) {
+        values[0] = (jlong)group.offset;
+        values[1] = (jlong)group.name_offset;
+        values[2] = (jlong)group.subrecord_count;
+        values[3] = (jlong)group.subrecord_start;
+        out = pe_new_longs(env, values, 4);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6MeshRecords_nativeSubrecord(JNIEnv *env, jclass cls,
+                                                   jbyteArray stream, jint gi,
+                                                   jint si) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ndwd_header header;
+    r6_ndwd_group group;
+    r6_ndwd_subrecord_t sub;
+    jlong values[7];
+    jlongArray out = NULL;
+    (void)cls;
+    if (ndwd_sub_from_blob(env, stream, gi, si, &bytes, &length, &header,
+                           &group, &sub) == R6_OK) {
+        values[0] = (jlong)sub.offset;
+        values[1] = (jlong)sub.tokens[0];
+        values[2] = (jlong)sub.tokens[1];
+        values[3] = (jlong)sub.tokens[2];
+        values[4] = (jlong)sub.tokens[3];
+        values[5] = (jlong)sub.extra;
+        values[6] = (jlong)sub.chain_offset;
+        out = pe_new_longs(env, values, 7);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6MeshRecords_nativeChainRecord(
+        JNIEnv *env, jclass cls, jbyteArray stream, jint gi, jint si,
+        jint ri) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ndwd_header header;
+    r6_ndwd_group group;
+    r6_ndwd_subrecord_t sub;
+    r6_ndwd_chain_record_t record;
+    jlong values[4];
+    jlongArray out = NULL;
+    (void)cls;
+    if (ndwd_sub_from_blob(env, stream, gi, si, &bytes, &length, &header,
+                           &group, &sub) == R6_OK &&
+        ri >= 0 && r6_ndwd_parse_chain_record(
+            bytes, length, &header, &sub, (uint32_t)ri, &record) == R6_OK) {
+        values[0] = (jlong)record.offset;
+        values[1] = (jlong)record.stride;
+        values[2] = (jlong)record.name_offset;
+        values[3] = (jlong)record.flag;
+        out = pe_new_longs(env, values, 4);
+    }
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_Re6MeshRecords_nativeName(JNIEnv *env, jclass cls,
+                                              jbyteArray stream, jint offset) {
+    char name[R6_NDWD_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ndwd_header header;
+    jstring out = NULL;
+    (void)cls;
+    if (offset < 0 || ndwd_header_from_blob(env, stream, &bytes, &length,
+                                            &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_ndwd_string(bytes, length, &header, (uint32_t)offset, name,
+                       sizeof(name), NULL) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
 /* Engine-sound bridge: packed blob in, plain mapping/layer values out. */
 JNIEXPORT jintArray JNICALL
 Java_com_wmmt_re6rr_EngineSound_nativeHeader(JNIEnv *env, jclass cls,

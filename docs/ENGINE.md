@@ -395,8 +395,10 @@ vehicle state, read state, destroy), the `nativeGame*` family (phase flow
 and SConfigPlay byte round-trip) and the `nativeCarCatalog*` family (model and
 numeric lookup). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`.
-`Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, and `Re6Audio` reads
-`.nub` headers, tone records, control fields and PCM bytes, `EngineSound` selects car/tune mappings with 16
+`Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, `Re6MeshRecords` reads
+raw NDWD groups/subrecords/chain records and strings, and `Re6Audio` reads
+`.nub` headers, tone records, control fields, opaque registration bytes and PCM
+bytes, `EngineSound` selects car/tune mappings with 16
 layer envelopes, `VertexLayout` reads vertex locations, semantics and masks,
 `BgmCatalog` resolves BGM ids and names, `BgmManager` applies playBGM id
 dispatch, `BgmFade` reads and updates stream fade state, `EngineRuntime`
