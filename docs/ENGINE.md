@@ -388,9 +388,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_med_parse()/row()/path()` — read the `.r6med` inventory of 67 shipped
   `.MED` files: validated 0x100 header words, frame count, derived section byte
   counts and relative path. Animation data remains uninterpreted.
-- `r6_enma_enum_parse()/name()/find_domain()/count()/value()/find()` — read the derived
-  `R6EME` inventory of 16 Enma enums and 1214 value names recovered from the
-  shipped DLL exports, with ordinal and value lookups.
+- `r6_enma_enum_parse()/name()/find_domain()/count()/value()/find()/find_ordinals()`
+  — read the derived `R6EME` inventory of 16 Enma enums and 1214 value names
+  recovered from the shipped DLL exports, with ordinal, value and all-hits
+  value-to-ordinal lookups.
 - `r6_enma_defaults_parse()/struct()/find()/field()/find_field()` — read the derived `R6EDF` layout
   of 32 `SetDefault` structs, 89 constant writes and 2642 bytes recovered from
   the shipped DLL. Byte arrays are copied; no struct or DLL is instantiated.
@@ -569,7 +570,7 @@ Verified on this dump:
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; struct/field find, bad blob, index and capacity rejected |
-| Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; find, bad blob, index, value and capacity rejected |
+| Enma enums | all 16 domains, 1214 names/values and all ordinal lookups match `enma_api.json`; both find directions, bad blob, index, value and capacity rejected |
 | Lua xrefs | 219 names, 222 function refs, 28 table refs, 65 table users and 60 duplicate-RVA groups match `bindings.json`; both find directions, bad blob, index and capacity rejected |
 | honor schema | all 13 type names match the exe pointer table, 60 ordered fields and type-1 ABI offsets/PROPERTY slots/addresses match `STORY_NATIVE.md`; type/field find, bad blob, type, field and capacity rejected |
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; find, bad blob, index and capacity rejected |

@@ -194,3 +194,40 @@ int r6_enma_enum_find(const void *data, size_t size, uint32_t index,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+int r6_enma_enum_find_ordinals(const void *data, size_t size, uint32_t index,
+                               uint32_t value, uint32_t *ordinals,
+                               uint32_t capacity, uint32_t *count) {
+    r6_enma_enum_header header;
+    const unsigned char *bytes;
+    uint32_t row_off;
+    uint32_t total = 0;
+    uint32_t copied = 0;
+    uint32_t domain_count;
+    uint32_t values_off;
+    uint32_t at;
+    int result = enma_row(data, size, index, &bytes, &header, &row_off,
+                          &domain_count, &values_off);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (capacity && !ordinals) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < domain_count; at++) {
+        uint32_t offset = values_off + at * 8u;
+        if (r6_u32(bytes, offset + 4u) == value) {
+            if (copied < capacity) {
+                ordinals[copied++] = at;
+            }
+            total++;
+        }
+    }
+    if (count) {
+        *count = total;
+    }
+    if (!total) {
+        return R6_ERR_NOT_FOUND;
+    }
+    return total > capacity ? R6_ERR_BUFFER : R6_OK;
+}

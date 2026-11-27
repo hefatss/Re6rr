@@ -43,6 +43,14 @@ R6_API int r6_enma_enum_value(const void *data, size_t size, uint32_t index,
 R6_API int r6_enma_enum_find(const void *data, size_t size, uint32_t index,
                              uint32_t value, char *name, size_t capacity);
 
+/* All ordinals in one domain with that exact integer value, in stored order.
+ * *count gets the total; up to capacity ordinals are copied. R6_ERR_NOT_FOUND
+ * means none, R6_ERR_BUFFER means the capacity was short. */
+R6_API int r6_enma_enum_find_ordinals(const void *data, size_t size,
+                                      uint32_t index, uint32_t value,
+                                      uint32_t *ordinals, uint32_t capacity,
+                                      uint32_t *count);
+
 #ifdef __cplusplus
 }
 #endif

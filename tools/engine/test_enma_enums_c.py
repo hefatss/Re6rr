@@ -52,6 +52,11 @@ def check(lib):
     lib.r6_enma_enum_find.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                       ctypes.c_uint32, ctypes.c_uint32,
                                       ctypes.c_char_p, ctypes.c_size_t]
+    lib.r6_enma_enum_find_ordinals.restype = ctypes.c_int
+    lib.r6_enma_enum_find_ordinals.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint32), ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint32)]
 
     enums = enma_enum_catalog.collect()
     blob = enma_enum_catalog.build(enums)
@@ -85,6 +90,36 @@ def check(lib):
             assert name.value.decode("ascii") == symbol
             total += 1
     assert total == 1214
+
+    ordinal = ctypes.c_uint32()
+    counted = ctypes.c_uint32()
+    for index, item in enumerate(enums):
+        for expected, _ in item["values"]:
+            hits = (ctypes.c_uint32 * 1)()
+            assert lib.r6_enma_enum_find_ordinals(
+                source, len(blob), index, expected, hits, 1,
+                ctypes.byref(counted)) == R6_OK
+            assert counted.value == 1 and list(hits) == [
+                next(i for i, row in enumerate(item["values"])
+                     if row[0] == expected)]
+    assert lib.r6_enma_enum_find_ordinals(
+        source, len(blob), 0, 0xffffffff, ordinal, 1,
+        ctypes.byref(counted)) == R6_ERR_NOT_FOUND
+    assert counted.value == 0
+    assert lib.r6_enma_enum_find_ordinals(
+        source, len(blob), 0, enums[0]["values"][0][0], None, 1,
+        ctypes.byref(counted)) == R6_ERR_ARG
+
+    duplicate = bytearray(blob)
+    struct.pack_into("<I", duplicate, 24 + 16 * 16 + 8 + 4,
+                     enums[0]["values"][0][0])
+    source = ctypes.create_string_buffer(bytes(duplicate), len(duplicate))
+    short = (ctypes.c_uint32 * 1)()
+    assert lib.r6_enma_enum_find_ordinals(
+        source, len(duplicate), 0, enums[0]["values"][0][0], short, 1,
+        ctypes.byref(counted)) == R6_ERR_BUFFER
+    assert counted.value == 2 and list(short) == [0]
+    source = ctypes.create_string_buffer(blob, len(blob))
 
     found = ctypes.c_uint32()
     for index, item in enumerate(enums):
@@ -129,8 +164,9 @@ def check(lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_enma_enum_name(source, len(bad), 0, name,
                                  len(name)) == R6_ERR_FORMAT
-    print("Enma enums: all 16 domains and 1214 names/values match "
-          "enma_api.json; find, bad blob, index, value and capacity rejected")
+    print("Enma enums: all 16 domains and 1214 names/values and ordinal "
+          "lookups match enma_api.json; both find directions, bad blob, index, "
+          "value and capacity rejected")
 
 
 def main():

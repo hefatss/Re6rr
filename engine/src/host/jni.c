@@ -629,6 +629,56 @@ Java_com_wmmt_re6rr_EnmaEnums_nativeFind(JNIEnv *env, jclass cls,
     return out;
 }
 
+/* All ordinals using one exact integer value in a domain, as plain longs. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaEnums_nativeFindOrdinals(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint index, jlong value) {
+    uint32_t count = 0;
+    uint32_t second = 0;
+    uint32_t *ordinals = NULL;
+    jlong *values = NULL;
+    jlongArray result = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t at;
+    (void)cls;
+    if (index < 0 || value < 0 || value > 0xffffffffL ||
+        raw_from_blob(env, blob, &bytes, &length) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_enma_enum_find_ordinals(bytes, length, (uint32_t)index,
+                                   (uint32_t)value, NULL, 0,
+                                   &count) != R6_ERR_BUFFER || !count) {
+        free(bytes);
+        return NULL;
+    }
+    ordinals = (uint32_t *)malloc((size_t)count * sizeof(*ordinals));
+    values = (jlong *)malloc((size_t)count * sizeof(*values));
+    if (!ordinals || !values) {
+        free(ordinals);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    if (r6_enma_enum_find_ordinals(bytes, length, (uint32_t)index,
+                                   (uint32_t)value, ordinals, count,
+                                   &second) != R6_OK || second != count) {
+        free(ordinals);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (at = 0; at < count; at++) {
+        values[at] = (jlong)ordinals[at];
+    }
+    result = pe_new_longs(env, values, (jsize)count);
+    free(ordinals);
+    free(values);
+    return result;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_EnmaDefaults_nativeHeader(JNIEnv *env, jclass cls,
                                               jbyteArray blob) {

@@ -43,6 +43,14 @@ public final class EnmaEnums {
         return nativeFind(blob, index, value);
     }
 
+    /** every ordinal in that domain with the exact value; null when absent. */
+    public static long[] findOrdinals(byte[] blob, int index, long value) {
+        if (index < 0 || value < 0 || value > 0xFFFFFFFFL) {
+            return null;
+        }
+        return nativeFindOrdinals(blob, index, value);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
@@ -56,4 +64,7 @@ public final class EnmaEnums {
     private static native String nativeSymbol(byte[] blob, int index, int ordinal);
 
     private static native String nativeFind(byte[] blob, int index, long value);
+
+    private static native long[] nativeFindOrdinals(byte[] blob, int index,
+                                                    long value);
 }
