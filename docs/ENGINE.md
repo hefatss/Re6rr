@@ -248,6 +248,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_ees_car_disp()` — read one `0x180` display record: car id, flag byte,
   16-f32 matrix and yaw; non-finite yaw gives zero yaw units.
 - `r6_ees_car_info()` — read the int32 id of a `0x8c` car_info record.
+- `r6_glsl_coverage_facts()` — return the aggregate GLES lowering facts for all
+  446 shipped SHDR records: 20,563 instructions split into 11,184 direct,
+  2,720 lowered, 5,979 control and 680 texture opcodes across 43 classified
+  opcodes with zero unknown. It is a lowering plan, not an emitter.
 - `r6_glsl_bindings_find_record()` — first exact shader-name record in the
   compiled `R6GB` manifest; names and offsets are copied, never dereferenced as
   native pointers.
@@ -424,6 +428,7 @@ Verified on this dump:
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |
 | `Body.nsh` sampler units 0/1/6 | `r6_glsl_texture_upload()` matches Python RGBA8 descriptors for five `.nut` formats; bad format, zero size and overflow rejected |
 | `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; name find, short, bad-version and bad-index inputs rejected |
+| GLES lowering facts | C totals match `nsxr_shader.glsl_coverage()` on all 446 records: 20,563 instructions, 11,184 direct / 2,720 lowered / 5,979 control / 680 texture, 43 opcodes and zero unknown; null output ignored |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; all 781 codec-1 getter rows expose exact user params and total samples; bad version, short header, bad codec and null output rejected |

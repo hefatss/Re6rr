@@ -15,6 +15,12 @@ public final class GlslBindings {
         return nativeCount(data);
     }
 
+    /** total, direct, lower, control, texture, opcodes and unknown counts
+     *  for all 446 shipped SHDR records. */
+    public static long[] coverage() {
+        return nativeCoverage();
+    }
+
     /** flags, cbuffers, samplers, cbuffer_first, name offset. */
     public int[] record(int index) {
         return nativeRecord(data, index);
@@ -51,6 +57,7 @@ public final class GlslBindings {
     }
 
     private static native int nativeCount(byte[] data);
+    private static native long[] nativeCoverage();
     private static native int[] nativeRecord(byte[] data, int index);
     private static native int nativeFindRecord(byte[] data, String name);
     private static native String nativeName(byte[] data, int offset);

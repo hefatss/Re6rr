@@ -50,6 +50,12 @@ class Sampler(ctypes.Structure):
                 ("sampler_off", ctypes.c_uint32)]
 
 
+class Coverage(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint32) for name in (
+        "total", "direct", "lower", "control", "texture", "opcodes",
+        "unknown")]
+
+
 def configure(lib):
     lib.r6_glsl_bindings_init.restype = ctypes.c_int
     lib.r6_glsl_bindings_init.argtypes = [
@@ -75,6 +81,8 @@ def configure(lib):
     lib.r6_glsl_bindings_name.restype = ctypes.c_char_p
     lib.r6_glsl_bindings_name.argtypes = [ctypes.POINTER(View),
                                           ctypes.c_uint32]
+    lib.r6_glsl_coverage_facts.restype = None
+    lib.r6_glsl_coverage_facts.argtypes = [ctypes.POINTER(Coverage)]
 
 
 def manifest_entries(name, records):
@@ -185,6 +193,22 @@ def main():
     lib = test_engine.load_core(args.dll, args.dump)
     configure(lib)
 
+    coverage = Coverage()
+    lib.r6_glsl_coverage_facts(ctypes.byref(coverage))
+    facts = nsxr_shader.glsl_coverage(nsxr_shader.collect(args.dump))
+    opcodes = len([name for name in facts["counts"]
+                   if name in nsxr_shader.SM4_GLSL_ES])
+    check((coverage.total, coverage.direct, coverage.lower,
+           coverage.control, coverage.texture, coverage.opcodes,
+           coverage.unknown) ==
+          (facts["total"], facts["counts"]["direct"],
+           facts["counts"]["lower"], facts["counts"]["control"],
+           facts["counts"]["texture"], opcodes, len(facts["unknown"])),
+          "GLES lowering facts", failures)
+    check(coverage.total == 20563 and opcodes == 43 and
+          not facts["unknown"], "shipped opcode totals", failures)
+    lib.r6_glsl_coverage_facts(None)
+
     buffer = ctypes.create_string_buffer(blob, len(blob))
     view = View()
     check(lib.r6_glsl_bindings_init(ctypes.byref(view), buffer,
@@ -268,7 +292,8 @@ def main():
             print("FAIL " + item)
         return 1
     print("GLSL binding manifest: 2 records + 446-record corpus, %d/%d bytes, "
-          "797 cbuffers, 2029 regions, 526 samplers, error checks: OK" %
+          "797 cbuffers, 2029 regions, 526 samplers, 20563 instructions in "
+          "4 classes and 43 opcodes, error checks: OK" %
           (len(blob), corpus_bytes))
     return 0
 

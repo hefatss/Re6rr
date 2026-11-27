@@ -5194,6 +5194,22 @@ static jintArray glsl_ints(JNIEnv *env, const jint *values, jsize count) {
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeCoverage(JNIEnv *env, jclass cls) {
+    r6_glsl_coverage_facts_t facts;
+    jlong values[7];
+    (void)cls;
+    r6_glsl_coverage_facts(&facts);
+    values[0] = (jlong)facts.total;
+    values[1] = (jlong)facts.direct;
+    values[2] = (jlong)facts.lower;
+    values[3] = (jlong)facts.control;
+    values[4] = (jlong)facts.texture;
+    values[5] = (jlong)facts.opcodes;
+    values[6] = (jlong)facts.unknown;
+    return pe_new_longs(env, values, 7);
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_GlslBindings_nativeCount(JNIEnv *env, jclass cls,
                                              jbyteArray data) {

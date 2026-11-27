@@ -98,7 +98,8 @@ still sees only bytes.
 
 `Game.selectCourse()` uses the descriptor list index as `course`, area `0`,
 stage `3`; `Race` uses the same index with mode `4` (battle), one lap and a
-3 s countdown. `GlslBindings` exposes record flags, UBO regions, sampler units
+3 s countdown. `GlslBindings` exposes shipped GLES lowering totals (20,563
+instructions in 43 opcodes), record flags, UBO regions, sampler units
 and RGBA8 upload descriptors from the compiled manifest, and packs std140
 blocks from reflected region order, `NshContainer` validates shipped NSXR
 headers and DXBC chunk tables, `ShaderControlFlow` resolves the 303 shipped

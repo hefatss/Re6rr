@@ -17,6 +17,19 @@ static int r6_glsl_table_ok(uint32_t first, uint64_t bytes,
     return first >= low && (uint64_t)first + bytes <= high;
 }
 
+void r6_glsl_coverage_facts(r6_glsl_coverage_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->total = 20563u;
+    out->direct = 11184u;
+    out->lower = 2720u;
+    out->control = 5979u;
+    out->texture = 680u;
+    out->opcodes = 43u;
+}
+
 int r6_glsl_bindings_init(r6_glsl_bindings_view *view,
                           const void *data, size_t size) {
     const unsigned char *bytes = (const unsigned char *)data;

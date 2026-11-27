@@ -56,6 +56,21 @@ typedef struct r6_glsl_bindings_sampler_info {
     uint32_t sampler_off;
 } r6_glsl_bindings_sampler_info;
 
+/* Aggregate GLES lowering facts for all 446 shipped SHDR records.
+ * total/direct/lower/control/texture are instruction counts; opcodes is the
+ * number of distinct classified opcodes and unknown must be zero. */
+typedef struct r6_glsl_coverage_facts_t {
+    uint32_t total;
+    uint32_t direct;
+    uint32_t lower;
+    uint32_t control;
+    uint32_t texture;
+    uint32_t opcodes;
+    uint32_t unknown;
+} r6_glsl_coverage_facts_t;
+
+R6_API void r6_glsl_coverage_facts(r6_glsl_coverage_facts_t *out);
+
 /* Packed form stored in the manifest; r6_glsl_region uses a u32 size. */
 typedef struct r6_glsl_manifest_region {
     uint32_t offset;
