@@ -15,6 +15,7 @@ import test_engine  # noqa: E402
 R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
+R6_ERR_BUFFER = -6
 R6_ERR_NOT_FOUND = -7
 U32 = ctypes.c_uint32
 PU32 = ctypes.POINTER(U32)
@@ -43,6 +44,9 @@ def configure(lib):
     lib.r6_ref_words_find.restype = ctypes.c_int
     lib.r6_ref_words_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
+    lib.r6_ref_words_find_rva.restype = ctypes.c_int
+    lib.r6_ref_words_find_rva.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32, U32, PU32]
 
 
 def check(lib):
@@ -100,6 +104,40 @@ def check(lib):
         source, len(blob), missing,
         ctypes.byref(word_index)) == R6_ERR_NOT_FOUND
 
+    by_rva = {}
+    global_index = 0
+    for _value, refs in words:
+        for expected_rva in refs:
+            by_rva.setdefault(expected_rva, []).append(global_index)
+            global_index += 1
+    duplicates = 0
+    for expected_rva, want in by_rva.items():
+        hits = (U32 * len(want))()
+        total = U32()
+        assert lib.r6_ref_words_find_rva(
+            source, len(blob), expected_rva, hits, len(hits),
+            ctypes.byref(total)) == R6_OK
+        assert total.value == len(want) and list(hits) == want
+        if len(want) > 1:
+            duplicates += 1
+    assert duplicates
+    absent = 0x1000
+    while absent in by_rva:
+        absent += 1
+    assert lib.r6_ref_words_find_rva(
+        source, len(blob), absent, None, 0,
+        ctypes.byref(total)) == R6_ERR_NOT_FOUND and total.value == 0
+    for bad_rva in (0xfff, 34308096):
+        assert lib.r6_ref_words_find_rva(
+            source, len(blob), bad_rva, None, 0,
+            ctypes.byref(total)) == R6_ERR_ARG
+    first_rva = next(iter(by_rva))
+    assert lib.r6_ref_words_find_rva(
+        source, len(blob), first_rva, None, 1,
+        ctypes.byref(total)) == R6_ERR_ARG
+    assert lib.r6_ref_words_find_rva(
+        source, len(blob), first_rva, None, 0, None) == R6_ERR_BUFFER
+
     assert lib.r6_ref_words_word(
         source, len(blob), 98805, ctypes.byref(value), ctypes.byref(first),
         ctypes.byref(count)) == R6_ERR_ARG
@@ -136,8 +174,9 @@ def check(lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_ref_words_xref(
         source, len(bad), 0, ctypes.byref(rva)) == R6_ERR_FORMAT
-    print("reference words: 98805 words and 174507 xrefs match refs.json; "
-          "find, bad blob, index, row and xref rejected")
+    print("reference words: 98805 words, 174507 xrefs and %d duplicate-RVA "
+          "groups match refs.json; both find directions, bad blob, index, row "
+          "and xref rejected" % duplicates)
 
 
 def main():

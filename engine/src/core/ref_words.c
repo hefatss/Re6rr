@@ -141,3 +141,35 @@ int r6_ref_words_find(const void *data, size_t size, uint32_t value,
     }
     return R6_OK;
 }
+
+int r6_ref_words_find_rva(const void *data, size_t size, uint32_t rva,
+                          uint32_t *indices, uint32_t capacity,
+                          uint32_t *count) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_ref_words_header header;
+    uint32_t total = 0;
+    uint32_t copied = 0;
+    uint32_t index;
+    int result = ref_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (rva < 0x1000u || rva >= 34308096u || (capacity && !indices)) {
+        return R6_ERR_ARG;
+    }
+    for (index = 0; index < header.xref_count; index++) {
+        if (r6_u32(bytes, R6_REF_XREF_OFF + index * 4u) == rva) {
+            if (copied < capacity) {
+                indices[copied++] = index;
+            }
+            total++;
+        }
+    }
+    if (count) {
+        *count = total;
+    }
+    if (!total) {
+        return R6_ERR_NOT_FOUND;
+    }
+    return total > capacity ? R6_ERR_BUFFER : R6_OK;
+}

@@ -31,6 +31,14 @@ public final class RefWords {
         return nativeFind(blob, value);
     }
 
+    /** every global xref index with that exact RVA; null when absent. */
+    public static long[] findRva(byte[] blob, long rva) {
+        if (rva < 0 || rva > 0xFFFFFFFFL) {
+            return null;
+        }
+        return nativeFindRva(blob, rva);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native long[] nativeWord(byte[] blob, int index);
@@ -41,4 +49,6 @@ public final class RefWords {
                                               int localIndex);
 
     private static native long nativeFind(byte[] blob, long value);
+
+    private static native long[] nativeFindRva(byte[] blob, long rva);
 }
