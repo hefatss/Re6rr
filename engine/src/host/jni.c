@@ -690,6 +690,26 @@ Java_com_wmmt_re6rr_EnmaDefaults_nativeBytes(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_EnmaDefaults_nativeFindField(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index,
+                                                 jlong offset) {
+    uint32_t field = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong result = -1;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK) {
+        return -1;
+    }
+    if (r6_enma_defaults_find_field(bytes, length, (uint32_t)index,
+                                    (uint32_t)offset, &field) == R6_OK) {
+        result = (jlong)field;
+    }
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_EnmaExports_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {

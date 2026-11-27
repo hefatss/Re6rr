@@ -49,6 +49,10 @@ def check(lib):
                                            ctypes.POINTER(ctypes.c_uint32),
                                            ctypes.POINTER(ctypes.c_uint32),
                                            ctypes.c_void_p, ctypes.c_size_t]
+    lib.r6_enma_defaults_find_field.restype = ctypes.c_int
+    lib.r6_enma_defaults_find_field.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32,
+        ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32)]
 
     structs = enma_defaults_catalog.collect()
     blob = enma_defaults_catalog.build(structs)
@@ -84,6 +88,11 @@ def check(lib):
             assert offset.value == field["offset"]
             assert length.value == field["size"]
             assert payload.raw[:length.value] == field["bytes"]
+            found_field = ctypes.c_uint32()
+            assert lib.r6_enma_defaults_find_field(
+                source, len(blob), index, field["offset"],
+                ctypes.byref(found_field)) == R6_OK
+            assert found_field.value == field_index
             fields += 1
             byte_total += length.value
     assert (fields, byte_total) == (89, 2642)
@@ -97,6 +106,13 @@ def check(lib):
     assert lib.r6_enma_defaults_find(
         source, len(blob), b"R6_NO_SUCH_STRUCT",
         ctypes.byref(found)) == R6_ERR_NOT_FOUND
+    absent_field = ctypes.c_uint32()
+    assert lib.r6_enma_defaults_find_field(
+        source, len(blob), 0, 0xFFFFFFFF,
+        ctypes.byref(absent_field)) == R6_ERR_NOT_FOUND
+    assert lib.r6_enma_defaults_find_field(
+        source, len(blob), 32, 0,
+        ctypes.byref(absent_field)) == R6_ERR_ARG
 
     assert lib.r6_enma_defaults_struct(source, len(blob), 32, name,
                                        len(name), None, None) == R6_ERR_ARG
@@ -136,7 +152,8 @@ def check(lib):
                                       ctypes.byref(length),
                                       payload, len(payload)) == R6_ERR_FORMAT
     print("Enma defaults: all 32 structs, 89 fields and 2642 constant bytes "
-          "match enma_api.json; find, bad blob, index and capacity rejected")
+          "match enma_api.json; struct/field find, bad blob, index and "
+          "capacity rejected")
 
 
 def main():

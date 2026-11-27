@@ -189,3 +189,35 @@ int r6_enma_defaults_field(const void *data, size_t size, uint32_t index,
     }
     return R6_OK;
 }
+
+int r6_enma_defaults_find_field(const void *data, size_t size, uint32_t index,
+                                uint32_t offset, uint32_t *field) {
+    r6_enma_defaults_header header;
+    const unsigned char *bytes;
+    uint32_t row_off;
+    uint32_t count;
+    uint32_t at;
+    uint32_t found_offset;
+    int result = defaults_row(data, size, index, &bytes, &header, &row_off,
+                              &count);
+    if (result != R6_OK) {
+        return result;
+    }
+    for (at = 0; at < count; at++) {
+        result = r6_enma_defaults_field(data, size, index, at, &found_offset,
+                                        NULL, NULL, 0);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (found_offset == offset) {
+            if (field) {
+                *field = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

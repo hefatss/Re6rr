@@ -42,6 +42,11 @@ R6_API int r6_enma_defaults_field(const void *data, size_t size,
                                   uint32_t *offset, uint32_t *byte_count,
                                   void *bytes, size_t capacity);
 
+/* First field in one struct with the exact write offset. */
+R6_API int r6_enma_defaults_find_field(const void *data, size_t size,
+                                       uint32_t index, uint32_t offset,
+                                       uint32_t *field);
+
 #ifdef __cplusplus
 }
 #endif

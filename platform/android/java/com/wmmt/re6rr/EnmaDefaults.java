@@ -34,6 +34,11 @@ public final class EnmaDefaults {
         return nativeBytes(blob, index, field);
     }
 
+    /** field index for an exact write offset; -1 if absent. */
+    public static long findField(byte[] blob, int index, long offset) {
+        return nativeFindField(blob, index, offset);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
@@ -45,4 +50,7 @@ public final class EnmaDefaults {
     private static native long[] nativeField(byte[] blob, int index, int field);
 
     private static native byte[] nativeBytes(byte[] blob, int index, int field);
+
+    private static native long nativeFindField(byte[] blob, int index,
+                                                long offset);
 }
