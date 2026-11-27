@@ -51,6 +51,9 @@ def configure(lib):
     lib.r6_lua_reg_find.restype = ctypes.c_int
     lib.r6_lua_reg_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32, PU32, PU32]
+    lib.r6_lua_reg_find_rva.restype = ctypes.c_int
+    lib.r6_lua_reg_find_rva.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32, U32, PU32]
 
 
 def check(lib):
@@ -127,6 +130,38 @@ def check(lib):
         source, len(blob), b"R6_NO_SUCH_NAME", ctypes.byref(table),
         ctypes.byref(local), ctypes.byref(global_index)) == R6_ERR_NOT_FOUND
 
+    by_rva = {}
+    for index, expected in enumerate(entries):
+        by_rva.setdefault(expected[1], []).append(index)
+    total = U32()
+    for value, want in by_rva.items():
+        hits = (U32 * len(want))()
+        assert lib.r6_lua_reg_find_rva(
+            source, len(blob), value, hits, len(hits),
+            ctypes.byref(total)) == R6_OK
+        assert total.value == len(want) and list(hits) == want
+    assert lib.r6_lua_reg_find_rva(
+        source, len(blob), 0x1000, None, 0,
+        ctypes.byref(total)) == R6_ERR_NOT_FOUND
+    assert total.value == 0
+    for bad_rva in (0xfff, 34308096):
+        assert lib.r6_lua_reg_find_rva(
+            source, len(blob), bad_rva, None, 0,
+            ctypes.byref(total)) == R6_ERR_ARG
+    assert lib.r6_lua_reg_find_rva(
+        source, len(blob), entries[0][1], None, 1,
+        ctypes.byref(total)) == R6_ERR_ARG
+
+    duplicate = bytearray(blob)
+    struct.pack_into("<I", duplicate, ENTRY_OFF + 8 + 4, entries[0][1])
+    source = ctypes.create_string_buffer(bytes(duplicate), len(duplicate))
+    short = (U32 * 1)()
+    assert lib.r6_lua_reg_find_rva(
+        source, len(duplicate), entries[0][1], short, len(short),
+        ctypes.byref(total)) == R6_ERR_BUFFER
+    assert total.value == 2 and list(short) == [0]
+    source = ctypes.create_string_buffer(blob, len(blob))
+
     assert lib.r6_lua_reg_table(
         source, len(blob), 3, ctypes.byref(rva), ctypes.byref(size),
         ctypes.byref(stride), ctypes.byref(count), ctypes.byref(first_entry),
@@ -154,7 +189,8 @@ def check(lib):
         ctypes.byref(stride), ctypes.byref(count), ctypes.byref(first_entry),
         ctypes.byref(first_user), ctypes.byref(user_count)) == R6_ERR_FORMAT
     print("luaL_Reg tables: 3 tables, 42 entries and one code ref match "
-          "name_tables.json; find, bad blob, index, row and capacity rejected")
+          "name_tables.json; both find directions, bad blob, index, row, RVA "
+          "and capacity rejected")
 
 
 def main():

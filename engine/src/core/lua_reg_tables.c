@@ -172,6 +172,39 @@ int r6_lua_reg_user(const void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+int r6_lua_reg_find_rva(const void *data, size_t size, uint32_t rva,
+                        uint32_t *indices, uint32_t capacity,
+                        uint32_t *count) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_lua_reg_header header;
+    uint32_t total = 0;
+    uint32_t copied = 0;
+    uint32_t global;
+    int result = lua_reg_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (rva < 0x1000u || rva >= 34308096u || (capacity && !indices)) {
+        return R6_ERR_ARG;
+    }
+    for (global = 0; global < header.entry_count; global++) {
+        uint32_t found = r6_u32(bytes, R6_LUA_REG_ENTRY_OFF + global * 8u + 4u);
+        if (found == rva) {
+            if (copied < capacity) {
+                indices[copied++] = global;
+            }
+            total++;
+        }
+    }
+    if (count) {
+        *count = total;
+    }
+    if (!total) {
+        return R6_ERR_NOT_FOUND;
+    }
+    return total > capacity ? R6_ERR_BUFFER : R6_OK;
+}
+
 int r6_lua_reg_find(const void *data, size_t size, const char *name,
                     uint32_t *table_index, uint32_t *local_index,
                     uint32_t *global_index) {

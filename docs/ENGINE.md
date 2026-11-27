@@ -325,9 +325,10 @@ platform/android/java/        Java side of the JNI bridge
   exact RVA, and `find_user_rva()` returns every row with that RVA. RVAs are
   never dereferenced; the Java bridge rejects negative or wider-than-U32 RVA
   inputs before the cast.
-- `r6_lua_reg_parse()/table()/entry()/table_entry()/user()/find()` — read the
-  derived `R6LREG` inventory of 3 shipped `luaL_Reg` tables and 42 name/function
-  rows. Signature-like labels are copied verbatim, not interpreted.
+- `r6_lua_reg_parse()/table()/entry()/table_entry()/user()/find()/find_rva()` —
+  read the derived `R6LREG` inventory of 3 shipped `luaL_Reg` tables and 42
+  name/function rows. `find_rva()` returns every global row using an exact
+  function RVA. Signature-like labels are copied verbatim, not interpreted.
 - `r6_path_strings_parse()/group()/get()/group_get()/find()` — read the derived
   `R6PST` inventory of 1,271 executable strings and 422 source paths.
 - `r6_enma_sim_parse()/getter()/hit()/config()/find()` — read the derived `R6ESIM`
@@ -557,7 +558,7 @@ Verified on this dump:
 | Reference words | all 98,805 words, 174,507 xrefs and 24,102 duplicate-RVA groups match `refs.json`; both find directions, bad blob, index, row and xref rejected |
 | Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; find, bad blob, index, row and capacity rejected |
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
-| luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
+| luaL_Reg tables | all 3 tables, 42 name/function rows, one code ref and all reverse function RVAs match `name_tables.json`; both find directions, bad blob, index, row, RVA and capacity rejected |
 | Name runs | all 521 runs, 13,283 names, 888 code refs and 8 duplicate user RVAs match `name_tables.json`; both find directions, bad blob, index, row and capacity rejected |
 | PE inventory | all 70,377 `.pdata` rows, 825 named/ordinal imports, 28 DLLs, 7 sections, 8 directories, 2 exports, PDB and provenance metadata match `pe.json`/`pdata.json`; RVA/directory/DLL/import find, all interior/gap RVA covers, bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; ext/magic/folder/shader find, bad blob, index and capacity rejected |

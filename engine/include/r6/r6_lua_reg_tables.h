@@ -53,6 +53,13 @@ R6_API int r6_lua_reg_find(const void *data, size_t size, const char *name,
                            uint32_t *table_index, uint32_t *local_index,
                            uint32_t *global_index);
 
+/* All global entry indexes with that exact function RVA, in stored order.
+ * *count gets the total; up to capacity indexes are copied. R6_ERR_NOT_FOUND
+ * means none, R6_ERR_BUFFER means the capacity was short. */
+R6_API int r6_lua_reg_find_rva(const void *data, size_t size, uint32_t rva,
+                               uint32_t *indices, uint32_t capacity,
+                               uint32_t *count);
+
 #ifdef __cplusplus
 }
 #endif
