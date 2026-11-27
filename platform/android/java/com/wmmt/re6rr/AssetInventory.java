@@ -56,6 +56,11 @@ public final class AssetInventory {
         return nativeFindMagic(blob, name);
     }
 
+    /** shader sample row index for an exact path; -1 if absent. */
+    public static long findShader(byte[] blob, String path) {
+        return nativeFindShader(blob, path);
+    }
+
     public static String shaderPath(byte[] blob, int index) {
         return nativeShaderPath(blob, index);
     }
@@ -87,6 +92,9 @@ public final class AssetInventory {
     private static native long nativeFindMagic(byte[] blob, String name);
 
     private static native String nativeShaderPath(byte[] blob, int index);
+
+    private static native long nativeFindShader(byte[] blob,
+                                                String path);
 
     private static native byte[] nativeShaderHead(byte[] blob, int index);
 }

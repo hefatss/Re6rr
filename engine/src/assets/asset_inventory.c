@@ -295,3 +295,50 @@ int r6_asset_inventory_shader(const void *data, size_t size, uint32_t index,
     }
     return R6_OK;
 }
+
+int r6_asset_inventory_find_shader(const void *data, size_t size,
+                                   const char *path, uint32_t *index) {
+    const unsigned char *bytes;
+    uint32_t strings_off;
+    uint32_t row_off;
+    uint32_t at;
+    size_t wanted;
+    if (!path) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(path);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < R6_ASSET_INVENTORY_SHADERS; at++) {
+        char found[R6_ASSET_INVENTORY_NAME_CAP];
+        int result = asset_rows(data, size, at, 24u,
+                                R6_ASSET_INVENTORY_SHADERS,
+                                60u + R6_ASSET_INVENTORY_EXTS * 48u +
+                                    R6_ASSET_INVENTORY_MAGICS * 12u +
+                                    R6_ASSET_INVENTORY_FOLDERS * 20u,
+                                &bytes, &row_off, &strings_off);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        result = asset_name(bytes, size, strings_off,
+                            r6_u32(bytes, row_off), found, sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, path, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

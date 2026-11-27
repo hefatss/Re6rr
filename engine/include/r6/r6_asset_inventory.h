@@ -67,6 +67,10 @@ R6_API int r6_asset_inventory_shader(const void *data, size_t size,
                                      size_t capacity, uint32_t *file_size,
                                      unsigned char *head);
 
+/* First shader sample with the exact copied path. */
+R6_API int r6_asset_inventory_find_shader(const void *data, size_t size,
+                                          const char *path, uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif
