@@ -33,7 +33,8 @@ Authoritative dump: `D:\Games\W6W-05` (`wmn6r.exe`, `data/`, `data_jp/`).
 - `tools/assets/`: gzip/NTWD, NDWD → OBJ, NSHR/DXBC, nut texture decode.
 - `tools/lua/`: stock Lua 5.1.5 probe and script-set queries.
 - `engine/include/r6/r6_*.h`: public C API. `engine/src/core`: freestanding
-  core. `engine/src/assets`, `src/game`, `src/host`: asset/game readers and JNI.
+  core. `engine/src/assets`, `src/audio`, `src/game`, `src/render`: asset,
+  audio, game and render readers. `engine/src/host`: JNI.
 - `platform/android/java/com/wmmt/re6rr/`: Java wrappers for JNI.
 - `CMakeLists.txt` and `tools/engine/build_host.py`: C source registration,
   host build, JNI/Java syntax checks and test registration.
@@ -66,6 +67,10 @@ When adding a new inventory from `docs/recon/*.json`:
 5. Update `README.md`, `docs/ENGINE.md` and `docs/ANDROID_HOST.md` when relevant.
 6. Run full validation, then commit and push `origin/master` with a complete
    message.
+
+Static ABI facts follow the same bridge: a `void` C getter fills a caller-owned
+struct, JNI flattens it into plain `long[]`/`double[]`, and a Java static method
+copies it. Null output is a no-op. Do not turn a static fact into a subsystem.
 
 ## Validation
 

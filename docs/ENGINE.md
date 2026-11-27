@@ -86,6 +86,11 @@ platform/android/java/        Java side of the JNI bridge
   vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
   capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
   sequential.
+- `r6_nut_layout_facts()` — derive the 16-byte-aligned mip layout of one
+  NTWD/NTLX descriptor: full declared payload including cube faces, per-face
+  size, aligned level-0 bytes, declared/available levels and the cube flag.
+  The three shipped short-mip entries report fewer available levels; no file
+  or pixel data is read.
 - `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_tone_getters()` /
   `r6_nub_pcm()` — bounds-checked nuSound2 bank parse, playback control fields,
   the four user parameters at record `+0xac..+0xb8` plus codec-1
@@ -440,6 +445,7 @@ Verified on this dump:
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
 | 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py`; 8 NTLX headers and pixels also match |
 | 142 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
+| 50,180 shipped NTWD type-2 entries | `r6_nut_layout_facts()` matches `nut_texture.expected_size()`, `level_size()` and `available_levels()`; 228 cube entries and three short-mip rows included; bad format/levels/width and null inputs rejected |
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |
 | `Body.nsh` sampler units 0/1/6 | `r6_glsl_texture_upload()` matches Python RGBA8 descriptors for five `.nut` formats; bad format, zero size and overflow rejected |
 | `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; name find, short, bad-version and bad-index inputs rejected |

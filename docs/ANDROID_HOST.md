@@ -105,8 +105,8 @@ blocks from reflected region order, `NshContainer` validates shipped NSXR
 headers and DXBC chunk tables, `ShaderControlFlow` resolves the 303 shipped
 structured SM4 blocks by shader/stage with case and break/continue spans, `ShaderUsage`
 resolves reflected uniforms and texture/sampler keys with operand counts per stage,
-`Re6Texture` returns RGBA8 pixels from
-inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
+`Re6Texture` derives NTWD/NTLX mip payload layout and returns RGBA8 pixels from
+inflated containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields, four getter user parameters, codec-1 total samples and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered

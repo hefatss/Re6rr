@@ -59,6 +59,46 @@ static uint32_t r6_nut_level_count(const r6_ntwd_texture *texture,
     return declared;
 }
 
+int r6_nut_layout_facts(const r6_ntwd_texture *texture,
+                        r6_nut_layout_facts_t *out) {
+    uint32_t faces;
+    uint32_t declared;
+    uint64_t face_expected;
+    uint64_t level0;
+    if (!texture || !out) {
+        return R6_ERR_ARG;
+    }
+    if (texture->format != 0 && texture->format != 1 &&
+        texture->format != 2 && texture->format != 0x0e &&
+        texture->format != 0x15) {
+        return R6_ERR_FORMAT;
+    }
+    declared = texture->faces;
+    if (!declared || !texture->width || !texture->height) {
+        return R6_ERR_FORMAT;
+    }
+    level0 = r6_nut_level_bytes(texture->format, texture->width,
+                                texture->height);
+    face_expected = r6_nut_chain_bytes(texture, declared, texture->width,
+                                       texture->height);
+    if (!level0 || !face_expected) {
+        return R6_ERR_FORMAT;
+    }
+    faces = r6_nut_cube(texture) ? 6u : 1u;
+    if (face_expected > ~(uint64_t)0 / faces) {
+        return R6_ERR_FORMAT;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->expected_size = face_expected * faces;
+    out->face_size = face_expected;
+    out->level0_bytes = level0;
+    out->declared_levels = declared;
+    out->available_levels = r6_nut_level_count(
+        texture, (uint64_t)texture->data_size / faces);
+    out->cube = faces == 6u ? 1u : 0u;
+    return R6_OK;
+}
+
 static void r6_nut_rgb565(uint16_t value, unsigned char out[3]) {
     out[0] = (unsigned char)(((value >> 11) & 0x1fu) * 255u / 31u);
     out[1] = (unsigned char)(((value >> 5) & 0x3fu) * 255u / 63u);

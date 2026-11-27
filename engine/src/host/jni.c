@@ -5587,6 +5587,36 @@ done:
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6Texture_nativeLayout(JNIEnv *env, jclass cls,
+                                            jbyteArray data, jint index) {
+    r6_nut_layout_facts_t facts;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_ntwd_texture *textures = NULL;
+    uint16_t count = 0;
+    jlong values[6];
+    jlongArray out = NULL;
+    (void)cls;
+    if (nut_from_blob(env, data, &bytes, &length, &textures, &count) !=
+            R6_OK ||
+        (uint32_t)index >= count ||
+        r6_nut_layout_facts(&textures[index], &facts) != R6_OK) {
+        goto done;
+    }
+    values[0] = (jlong)facts.expected_size;
+    values[1] = (jlong)facts.face_size;
+    values[2] = (jlong)facts.level0_bytes;
+    values[3] = (jlong)facts.declared_levels;
+    values[4] = (jlong)facts.available_levels;
+    values[5] = (jlong)facts.cube;
+    out = pe_new_longs(env, values, 6);
+done:
+    free(textures);
+    free(bytes);
+    return out;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Texture_nativeDecodeRgba(JNIEnv *env, jclass cls,
                                                  jbyteArray data, jint index,

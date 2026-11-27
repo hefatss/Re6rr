@@ -77,6 +77,21 @@ typedef struct r6_ntwd_header {
 R6_API int r6_ntwd_parse(const void *data, size_t size, r6_ntwd_header *out,
                          r6_ntwd_texture *textures, size_t capacity);
 
+/* Derived mip-payload layout for one NTWD/NTLX texture descriptor. Sizes come
+ * from the shipped 16-byte-aligned mip model; available_levels is clipped by
+ * the descriptor payload size. No file or pixel data is read. */
+typedef struct r6_nut_layout_facts_t {
+    uint64_t expected_size;     /* full declared chain, including cube faces */
+    uint64_t face_size;         /* expected_size / face count */
+    uint64_t level0_bytes;      /* aligned first level of one face */
+    uint32_t declared_levels;   /* descriptor +0x11 */
+    uint32_t available_levels;  /* levels present in data_size */
+    uint32_t cube;              /* 1 when flags bit 9 or 0x11 is set */
+} r6_nut_layout_facts_t;
+
+R6_API int r6_nut_layout_facts(const r6_ntwd_texture *texture,
+                               r6_nut_layout_facts_t *out);
+
 /* Decode one mip level / cube face to RGBA8. On R6_ERR_BUFFER, out_size holds
  * the required capacity. data is an inflated NTWD/NTLX container; texture may
  * come from r6_ntwd_parse or an equivalent host-built descriptor. */
