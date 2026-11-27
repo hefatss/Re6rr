@@ -137,6 +137,16 @@ R6_API int r6_scene_identity_name(const void *data, size_t size,
 R6_API int r6_scene_identity_find(const void *data, size_t size,
                                   const char *name, uint32_t *index);
 
+/* Verbatim live-config eStage copies in the CSeq::Init builder. The scene-to-
+ * config propagation is not proven; no copy is performed here. */
+typedef struct r6_live_stage_facts_t {
+    uint32_t sources[3];
+    uint32_t targets[3];
+    uint64_t addresses[4];      /* builder, config builder, getter, logger */
+} r6_live_stage_facts_t;
+
+R6_API void r6_live_stage_facts(r6_live_stage_facts_t *out);
+
 /* EventScene2 container layout validated by FUN_1401cd0a0 / FUN_1401cd650. */
 enum {
     R6_EES_KIND_CAM = 0,

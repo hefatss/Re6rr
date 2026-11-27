@@ -423,6 +423,23 @@ int r6_scene_identity_find(const void *data, size_t size, const char *name,
     return R6_ERR_NOT_FOUND;
 }
 
+void r6_live_stage_facts(r6_live_stage_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->sources[0] = 0x258u;
+    out->sources[1] = 0x3D0u;
+    out->sources[2] = 0x630u;
+    out->targets[0] = 0x1B0u;
+    out->targets[1] = 0x308u;
+    out->targets[2] = 0x450u;
+    out->addresses[0] = 0x1407B0CC0ull;
+    out->addresses[1] = 0x1407A9C80ull;
+    out->addresses[2] = 0x1407BCE90ull;
+    out->addresses[3] = 0x1407B6080ull;
+}
+
 static float ees_f32(const unsigned char *bytes, size_t at) {
     float value;
     r6_memcpy(&value, bytes + at, sizeof(value));

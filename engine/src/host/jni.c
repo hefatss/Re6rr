@@ -7846,6 +7846,23 @@ Java_com_wmmt_re6rr_SceneConfig_nativeName(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneConfig_nativeLiveStageFacts(JNIEnv *env, jclass cls) {
+    r6_live_stage_facts_t facts;
+    jlong values[10];
+    uint32_t index;
+    (void)cls;
+    r6_live_stage_facts(&facts);
+    for (index = 0; index < 3u; index++) {
+        values[index] = (jlong)facts.sources[index];
+        values[3u + index] = (jlong)facts.targets[index];
+    }
+    for (index = 0; index < 4u; index++) {
+        values[6u + index] = (jlong)facts.addresses[index];
+    }
+    return pe_new_longs(env, values, 10);
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_AudioLayoutFacts_nativeAll(JNIEnv *env, jclass cls) {
     r6_audio_layout_facts_t facts;
     jlong values[17];

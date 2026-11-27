@@ -15,6 +15,15 @@ import struct
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 
+# Verbatim eStage copies in the CSeq::Init builder from STORY_NATIVE.md. The
+# scene-to-config propagation is unproven, so these are ABI facts only.
+LIVE_STAGE_FACTS = {
+    "sources": (0x258, 0x3D0, 0x630),
+    "targets": (0x1B0, 0x308, 0x450),
+    "addresses": (0x1407B0CC0, 0x1407A9C80, 0x1407BCE90, 0x1407B6080),
+    "race_field_offset": 0x630,
+}
+
 MAGIC = b"R6SES\0\1\0"
 VERSION = 1
 HEADER = struct.Struct("<8s14I")

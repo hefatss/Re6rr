@@ -31,6 +31,13 @@ public final class SceneConfig {
         return nativeFind(blob, kind, name);
     }
 
+    /** 10 values: three live-config source offsets, three SConfigPlay targets
+     *  and four native addresses for the verbatim eStage copies. No copy is
+     *  performed and scene-to-config propagation is not proven. */
+    public static long[] liveStageFacts() {
+        return nativeLiveStageFacts();
+    }
+
     private static native byte[] nativePack(int stage, int stageRoot,
                                             int stageDay, int camId,
                                             int[] actors);
@@ -41,4 +48,6 @@ public final class SceneConfig {
 
     private static native long nativeFind(byte[] blob, int kind,
                                            String name);
+
+    private static native long[] nativeLiveStageFacts();
 }

@@ -11,6 +11,7 @@ sys.path.insert(0, HERE)
 
 import scene_config  # noqa: E402
 import scene_config_catalog  # noqa: E402
+import scene_env_catalog  # noqa: E402
 import test_engine  # noqa: E402
 import test_scene_config  # noqa: E402
 
@@ -33,6 +34,12 @@ class Header(ctypes.Structure):
                 ("strings_size", ctypes.c_uint32)]
 
 
+class StageFacts(ctypes.Structure):
+    _fields_ = [("sources", ctypes.c_uint32 * 3),
+                ("targets", ctypes.c_uint32 * 3),
+                ("addresses", ctypes.c_uint64 * 4)]
+
+
 def configure(lib):
     lib.r6_scene_pack.restype = ctypes.c_int
     lib.r6_scene_pack.argtypes = [ctypes.POINTER(Values), ctypes.c_void_p,
@@ -50,6 +57,8 @@ def configure(lib):
                                         ctypes.c_int,
                                         ctypes.c_char_p,
                                         ctypes.POINTER(ctypes.c_int32)]
+    lib.r6_live_stage_facts.restype = None
+    lib.r6_live_stage_facts.argtypes = [ctypes.POINTER(StageFacts)]
 
 
 def check(dump):
@@ -148,9 +157,21 @@ def check(dump):
     bad_source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_scene_names_parse(bad_source, len(bad),
                                     ctypes.byref(header)) == R6_ERR_FORMAT
-    print("scene config: 0x28 packing and all 408 shipped car/stage/day names "
-          "match scene_config.py; find, out-of-range, bad blob and bad "
-          "kind checked")
+
+    facts = StageFacts()
+    lib.r6_live_stage_facts(ctypes.byref(facts))
+    want = scene_env_catalog.LIVE_STAGE_FACTS
+    assert list(facts.sources) == list(want["sources"])
+    assert list(facts.targets) == list(want["targets"])
+    assert list(facts.addresses) == list(want["addresses"])
+    assert facts.sources[2] == want["race_field_offset"]
+    lib.r6_live_stage_facts(None)
+    env = scene_env_catalog.summarize(scene_env_catalog.collect(dump))
+    assert (env["unique_stages"], env["stage_min"],
+            env["stage_max"]) == (26, 1, 149)
+    print("scene config: 0x28 packing, all 408 shipped car/stage/day names, "
+          "three live eStage copies and the 26-value stage domain match; "
+          "find, out-of-range, bad blob and bad kind checked")
 
 
 def main():
