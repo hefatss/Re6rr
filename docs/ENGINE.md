@@ -253,7 +253,8 @@ platform/android/java/        Java side of the JNI bridge
   derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names and 888
   code references. `find()` returns the first exact name by run, local and
   global index; `find_user()` returns the first code-reference row with an
-  exact RVA. RVAs are never dereferenced.
+  exact RVA. RVAs are never dereferenced; the Java bridge rejects negative or
+  wider-than-U32 RVA inputs before the cast.
 - `r6_lua_reg_parse()/table()/entry()/table_entry()/user()/find()` — read the
   derived `R6LREG` inventory of 3 shipped `luaL_Reg` tables and 42 name/function
   rows. Signature-like labels are copied verbatim, not interpreted.

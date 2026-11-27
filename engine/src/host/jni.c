@@ -1670,7 +1670,8 @@ Java_com_wmmt_re6rr_NameRuns_nativeFindUser(JNIEnv *env, jclass cls,
     unsigned char *bytes = pe_copy_blob(env, blob, &length);
     jlong result = -1;
     (void)cls;
-    if (!bytes) {
+    if (!bytes || rva < 0 || rva > 0xFFFFFFFFLL) {
+        free(bytes);
         return -1;
     }
     if (r6_name_runs_find_user(bytes, length, (uint32_t)rva, &index) == R6_OK) {

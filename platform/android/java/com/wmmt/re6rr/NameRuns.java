@@ -30,6 +30,9 @@ public final class NameRuns {
 
     /** first code-reference row with an exact RVA; -1 if absent. */
     public static long findUser(byte[] blob, long rva) {
+        if (rva < 0 || rva > 0xFFFFFFFFL) {
+            return -1;
+        }
         return nativeFindUser(blob, rva);
     }
 
