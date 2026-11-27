@@ -55,6 +55,19 @@ class Key(ctypes.Structure):
     ]
 
 
+class Summary(ctypes.Structure):
+    _fields_ = [
+        ("message_phase", ctypes.c_uint32 * 3),
+        ("event_phase", ctypes.c_uint32 * 3),
+        ("event_kind", ctypes.c_uint32 * 4),
+        ("branch_b", ctypes.c_uint32),
+        ("ending", ctypes.c_uint32),
+        ("environment", ctypes.c_uint32),
+        ("enum_zero", ctypes.c_uint32),
+        ("empty_key_values", ctypes.c_uint32),
+    ]
+
+
 class Catalog(ctypes.Structure):
     _fields_ = [
         ("episodes", ctypes.c_void_p), ("messages", ctypes.c_void_p),
@@ -73,6 +86,36 @@ def text(lib, name, catalog, index, cap=8192):
     function.restype = ctypes.c_int
     rc = function(ctypes.byref(catalog), index, out, cap)
     return rc, (out.value if rc == R6_OK else b"")
+
+
+def expected_summary(sections):
+    messages = [0, 0, 0]
+    phases = [0, 0, 0]
+    kinds = [0, 0, 0, 0]
+    for _, phase, _, _ in sections["messages"]:
+        messages[phase - 1] += 1
+    for row in sections["events"]:
+        phases[row["phase"] - 1] += 1
+        kinds[row["kind"] - 1] += 1
+    return (
+        tuple(messages), tuple(phases), tuple(kinds),
+        sum(1 for row in sections["episodes"]
+            if row["flags"] & story_catalog.EP_BRANCH_B),
+        sum(1 for row in sections["episodes"]
+            if row["flags"] & story_catalog.EP_ENDING),
+        sum(1 for row in sections["episodes"]
+            if row["flags"] & story_catalog.EP_ENV),
+        sum(1 for row in sections["episodes"] if row["enum_index"] == 0),
+        sum(1 for _, value in sections["keys"] if not value),
+    )
+
+
+def summary_fields(summary):
+    return (
+        tuple(summary.message_phase), tuple(summary.event_phase),
+        tuple(summary.event_kind), summary.branch_b, summary.ending,
+        summary.environment, summary.enum_zero, summary.empty_key_values,
+    )
 
 
 def main():
@@ -122,6 +165,25 @@ def main():
     else:
         print("  story catalog: %d episodes, %d messages, %d events, "
               "%d keys, %d string bytes" % counts)
+
+    lib.r6_story_catalog_summary.argtypes = [
+        ctypes.POINTER(Catalog), ctypes.POINTER(Summary)]
+    lib.r6_story_catalog_summary.restype = ctypes.c_int
+    summary = Summary()
+    want = expected_summary(sections)
+    if lib.r6_story_catalog_summary(ctypes.byref(catalog),
+                                    ctypes.byref(summary)) != R6_OK or \
+            summary_fields(summary) != want:
+        failures.append("summary %r, expected %r" %
+                        (summary_fields(summary), want))
+    else:
+        print("  summary: messages %s, events %s, kinds %s, flags %s" %
+              (want[0], want[1], want[2], want[3:]))
+    if lib.r6_story_catalog_summary(None, ctypes.byref(summary)) != \
+            R6_ERR_ARG or \
+            lib.r6_story_catalog_summary(ctypes.byref(catalog), None) != \
+            R6_ERR_ARG:
+        failures.append("null summary input accepted")
 
     for name, cls, size in (
             ("episode", Episode, story_catalog.EPISODE_SIZE),

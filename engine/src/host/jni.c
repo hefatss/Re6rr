@@ -5038,6 +5038,40 @@ Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogCounts(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogSummary(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_story_catalog catalog;
+    r6_story_summary_t summary;
+    jint values[15];
+    (void)cls;
+    if (story_from_blob(env, blob, &bytes, &length, &catalog) != R6_OK ||
+        r6_story_catalog_summary(&catalog, &summary) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)summary.message_phase[0];
+    values[1] = (jint)summary.message_phase[1];
+    values[2] = (jint)summary.message_phase[2];
+    values[3] = (jint)summary.event_phase[0];
+    values[4] = (jint)summary.event_phase[1];
+    values[5] = (jint)summary.event_phase[2];
+    values[6] = (jint)summary.event_kind[0];
+    values[7] = (jint)summary.event_kind[1];
+    values[8] = (jint)summary.event_kind[2];
+    values[9] = (jint)summary.event_kind[3];
+    values[10] = (jint)summary.branch_b;
+    values[11] = (jint)summary.ending;
+    values[12] = (jint)summary.environment;
+    values[13] = (jint)summary.enum_zero;
+    values[14] = (jint)summary.empty_key_values;
+    return story_ints(env, values, 15);
+}
+
+JNIEXPORT jintArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogEpisode(JNIEnv *env, jclass cls,
                                                        jbyteArray blob,
                                                        jint index) {

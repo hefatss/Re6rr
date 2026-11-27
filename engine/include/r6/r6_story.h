@@ -103,8 +103,22 @@ typedef struct r6_story_catalog {
     size_t string_count;
 } r6_story_catalog;
 
+/* Direct counts of stored raw fields; no dialogue or unlock semantics. */
+typedef struct r6_story_summary_t {
+    uint32_t message_phase[3];   /* FRONT, RACE, REAR */
+    uint32_t event_phase[3];
+    uint32_t event_kind[4];      /* MESSAGE, LETTERING, CUTIN_HIT, CUTIN_RANGE */
+    uint32_t branch_b;
+    uint32_t ending;
+    uint32_t environment;
+    uint32_t enum_zero;
+    uint32_t empty_key_values;
+} r6_story_summary_t;
+
 R6_API int r6_story_catalog_parse(const void *data, size_t size,
                                   r6_story_catalog *out);
+R6_API int r6_story_catalog_summary(const r6_story_catalog *catalog,
+                                    r6_story_summary_t *out);
 R6_API int r6_story_catalog_episode(const r6_story_catalog *catalog,
                                     size_t index, r6_story_episode *out);
 R6_API int r6_story_catalog_message(const r6_story_catalog *catalog,

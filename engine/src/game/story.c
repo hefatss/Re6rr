@@ -76,6 +76,62 @@ int r6_story_catalog_parse(const void *data, size_t size,
     return R6_OK;
 }
 
+int r6_story_catalog_summary(const r6_story_catalog *catalog,
+                             r6_story_summary_t *out) {
+    r6_story_summary_t summary;
+    size_t index;
+    if (!catalog || !out) {
+        return R6_ERR_ARG;
+    }
+    r6_memset(&summary, 0, sizeof(summary));
+    for (index = 0; index < catalog->episode_count; index++) {
+        const unsigned char *row = (const unsigned char *)catalog->episodes +
+                                   index * R6_STORY_EPISODE_SIZE;
+        uint32_t flags = r6_u32(row, 36);
+        if (r6_u32(row, 0) == 0u) {
+            summary.enum_zero++;
+        }
+        if (flags & R6_STORY_EP_BRANCH_B) {
+            summary.branch_b++;
+        }
+        if (flags & R6_STORY_EP_ENDING) {
+            summary.ending++;
+        }
+        if (flags & R6_STORY_EP_ENVIRONMENT) {
+            summary.environment++;
+        }
+    }
+    for (index = 0; index < catalog->message_count; index++) {
+        const unsigned char *row = (const unsigned char *)catalog->messages +
+                                   index * R6_STORY_MESSAGE_SIZE;
+        uint8_t phase = row[10];
+        if (phase >= 1u && phase <= 3u) {
+            summary.message_phase[phase - 1u]++;
+        }
+    }
+    for (index = 0; index < catalog->event_count; index++) {
+        const unsigned char *row = (const unsigned char *)catalog->events +
+                                   index * R6_STORY_EVENT_SIZE;
+        uint8_t phase = row[2];
+        uint8_t kind = row[3];
+        if (phase >= 1u && phase <= 3u) {
+            summary.event_phase[phase - 1u]++;
+        }
+        if (kind >= 1u && kind <= 4u) {
+            summary.event_kind[kind - 1u]++;
+        }
+    }
+    for (index = 0; index < catalog->key_count; index++) {
+        const unsigned char *row = (const unsigned char *)catalog->keys +
+                                   index * R6_STORY_KEY_SIZE;
+        if (r6_u16(row, 10) == 0u) {
+            summary.empty_key_values++;
+        }
+    }
+    *out = summary;
+    return R6_OK;
+}
+
 static int story_at(const void *section, size_t count, size_t index,
                     size_t record_size, void *out) {
     if (!section || !out || index >= count) {

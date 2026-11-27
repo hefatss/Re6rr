@@ -64,7 +64,9 @@ it.
 version, counts and exact size, then return typed section views. Record
 accessors copy into caller storage; string accessors copy NUL-terminated text
 into caller buffers and reject too-small buffers. Lookups exist for episode
-name and `drive_story_*` key.
+name and `drive_story_*` key. `r6_story_catalog_summary()` counts the stored
+phase, kind and flag fields directly; it does not infer dialogue, unlock or
+mission-order semantics.
 
 ## JNI
 
@@ -73,14 +75,19 @@ episode/message/event/key/string order. `episode()` and `episodeName()` expose
 the episode tree; `message()`, `event()` and `key()` expose fixed records.
 `messageText()`, `eventText()`, `keyId()` and `keyValue()` decode UTF-8 text
 from the shared string section. `findEpisode()` and `findKey()` return `-1` for
-unknown names. Java owns the byte array; native code only validates and copies.
+unknown names. `summary()` returns message phases, event phases, event kinds,
+branch-B/ending/environment counts, enum-index-zero rows and empty key values
+as 15 plain ints. Java owns the byte array; native code only validates and
+copies.
 
 ## Validation
 
 `python tools/engine/test_story_catalog.py` checks section counts, ctypes record
-sizes, sampled records, shared-string reads, lookups and malformed blobs.
-Result: 122 episodes, 3,309 messages, 3,484 events, 647 story keys, 204,057
-string bytes, 386,681 bytes total.
+sizes, sampled records, shared-string reads, lookups, all 15 summary fields and
+malformed blobs. Result: 122 episodes, 3,309 messages, 3,484 events, 647 story
+keys, 204,057 string bytes, 386,681 bytes total. Summary: message phases
+236/3,005/68, event phases 342/3,074/68, event kinds 304/106/186/2,888,
+branch B 21, ending 1, environment 59, enum-zero 22 and empty key values 149.
 
 ## Gaps
 

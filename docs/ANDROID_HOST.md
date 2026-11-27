@@ -95,6 +95,8 @@ still sees only bytes.
   the spinner still uses raw `PLC_*` codes;
 - `CarCatalog.engineSound()` supplies the verbatim `EngineSound` value needed
   by `EngineSound.find()`; the current spinner does not yet call it;
+- `StoryCatalog.summary()` returns 15 raw phase/kind/flag counts from
+  `story.r6story`; the UI still shows only the episode count;
 - load status shows customization colour/wheel counts and episode count when
   `custom.r6custom` / `story.r6story` are present.
 - `course descriptor` selects the `.r6course` file.

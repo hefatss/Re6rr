@@ -432,6 +432,12 @@ public final class Re6Engine implements AutoCloseable {
             return counts[section];
         }
 
+        /** message phases[3], event phases[3], event kinds[4], branch B,
+         *  ending, environment, enum-index zero and empty key values. */
+        public int[] summary() {
+            return nativeStoryCatalogSummary(blob);
+        }
+
         /** enumIndex flags messageCount eventCount actor0..3 stage root day
          *  camera. Numeric actors and stage stay raw; no shipped mapping. */
         public int[] episode(int index) {
@@ -554,6 +560,7 @@ public final class Re6Engine implements AutoCloseable {
     private static native int[] nativeCustomCatalogTune(byte[] blob, int index);
     private static native float[] nativeCustomCatalogTire(byte[] blob, int index);
     private static native int[] nativeStoryCatalogCounts(byte[] blob);
+    private static native int[] nativeStoryCatalogSummary(byte[] blob);
     private static native int[] nativeStoryCatalogEpisode(byte[] blob, int index);
     private static native byte[] nativeStoryCatalogEpisodeName(byte[] blob, int index);
     private static native int[] nativeStoryCatalogMessage(byte[] blob, int index);
