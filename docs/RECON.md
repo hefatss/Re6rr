@@ -45,6 +45,7 @@ must come from imports, string references, RTTI and pattern matching.
 | `.lmd` | 985 | 13 MB | gzip → `XMD.001` — flash UI; gzip/XMD headers and stream sizes are inventoried by `tools/engine/lmd_catalog.py` |
 | `.xmlt` | 591 | 1.0 MB | XML text (story lines, cut-in tables) |
 | `.nuf` | 22 | 0.7 MB | `NUF`/`NFH` — fonts; `tools/engine/nuf_headers_catalog.py` inventories paths, sizes and first 64 bytes |
+| `.mtmp` | 34 | 28.9 KB | `SCALE:` + `OBJECT:` text tables; `tools/engine/mtmp_catalog.py` copies 286 raw object lines |
 | `.med` | 28 + 39 | 3.9 MB | motion data |
 
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64

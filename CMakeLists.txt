@@ -60,6 +60,7 @@ set(R6_CORE
     engine/src/game/med_headers.c
     engine/src/game/lmd_catalog.c
     engine/src/game/nuf_headers.c
+    engine/src/game/mtmp.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

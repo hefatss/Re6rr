@@ -56,6 +56,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_med_headers.h"
 #include "r6/r6_lmd_catalog.h"
 #include "r6/r6_nuf_headers.h"
+#include "r6/r6_mtmp.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6110,6 +6111,108 @@ Java_com_wmmt_re6rr_NufHeaders_nativePrefix(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = story_byte_array(env, (const char *)prefix, sizeof(prefix));
+    return result;
+}
+
+/* Raw .MTMP model tables: copied counts, paths, scales and object lines. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_MtmpTables_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_mtmp_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_mtmp_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.object_count;
+    values[3] = (jlong)header.strings_size;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_MtmpTables_nativeFile(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    r6_mtmp_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_mtmp_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.file_size;
+    values[1] = (jlong)file.object_first;
+    values[2] = (jlong)file.object_count;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_MtmpTables_nativePath(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    char value[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_mtmp_path(bytes, length, (uint32_t)index, value,
+                     sizeof(value)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, value);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_MtmpTables_nativeScale(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    char value[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_mtmp_scale(bytes, length, (uint32_t)index, value,
+                      sizeof(value)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, value);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_MtmpTables_nativeObject(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    char value[512];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_mtmp_object(bytes, length, (uint32_t)index, value,
+                       sizeof(value)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, value);
     return result;
 }
 
