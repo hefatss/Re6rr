@@ -54,6 +54,42 @@ R6_API int r6_ndwd_parse_group(const void *data, size_t size,
                                const r6_ndwd_header *header, uint32_t index,
                                r6_ndwd_group *out);
 
+/* Raw NDWD subrecord and chain record fields. The four tokens are the u32
+ * words at sub+0x10..0x1c and are copied verbatim; no material or texture
+ * semantics are inferred. Shipped flag-zero chain records are returned as
+ * raw records even though the native loader gates on the flag byte. */
+typedef struct r6_ndwd_subrecord_t {
+    uint32_t offset;
+    uint32_t tokens[4];
+    uint16_t extra;
+    uint32_t chain_offset;
+} r6_ndwd_subrecord_t;
+
+typedef struct r6_ndwd_chain_record_t {
+    uint32_t offset;
+    uint32_t stride;
+    uint32_t name_offset;
+    uint8_t flag;
+} r6_ndwd_chain_record_t;
+
+R6_API int r6_ndwd_parse_subrecord(const void *data, size_t size,
+                                   const r6_ndwd_header *header,
+                                   const r6_ndwd_group *group,
+                                   uint32_t index,
+                                   r6_ndwd_subrecord_t *out);
+
+R6_API int r6_ndwd_parse_chain_record(const void *data, size_t size,
+                                      const r6_ndwd_header *header,
+                                      const r6_ndwd_subrecord_t *sub,
+                                      uint32_t index,
+                                      r6_ndwd_chain_record_t *out);
+
+/* String table base is 0x30 + sum(section_size[0..3]); offset is relative to
+ * that base. On R6_ERR_BUFFER, used holds the required length including NUL. */
+R6_API int r6_ndwd_string(const void *data, size_t size,
+                          const r6_ndwd_header *header, uint32_t offset,
+                          char *out, size_t capacity, size_t *used);
+
 typedef struct r6_ntwd_texture {
     uint32_t header_offset;
     uint32_t data_offset;

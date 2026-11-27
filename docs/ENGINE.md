@@ -86,6 +86,12 @@ platform/android/java/        Java side of the JNI bridge
   vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
   capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
   sequential.
+- `r6_ndwd_parse_subrecord()` / `r6_ndwd_parse_chain_record()` /
+  `r6_ndwd_string()` — read raw NDWD subrecord tokens, the bounded chain record
+  at `sub+0x20+extra*0x18`, and NUL-terminated strings at
+  `0x30+sum(section_size)+offset`. All 44,176 shipped subrecords have `extra=0`
+  and a flag-zero raw record, which the native loader rejects; no material or
+  texture meaning is inferred.
 - `r6_nut_layout_facts()` — derive the 16-byte-aligned mip layout of one
   NTWD/NTLX descriptor: full declared payload including cube faces, per-face
   size, aligned level-0 bytes, declared/available levels and the cube flag.
@@ -465,6 +471,7 @@ Verified on this dump:
 | `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; name find, short, bad-version and bad-index inputs rejected |
 | GLES lowering facts | C totals match `nsxr_shader.glsl_coverage()` on all 446 records: 20,563 instructions, 11,184 direct / 2,720 lowered / 5,979 control / 680 texture, 43 opcodes and zero unknown; null output ignored |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
+| 610 `.mdl` + 371 `.nud` files, 23,570 NDWD streams | header, group, 44,176 subrecords, 44,176 raw chain records and 30,885 group strings match `ndwd_records.py`; flag-gated synthetic chain and bad offsets/capacities rejected |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; all 781 codec-1 getter rows expose exact user params and total samples; bad version, short header, bad codec and null output rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
@@ -564,8 +571,9 @@ to be written must:
 - `r6_glsl_pack_ubo()` writes reflected std140 members and
   `r6_glsl_texture_upload()` describes RGBA8 uploads for reflected sampler
   units; shader module creation and GPU calls stay outside the core.
-- NDWD parser covers headers and groups; vertex layouts and material chains
-  stay in the Python recon tools for now.
+- NDWD parser covers headers, groups, raw subrecords/chain records and strings;
+  vertex layout selection, token semantics and native-consumed material chains
+  stay unproven because every shipped chain record has flag zero.
 - Physics is an original arcade model, not a trace-equivalent of Enma: the
   shipped DLL needs host state to initialise and cannot be driven standalone.
 - Course descriptors are synthetic: no road mesh or checkpoint layout has been
