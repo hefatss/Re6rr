@@ -79,6 +79,42 @@ int r6_glsl_bindings_get_record(const r6_glsl_bindings_view *view,
     return R6_OK;
 }
 
+int r6_glsl_bindings_find_record(const r6_glsl_bindings_view *view,
+                                 const char *name, uint32_t *index) {
+    uint32_t at;
+    size_t wanted;
+    if (!view || !name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < view->count; at++) {
+        r6_glsl_bindings_record_info record;
+        const char *found;
+        int result = r6_glsl_bindings_get_record(view, at, &record);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        found = r6_glsl_bindings_name(view, record.name_off);
+        if (!found) {
+            return R6_ERR_BUFFER;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 int r6_glsl_bindings_get_cbuffer(const r6_glsl_bindings_view *view,
                              const r6_glsl_bindings_record_info *record,
                              uint32_t index, r6_glsl_bindings_cbuffer_info *out) {

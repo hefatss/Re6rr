@@ -2768,6 +2768,36 @@ Java_com_wmmt_re6rr_LuaXrefs_nativeFind(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_GlslBindings_nativeFindRecord(JNIEnv *env, jclass cls,
+                                                  jbyteArray data,
+                                                  jstring name) {
+    r6_glsl_bindings_view view;
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, data, &length);
+    const char *text = NULL;
+    (void)cls;
+    if (!bytes || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_glsl_bindings_init(&view, bytes, length) != R6_OK ||
+        r6_glsl_bindings_find_record(&view, text, &index) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jint)index;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {

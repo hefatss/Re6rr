@@ -86,6 +86,10 @@ R6_API int r6_glsl_bindings_get_sampler(
     const r6_glsl_bindings_record_info *record, uint32_t index,
     r6_glsl_bindings_sampler_info *out);
 
+/* First record whose copied shader name matches exactly. */
+R6_API int r6_glsl_bindings_find_record(const r6_glsl_bindings_view *view,
+                                        const char *name, uint32_t *index);
+
 /* NULL when offset is outside the buffer or the string is unterminated. */
 R6_API const char *r6_glsl_bindings_name(const r6_glsl_bindings_view *view,
                                          uint32_t offset);

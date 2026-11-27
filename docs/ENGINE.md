@@ -225,6 +225,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_ees_car_disp()` — read one `0x180` display record: car id, flag byte,
   16-f32 matrix and yaw; non-finite yaw gives zero yaw units.
 - `r6_ees_car_info()` — read the int32 id of a `0x8c` car_info record.
+- `r6_glsl_bindings_find_record()` — first exact shader-name record in the
+  compiled `R6GB` manifest; names and offsets are copied, never dereferenced as
+  native pointers.
 - `r6_lua_globals_parse()` / `r6_lua_globals_row()` / `r6_lua_globals_find()` — read the derived `R6LUA`
   inventory of 219 globals looked up by the executable, with call counts and
   seven category indices. Lua bodies remain in shipped data scripts; no binding
@@ -384,7 +387,7 @@ Verified on this dump:
 | 142 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |
 | `Body.nsh` sampler units 0/1/6 | `r6_glsl_texture_upload()` matches Python RGBA8 descriptors for five `.nut` formats; bad format, zero size and overflow rejected |
-| `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; short, bad-version and bad-index inputs rejected |
+| `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; name find, short, bad-version and bad-index inputs rejected |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
 | 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |

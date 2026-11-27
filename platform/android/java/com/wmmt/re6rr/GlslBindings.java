@@ -24,6 +24,11 @@ public final class GlslBindings {
         return nativeName(data, offset);
     }
 
+    /** first record index with an exact shader name; -1 if absent. */
+    public int findRecord(String name) {
+        return nativeFindRecord(data, name);
+    }
+
     /** binding, name offset, size, slots, ubo, regions, region_first. */
     public int[] cbuffer(int record, int index) {
         return nativeCbuffer(data, record, index);
@@ -47,6 +52,7 @@ public final class GlslBindings {
 
     private static native int nativeCount(byte[] data);
     private static native int[] nativeRecord(byte[] data, int index);
+    private static native int nativeFindRecord(byte[] data, String name);
     private static native String nativeName(byte[] data, int offset);
     private static native int[] nativeCbuffer(byte[] data, int record,
                                               int index);

@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 
 
 class View(ctypes.Structure):
@@ -56,6 +57,9 @@ def configure(lib):
     lib.r6_glsl_bindings_get_record.restype = ctypes.c_int
     lib.r6_glsl_bindings_get_record.argtypes = [
         ctypes.POINTER(View), ctypes.c_uint32, ctypes.POINTER(Record)]
+    lib.r6_glsl_bindings_find_record.restype = ctypes.c_int
+    lib.r6_glsl_bindings_find_record.argtypes = [
+        ctypes.POINTER(View), ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_glsl_bindings_get_cbuffer.restype = ctypes.c_int
     lib.r6_glsl_bindings_get_cbuffer.argtypes = [
         ctypes.POINTER(View), ctypes.POINTER(Record), ctypes.c_uint32,
@@ -152,6 +156,15 @@ def check_corpus(lib, manifest, failures):
                 ctypes.byref(sampler)) == R6_OK,
                 "corpus sampler %d/%d" % (index, sampler_index), failures)
     check(totals == [797, 2029, 526], "corpus totals %s" % totals, failures)
+    found = ctypes.c_uint32()
+    check(lib.r6_glsl_bindings_find_record(
+        ctypes.byref(view), manifest["shaders"][0]["shader"].encode("ascii"),
+        ctypes.byref(found)) == R6_OK and found.value == 0,
+        "corpus find first shader", failures)
+    check(lib.r6_glsl_bindings_find_record(
+        ctypes.byref(view), b"R6_NO_SUCH_SHADER",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND,
+        "corpus find absent shader", failures)
     return len(blob)
 
 
@@ -186,6 +199,15 @@ def main():
           lib.r6_glsl_bindings_name(ctypes.byref(view),
                                     record.name_off) == b"Body.nsh",
           "pixel record", failures)
+
+    found = ctypes.c_uint32()
+    check(lib.r6_glsl_bindings_find_record(ctypes.byref(view), b"Body.nsh",
+                                           ctypes.byref(found)) == R6_OK and
+          found.value == 0, "find first record", failures)
+    check(lib.r6_glsl_bindings_find_record(ctypes.byref(view),
+                                           b"R6_NO_SUCH_SHADER",
+                                           ctypes.byref(found)) ==
+          R6_ERR_NOT_FOUND, "find absent record", failures)
 
     bindings = manifest["shaders"][1]["bindings"]
     for index, want in enumerate(bindings["cbuffers"]):
