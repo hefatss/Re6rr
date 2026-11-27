@@ -14,6 +14,7 @@ import test_engine  # noqa: E402
 R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
+R6_ERR_NOT_FOUND = -7
 KINDS = list(native_names_catalog.TABLES)
 
 
@@ -32,6 +33,12 @@ def check(dump, lib):
     lib.r6_native_names_get.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                         ctypes.c_int, ctypes.c_uint32,
                                         ctypes.c_char_p, ctypes.c_size_t]
+    lib.r6_native_names_find.restype = ctypes.c_int
+    lib.r6_native_names_find.argtypes = [ctypes.c_void_p,
+                                         ctypes.c_size_t,
+                                         ctypes.c_int,
+                                         ctypes.c_char_p,
+                                         ctypes.POINTER(ctypes.c_uint32)]
 
     tables = native_names_catalog.collect(dump)
     blob = native_names_catalog.build(tables)
@@ -53,6 +60,18 @@ def check(dump, lib):
             total += 1
     assert total == 1036
 
+    found_index = ctypes.c_uint32()
+    for kind, key in enumerate(KINDS):
+        for index, want in enumerate(tables[key]):
+            assert lib.r6_native_names_find(
+                source, len(blob), kind, want.encode("utf8"),
+                ctypes.byref(found_index)) == R6_OK
+            assert found_index.value == index
+    assert lib.r6_native_names_find(source, len(blob), 0, b"R6_NO_SUCH_NAME",
+                                    ctypes.byref(found_index)) == R6_ERR_NOT_FOUND
+    assert lib.r6_native_names_find(source, len(blob), 9, b"sequence",
+                                    ctypes.byref(found_index)) == R6_ERR_ARG
+
     assert lib.r6_native_names_get(source, len(blob), 9, 0, name,
                                    len(name)) == R6_ERR_ARG
     assert lib.r6_native_names_get(source, len(blob), 0,
@@ -68,7 +87,8 @@ def check(dump, lib):
     assert lib.r6_native_names_parse(bad_source, len(bad),
                                      ctypes.byref(header)) == R6_ERR_FORMAT
     print("native names: all %d shipped names in 9 tables match the PE "
-          "pointer reads; bad kind, index, blob and capacity rejected" % total)
+          "pointer reads; find, bad kind, index, blob and capacity "
+          "rejected" % total)
 
 
 def main():

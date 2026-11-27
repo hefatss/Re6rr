@@ -25,7 +25,15 @@ public final class NativeNames {
         return nativeName(blob, kind, index);
     }
 
+    /** first row index with an exact name; -1 if absent. */
+    public static long find(byte[] blob, int kind, String name) {
+        return nativeFind(blob, kind, name);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int kind, int index);
+
+    private static native long nativeFind(byte[] blob, int kind,
+                                           String name);
 }

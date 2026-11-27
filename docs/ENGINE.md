@@ -284,7 +284,8 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_native_names_parse()` / `r6_native_names_get()` read the `R6NAM` blob
   built by `tools/engine/native_names_catalog.py` from nine shipped pointer-name
   runs (sequence, tk_ari, stage_time, tips_end, flash, parts, honor,
-  check_honor and vinyl_blend). No name tables are fabricated.
+  check_honor and vinyl_blend). `r6_native_names_find()` resolves an exact name
+  to its row index in one table. No name tables are fabricated.
 - `r6_car_catalog_parse()` and `r6_car_catalog_find_model/find_id()` — parse a
   packed `.r6car` blob built by `tools/engine/car_catalog.py`; see
   `docs/P5_CARS.md`.
@@ -455,7 +456,7 @@ Verified on this dump:
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; find, bad blob, index and capacity rejected |
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |
-| native names | all 1036 names in 9 shipped pointer tables match PE reads; bad kind, index, blob and capacity rejected |
+| native names | all 1036 names in 9 shipped pointer tables match PE reads and resolve through `find`; bad kind, index, blob and capacity rejected |
 | scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names resolve through `find` and out-of-range cases match `scene_config.py`; bad blob, bad version, bad kind and short capacity rejected |
 | stage-effect catalog | 6 shipped symbolic sounds read from the `R6STG` blob with matching set/symbol/file/tone name/wav, bank 3 tones 14/15, positions and loop flags; symbol lookup, bad magic and short blob checked |
 | car catalog | 151 `PLC_*` specs packed to 21,768 bytes, all fields match Python; `PLC_928GT` found by model and id; malformed blobs rejected |

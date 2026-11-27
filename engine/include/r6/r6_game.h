@@ -304,6 +304,10 @@ R6_API int r6_native_names_parse(const void *data, size_t size,
 R6_API int r6_native_names_get(const void *data, size_t size, int kind,
                                uint32_t index, char *out, size_t capacity);
 
+/* First row in one R6NAM table with the exact name. */
+R6_API int r6_native_names_find(const void *data, size_t size, int kind,
+                                const char *name, uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif
