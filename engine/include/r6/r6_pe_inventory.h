@@ -100,6 +100,10 @@ R6_API int r6_pe_inventory_directory(const void *data, size_t size,
 R6_API int r6_pe_inventory_func_find(const void *data, size_t size,
                                      uint32_t rva, uint32_t *index);
 
+/* First row whose [begin, end) range contains the RVA. */
+R6_API int r6_pe_inventory_func_cover(const void *data, size_t size,
+                                       uint32_t rva, uint32_t *index);
+
 /* First row with the given PE data-directory index. */
 R6_API int r6_pe_inventory_directory_find(const void *data, size_t size,
                                           uint32_t dir_index,

@@ -2704,6 +2704,23 @@ Java_com_wmmt_re6rr_PeInventory_nativeFuncFind(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeFuncCover(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jlong rva) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes || rva < 0 || rva > 0xFFFFFFFFLL ||
+        r6_pe_inventory_func_cover(bytes, length, (uint32_t)rva, &index) !=
+            R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)index;
+}
+
+JNIEXPORT jlong JNICALL
 Java_com_wmmt_re6rr_PeInventory_nativeDllFind(JNIEnv *env, jclass cls,
                                               jbyteArray blob, jstring name) {
     uint32_t index = 0;

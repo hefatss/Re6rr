@@ -50,6 +50,9 @@ def configure(lib):
     lib.r6_pe_inventory_func_find.restype = ctypes.c_int
     lib.r6_pe_inventory_func_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
+    lib.r6_pe_inventory_func_cover.restype = ctypes.c_int
+    lib.r6_pe_inventory_func_cover.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
     lib.r6_pe_inventory_dll_find.restype = ctypes.c_int
     lib.r6_pe_inventory_dll_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
@@ -141,6 +144,30 @@ def check(lib):
     assert lib.r6_pe_inventory_func_find(
         source, len(blob), funcs[0]["rva"] - 1,
         ctypes.byref(func_index)) == R6_ERR_NOT_FOUND
+
+    cover_index = U32()
+    for index, expected in enumerate(funcs):
+        if expected["size"] == 1:
+            interior = expected["rva"]
+        else:
+            interior = expected["rva"] + expected["size"] // 2
+        assert lib.r6_pe_inventory_func_cover(
+            source, len(blob), interior,
+            ctypes.byref(cover_index)) == R6_OK
+        assert cover_index.value == index
+    for before, after in zip(funcs, funcs[1:]):
+        if before["end"] >= after["rva"]:
+            continue
+        gap = (before["end"] + after["rva"]) // 2
+        assert lib.r6_pe_inventory_func_cover(
+            source, len(blob), gap,
+            ctypes.byref(cover_index)) == R6_ERR_NOT_FOUND
+    assert lib.r6_pe_inventory_func_cover(
+        source, len(blob), funcs[0]["rva"] - 1,
+        ctypes.byref(cover_index)) == R6_ERR_NOT_FOUND
+    assert lib.r6_pe_inventory_func_cover(
+        source, len(blob), funcs[-1]["end"] + 1,
+        ctypes.byref(cover_index)) == R6_ERR_NOT_FOUND
 
     name = ctypes.create_string_buffer(256)
     first = U32()
@@ -297,6 +324,9 @@ def check(lib):
     assert lib.r6_pe_inventory_func(
         source, len(bad), 0, ctypes.byref(rva), ctypes.byref(end),
         ctypes.byref(length), ctypes.byref(leaf)) == R6_ERR_FORMAT
+    assert lib.r6_pe_inventory_func_cover(
+        source, len(bad), funcs[0]["rva"],
+        ctypes.byref(func_index)) == R6_ERR_FORMAT
     bad = bytearray(blob)
     struct.pack_into("<I", bad, DLL_OFF + 4, 1)
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
@@ -311,8 +341,8 @@ def check(lib):
         ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_ERR_FORMAT
     print("PE inventory: 70377 functions, 825 named/ordinal imports, 28 DLLs, "
           "7 sections, 8 directories and PDB data match pe.json/pdata.json; "
-          "RVA/directory/DLL/import find, bad blob, index, row and "
-          "capacity rejected")
+          "RVA/directory/DLL/import find, all interior/gap RVA covers, "
+          "bad blob, index, row and capacity rejected")
 
 
 def main():

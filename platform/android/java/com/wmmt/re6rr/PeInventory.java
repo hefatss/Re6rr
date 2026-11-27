@@ -28,6 +28,14 @@ public final class PeInventory {
         return nativeFuncFind(blob, rva);
     }
 
+    /** row index whose [begin, end) range covers the RVA; -1 if none. */
+    public static long funcCover(byte[] blob, long rva) {
+        if (rva < 0 || rva > 0xFFFFFFFFL) {
+            return -1;
+        }
+        return nativeFuncCover(blob, rva);
+    }
+
     /** row index for an exact DLL name; -1 if absent. */
     public static long dllFind(byte[] blob, String name) {
         return nativeDllFind(blob, name);
@@ -101,6 +109,8 @@ public final class PeInventory {
     private static native long[] nativeFunc(byte[] blob, int index);
 
     private static native long nativeFuncFind(byte[] blob, long rva);
+
+    private static native long nativeFuncCover(byte[] blob, long rva);
 
     private static native String nativeDllName(byte[] blob, int index);
 

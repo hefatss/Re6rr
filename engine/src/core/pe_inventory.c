@@ -187,6 +187,49 @@ int r6_pe_inventory_func_find(const void *data, size_t size, uint32_t rva,
     return R6_OK;
 }
 
+int r6_pe_inventory_func_cover(const void *data, size_t size, uint32_t rva,
+                               uint32_t *index) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    r6_pe_inventory_header header;
+    uint32_t low = 0;
+    uint32_t high;
+    uint32_t candidate;
+    uint32_t begin = 0;
+    uint32_t end = 0;
+    uint32_t span = 0;
+    uint32_t leaf = 0;
+    int result = pe_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    high = header.pdata_count;
+    while (low < high) {
+        uint32_t mid = low + (high - low) / 2u;
+        uint32_t found = r6_u32(bytes, R6_PE_FUNC_OFF + mid * 16u);
+        if (found <= rva) {
+            low = mid + 1u;
+        } else {
+            high = mid;
+        }
+    }
+    if (!low) {
+        return R6_ERR_NOT_FOUND;
+    }
+    candidate = low - 1u;
+    result = r6_pe_inventory_func(data, size, candidate, &begin, &end,
+                                  &span, &leaf);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (rva >= end) {
+        return R6_ERR_NOT_FOUND;
+    }
+    if (index) {
+        *index = candidate;
+    }
+    return R6_OK;
+}
+
 int r6_pe_inventory_dll(const void *data, size_t size, uint32_t index,
                         char *name, size_t capacity, uint32_t *import_index,
                         uint32_t *count) {
