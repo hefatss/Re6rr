@@ -91,7 +91,8 @@ still sees only bytes.
 
 - `character car` overrides the model spinner through
   `CarCatalog.carIndexForCharacter()` — e.g. `CRC_928GT_Masaki`;
-- `CarCatalog.name()` / `maker()` decode the cp932 text already in `.r6car`;
+- `CarCatalog.name()` / `maker()` and v4 `nameJp()`, `carName()`, `glade()`,
+  `year()` decode cp932 text from `.r6car`;
   `indexForModel()` / `indexForId()` reuse the C exact lookups;
   the spinner still uses raw `PLC_*` codes;
 - `CarCatalog.engineSound()` supplies the verbatim `EngineSound` value needed

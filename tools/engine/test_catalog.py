@@ -101,6 +101,10 @@ def main():
                                                 ctypes.c_size_t,
                                                 ctypes.POINTER(ctypes.c_uint16)]
     lib.r6_car_catalog_engine_sound.restype = ctypes.c_int
+    lib.r6_car_catalog_text_field.argtypes = [
+        ctypes.c_char_p, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_uint32,
+        ctypes.c_char_p, ctypes.c_size_t]
+    lib.r6_car_catalog_text_field.restype = ctypes.c_int
 
     needed = ctypes.c_size_t()
     rc = lib.r6_car_catalog_parse(blob, len(blob), None, 0,
@@ -176,6 +180,41 @@ def main():
         print("  EngineSound: %d rows match PLC_* specification values" %
               len(entries))
 
+    text_fields = (
+        (0, "name", car_catalog.NAME_SIZE),
+        (1, "maker", car_catalog.MAKER_SIZE),
+        (2, "name_jp", car_catalog.NAME_JP_SIZE),
+        (3, "car_name", car_catalog.CAR_NAME_SIZE),
+        (4, "glade", car_catalog.GLADE_SIZE),
+        (5, "year", car_catalog.YEAR_SIZE),
+    )
+    out = ctypes.create_string_buffer(256)
+    text_mismatches = 0
+    for index, entry in enumerate(entries):
+        for field, key, size in text_fields:
+            rc = lib.r6_car_catalog_text_field(
+                blob, len(blob), index, field, out, len(out))
+            want = bytes_of(entry[key], size).rstrip(b"\0").decode(
+                "cp932", "replace")
+            if rc != R6_OK or out.value.decode("cp932", "replace") != want:
+                text_mismatches += 1
+                if text_mismatches <= 3:
+                    failures.append("text field %d %s: rc=%d %r expected %r" %
+                                    (field, entry["model"], rc, out.value,
+                                     want.encode("cp932", "replace")))
+    if text_mismatches:
+        failures.append("%d/%d car text fields differ" %
+                        (text_mismatches, len(entries) * len(text_fields)))
+    elif lib.r6_car_catalog_text_field(
+            blob, len(blob), 0, 6, out, len(out)) != R6_ERR_ARG:
+        failures.append("bad text field selector accepted")
+    elif lib.r6_car_catalog_text_field(
+            blob, len(blob), len(entries), 0, out, len(out)) != R6_ERR_ARG:
+        failures.append("out-of-range text index accepted")
+    else:
+        print("  text fields: 6 x %d cp932 values match specification scripts" %
+              len(entries))
+
     mapped_count = lib.r6_car_catalog_character_count(blob, len(blob))
     if mapped_count != len(mapped):
         failures.append("character count %d, expected %d" %
@@ -210,6 +249,17 @@ def main():
     if lib.r6_car_catalog_engine_sound(legacy, len(legacy), 0,
                                        ctypes.byref(sound)) != R6_ERR_FORMAT:
         failures.append("legacy catalog exposes EngineSound")
+    if lib.r6_car_catalog_text_field(legacy, len(legacy), 0, 2, out,
+                                     len(out)) != R6_ERR_FORMAT:
+        failures.append("legacy catalog exposes extra text fields")
+    version3 = car_catalog.pack(
+        entries, [], version=car_catalog.V3_VERSION,
+        record_size=car_catalog.V3_RECORD_SIZE)
+    if lib.r6_car_catalog_engine_sound(version3, len(version3), 0,
+                                       ctypes.byref(sound)) != R6_OK or \
+            lib.r6_car_catalog_text_field(version3, len(version3), 0, 2,
+                                          out, len(out)) != R6_ERR_FORMAT:
+        failures.append("version-3 layout exposes wrong fields")
     maps_bad = bytearray(blob)
     maps_bad[20:24] = struct.pack("<I", 0xffff)
     if lib.r6_car_catalog_character_count(bytes(maps_bad),

@@ -21,16 +21,30 @@ import sys
 import car_mapping
 
 MAGIC = b"R6CAR\0\1\0"
-VERSION = 3
-RECORD_SIZE = 148
+VERSION = 4
+RECORD_SIZE = 444
+V3_VERSION = 3
+V3_RECORD_SIZE = 148
 LEGACY_VERSION = 2
 LEGACY_RECORD_SIZE = 144
+LAYOUTS = {1: 144, 2: 144, 3: V3_RECORD_SIZE, 4: RECORD_SIZE}
 MAP_SIZE = 48
 HEADER_SIZE = 24
 
 MODEL_SIZE = 24
 NAME_SIZE = 64
 MAKER_SIZE = 24
+NAME_JP_SIZE = 64
+CAR_NAME_SIZE = 24
+GLADE_SIZE = 48
+YEAR_SIZE = 160
+
+EXTRA_TEXT = (
+    ("name_jp", NAME_JP_SIZE),
+    ("car_name", CAR_NAME_SIZE),
+    ("glade", GLADE_SIZE),
+    ("year", YEAR_SIZE),
+)
 
 NUMBER = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?")
 STRING = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -167,8 +181,7 @@ def text_field(value, size, encoding="cp932"):
 
 def pack(entries, mappings=None, version=VERSION, record_size=RECORD_SIZE):
     mappings = [row for row in (mappings or []) if row.get("model")]
-    if (version == 3 and record_size != RECORD_SIZE) or \
-            (version in (1, 2) and record_size != LEGACY_RECORD_SIZE):
+    if LAYOUTS.get(version) != record_size:
         raise ValueError("version and record size disagree")
     blob = bytearray(MAGIC)
     blob += struct.pack("<IIII", version, len(entries), record_size,
@@ -185,8 +198,11 @@ def pack(entries, mappings=None, version=VERSION, record_size=RECORD_SIZE):
                             float(entry["tire_width_front"]),
                             float(entry["tire_width_rear"]))
         blob += struct.pack("<I", entry["maker_id"])
-        if record_size == RECORD_SIZE:
+        if version >= V3_VERSION:
             blob += struct.pack("<HH", entry["engine_sound"], 0)
+        if version == VERSION:
+            for key, size in EXTRA_TEXT:
+                blob += text_field(entry[key], size)
     for row in mappings:
         blob += text_field(row["car"], MODEL_SIZE)
         blob += text_field(row["model"], MODEL_SIZE)

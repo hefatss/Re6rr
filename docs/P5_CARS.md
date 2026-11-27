@@ -26,9 +26,9 @@ Little endian, 24-byte header, car records then mapping records:
 | Offset | Size | Field |
 | --- | --- | --- |
 | 0 | 8 | magic `R6CAR\0\1\0` |
-| 8 | 4 | version `3` (`1` = no mappings, `2` = old 144-byte layout) |
+| 8 | 4 | version `4` (`1` = no mappings, `2` = 144-byte layout, `3` = 148-byte layout) |
 | 12 | 4 | car record count |
-| 16 | 4 | record size `148` (`144` for versions 1/2) |
+| 16 | 4 | record size `444` (`144` for v1/2, `148` for v3) |
 | 20 | 4 | mapping count |
 | 24 | 24 | `model`, e.g. `PLC_928GT` |
 | 48 | 64 | display name from `CarDataNameUS_1/2` or Japanese fallback |
@@ -46,8 +46,12 @@ Little endian, 24-byte header, car records then mapping records:
 | 156 | 4 | `PureTireWidthFront` |
 | 160 | 4 | `PureTireWidthRear` |
 | 164 | 4 | `MakerID` |
-| 168 | 2 | `EngineSound` (version 3 only, 0..31 in the shipped catalog) |
-| 170 | 2 | reserved zero (version 3 only) |
+| 168 | 2 | `EngineSound` (version 3+, 0..31 in the shipped catalog) |
+| 170 | 2 | reserved zero (version 3+) |
+| 172 | 64 | `CarDataNameJP_1/2` in cp932 (version 4 only) |
+| 236 | 24 | `CarNameForPG` in cp932 (version 4 only) |
+| 260 | 48 | `Glade` in cp932 (version 4 only) |
+| 308 | 160 | `AnnualSystem` in cp932 (version 4 only) |
 
 Mapping records are 48 bytes each and follow all car records:
 
@@ -68,11 +72,14 @@ is 56 bytes.
   size, then copies records into caller storage. `R6_ERR_BUFFER` reports the
   required capacity, matching the `.r6course` and gzip conventions.
 - `r6_car_catalog_find_model()` / `r6_car_catalog_find_id()` — bounded lookups.
+- `r6_car_catalog_text_field()` — copy one of six NUL-terminated cp932 fields
+  from a raw blob; fields 2..5 require version 4.
 - `r6_car_catalog_character_count()` / `r6_car_catalog_find_character()` —
   raw-blob reads of the mapping section; a hit returns the car index.
 
 JNI exposes `Re6Engine.CarCatalog` with `count()`, `model(index)`,
 `info(index)`, `engineSound(index)`, `name(index)`, `maker(index)`,
+`nameJp(index)`, `carName(index)`, `glade(index)`, `year(index)`,
 `indexForModel(model)`, `indexForId(modelId)`, `characterCount()`,
 `carIndexForCharacter(name)` and `modelForCharacter(name)`. The numeric array is
 `modelId visualId horsepower cc drive mission flags tireFront tireRear
@@ -82,9 +89,9 @@ widthFront widthRear`.
 
 `python tools/engine/test_catalog.py` checks all 151 records against the Python
 generator, finds `PLC_928GT` by both model code and `ModelID` 120, resolves
-three character cars, and rejects truncated data, bad magic, a bad record
-size, a bad mapping count, an empty blob and short capacity. Result: 151 cars,
-77 mappings, 26,068 bytes, 16 makers.
+three character cars, checks all six text fields on every row, and rejects
+truncated data, bad magic, a bad record size, a bad mapping count, an empty blob
+and short capacity. Result: 151 cars, 77 mappings, 70,764 bytes, 16 makers.
 
 ## Gaps
 

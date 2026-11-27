@@ -293,6 +293,25 @@ public final class Re6Engine implements AutoCloseable {
             return text(index, 1);
         }
 
+        /** Japanese display name from the specification script. */
+        public String nameJp(int index) {
+            return text(index, 2);
+        }
+
+        /** CarNameForPG short label from the specification script. */
+        public String carName(int index) {
+            return text(index, 3);
+        }
+
+        /** Glade and year metadata from the specification script. */
+        public String glade(int index) {
+            return text(index, 4);
+        }
+
+        public String year(int index) {
+            return text(index, 5);
+        }
+
         private String text(int index, int field) {
             byte[] raw = nativeCarCatalogText(blob, index, field);
             return raw == null ? null : SHIFT_JIS.decode(
@@ -300,7 +319,7 @@ public final class Re6Engine implements AutoCloseable {
         }
 
         /** EngineSound for the native ENGMAP lookup, or -1 on old blobs or
-         *  bad index. Available in .r6car version 3. */
+         *  bad index. Available in .r6car version 3+. */
         public int engineSound(int index) {
             return nativeCarCatalogEngineSound(blob, index);
         }

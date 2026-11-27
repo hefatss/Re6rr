@@ -4590,17 +4590,13 @@ JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogText(JNIEnv *env, jclass cls,
                                                    jbyteArray blob, jint index,
                                                    jint field) {
-    r6_car_info *cars = NULL;
     unsigned char *bytes = NULL;
-    jsize length;
-    size_t needed = 0;
-    size_t count = 0;
-    size_t size = 0;
-    size_t limit;
-    const char *text;
+    jsize length = 0;
+    char text[256];
+    size_t size;
     jbyteArray result = NULL;
     (void)cls;
-    if (!blob || index < 0 || (field != 0 && field != 1)) {
+    if (!blob || index < 0 || field < 0 || field > 5) {
         return NULL;
     }
     length = (*env)->GetArrayLength(env, blob);
@@ -4609,26 +4605,14 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogText(JNIEnv *env, jclass cls,
         return NULL;
     }
     (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
-    if (r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &needed) !=
-        R6_ERR_BUFFER || (size_t)index >= needed) {
+    if (r6_car_catalog_text_field(bytes, (size_t)length, (size_t)index,
+                                  (uint32_t)field, text,
+                                  sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
-    cars = (r6_car_info *)malloc(needed * sizeof(*cars));
-    if (!cars) {
-        free(bytes);
-        return NULL;
-    }
-    if (r6_car_catalog_parse(bytes, (size_t)length, cars, needed, &count) !=
-        R6_OK) {
-        free(cars);
-        free(bytes);
-        return NULL;
-    }
-    free(bytes);
-    text = field == 0 ? cars[index].name : cars[index].maker;
-    limit = field == 0 ? R6_CAR_NAME_SIZE : R6_CAR_MAKER_SIZE;
-    while (size < limit && text[size]) {
+    size = 0;
+    while (size < sizeof(text) && text[size]) {
         size++;
     }
     result = (*env)->NewByteArray(env, (jsize)size);
@@ -4636,7 +4620,7 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogText(JNIEnv *env, jclass cls,
         (*env)->SetByteArrayRegion(env, result, 0, (jsize)size,
                                    (const jbyte *)text);
     }
-    free(cars);
+    free(bytes);
     return result;
 }
 

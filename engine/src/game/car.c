@@ -27,14 +27,15 @@ static int catalog_layout(const unsigned char *bytes, size_t size,
         return R6_ERR_FORMAT;
     }
     version = r6_u32(bytes, 8);
-    if (version < 1u || version > 3u) {
+    if (version < 1u || version > 4u) {
         return R6_ERR_FORMAT;
     }
     car_count_value = r6_u32(bytes, 12);
     record_size = r6_u32(bytes, 16);
     map_count_value = r6_u32(bytes, 20);
-    if (record_size != (version == 3u ? R6_CAR_RECORD_SIZE_V3
-                                      : R6_CAR_RECORD_SIZE) ||
+    if (record_size != (version == 4u ? R6_CAR_RECORD_SIZE_V4
+                       : version == 3u ? R6_CAR_RECORD_SIZE_V3
+                                       : R6_CAR_RECORD_SIZE) ||
             (version == 1u && map_count_value != 0u)) {
         return R6_ERR_FORMAT;
     }
@@ -164,7 +165,9 @@ int r6_car_catalog_engine_sound(const void *data, size_t size,
                        &record_size) != R6_OK) {
         return R6_ERR_FORMAT;
     }
-    if (r6_u32(bytes, 8) != 3u || record_size != R6_CAR_RECORD_SIZE_V3) {
+    if (r6_u32(bytes, 8) < 3u ||
+            (record_size != R6_CAR_RECORD_SIZE_V3 &&
+             record_size != R6_CAR_RECORD_SIZE_V4)) {
         return R6_ERR_FORMAT;
     }
     if (index >= car_count) {
@@ -172,6 +175,70 @@ int r6_car_catalog_engine_sound(const void *data, size_t size,
     }
     *out = r6_u16(bytes, R6_CAR_HEADER_SIZE + index * record_size +
                   R6_CAR_ENGINE_SOUND_OFFSET);
+    return R6_OK;
+}
+
+static int car_text_layout(uint32_t field, size_t record_size,
+                           size_t *offset, size_t *limit) {
+    if (field == R6_CAR_TEXT_NAME) {
+        *offset = 24;
+        *limit = R6_CAR_NAME_SIZE;
+    } else if (field == R6_CAR_TEXT_MAKER) {
+        *offset = 24 + R6_CAR_NAME_SIZE;
+        *limit = R6_CAR_MAKER_SIZE;
+    } else if (field == R6_CAR_TEXT_NAME_JP) {
+        *offset = R6_CAR_NAME_JP_OFFSET;
+        *limit = R6_CAR_NAME_JP_SIZE;
+    } else if (field == R6_CAR_TEXT_CAR_NAME) {
+        *offset = R6_CAR_CAR_NAME_OFFSET;
+        *limit = R6_CAR_CAR_NAME_SIZE;
+    } else if (field == R6_CAR_TEXT_GLADE) {
+        *offset = R6_CAR_GLADE_OFFSET;
+        *limit = R6_CAR_GLADE_SIZE;
+    } else if (field == R6_CAR_TEXT_YEAR) {
+        *offset = R6_CAR_YEAR_OFFSET;
+        *limit = R6_CAR_YEAR_SIZE;
+    } else {
+        return R6_ERR_ARG;
+    }
+    return *offset + *limit <= record_size ? R6_OK : R6_ERR_FORMAT;
+}
+
+int r6_car_catalog_text_field(const void *data, size_t size, size_t index,
+                              uint32_t field, char *out, size_t capacity) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t car_count = 0;
+    size_t map_count = 0;
+    size_t record_size = 0;
+    size_t offset = 0;
+    size_t limit = 0;
+    size_t length = 0;
+    size_t at;
+    int rc;
+
+    if (!bytes || !out) {
+        return R6_ERR_ARG;
+    }
+    rc = catalog_layout(bytes, size, &car_count, &map_count, &record_size);
+    if (rc != R6_OK || index >= car_count) {
+        return rc != R6_OK ? rc : R6_ERR_ARG;
+    }
+    rc = car_text_layout(field, record_size, &offset, &limit);
+    if (rc != R6_OK) {
+        return rc;
+    }
+    if (field >= R6_CAR_TEXT_NAME_JP && r6_u32(bytes, 8) < 4u) {
+        return R6_ERR_FORMAT;
+    }
+    at = R6_CAR_HEADER_SIZE + index * record_size + offset;
+    while (length < limit && bytes[at + length]) {
+        length++;
+    }
+    if (capacity <= length) {
+        return R6_ERR_BUFFER;
+    }
+    r6_memcpy(out, bytes + at, length);
+    out[length] = 0;
     return R6_OK;
 }
 
