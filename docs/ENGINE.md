@@ -23,6 +23,7 @@ engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors fo
 engine/include/r6/r6_glsl_manifest.h  bounds-checked reader for compiled shader bindings
 engine/include/r6/r6_nsh.h       bounds-checked NSXR container and DXBC chunk table reader
 engine/include/r6/r6_shader_cf.h  structured SM4 control-flow map reader
+engine/include/r6/r6_shader_usage.h  SHDR cbuffer and texture/sampler usage reader
 engine/include/r6/r6_gles.h   host sink for validated shader, UBO, texture and draw calls
 engine/include/r6/r6_vertex_layout.h  compiled vertex input locations, semantics and masks
 engine/include/r6/r6_enma.h   Enma DLL byte contract (recovered offsets/enums)
@@ -189,6 +190,11 @@ platform/android/java/        Java side of the JNI bridge
   SHDR records, with 2,448 case starts and 2,478 break/continue instruction
   indices. Blocks carry source/end indices, `ELSE`, case spans and innermost
   break/continue spans; no branch target is invented.
+- `r6_shader_usage_parse()/record()/name()/find()/uniform()/find_uniform()/resource()/find_resource()/declared()` —
+  read the derived `R6SCU` per-record maps of 1,645 resolved uniform keys,
+  1,052 resource/sampler keys and 1,052 declaration names across 446 records.
+  Counts cover 5,502 static cbuffer operands, 8 dynamic indices, 1,360
+  resource/sampler uses, zero unmapped bindings and zero dynamic bindings.
 - `r6_gles_program_count()/program()` and
   `r6_gles_emit_program()/emit_shader()/emit_uniforms()/emit_texture()/emit_draw()`
   — pair stage records by shader name (223 programs from 446 records), then
@@ -444,8 +450,9 @@ Verified on this dump:
 | GLES host sink | 223 vertex/pixel program pairs from all 446 records; 224-byte reflected UBO, RGBA8 upload and draw forwarded to a mock sink; sink, source, index, region and format errors rejected; sink return codes propagate |
 | NSXR container | all 223 shipped `.nsh` files, 446 records and 2230 DXBC chunks match `nsxr_shader.parse_nsh()`; chunk find, short input, bad magic and bad sizes rejected |
 | SM4 control flow | 446 records, 303 blocks, 2448 cases and 2478 break/continue indices match `nsxr_shader.control_flow()`; `Body.nsh` pixel has two 9-case switches; bad blob, index, stage and capacity rejected |
+| SHDR usage map | 446 records, 1645 uniform rows, 1052 resource rows and 1052 declarations match `nsxr_shader`; 5502 static cbuffer operands, 8 dynamic, 1360 resource uses, zero dynamic/unmapped; bad blob, index and stage rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `NameRuns`, `LuaRegTables`, `PathStrings`, `EnmaSimFacts`, `RefWords`, `PdataStats`, `StringXrefs`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig`, `ShaderControlFlow` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `NameRuns`, `LuaRegTables`, `PathStrings`, `EnmaSimFacts`, `RefWords`, `PdataStats`, `StringXrefs`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig`, `ShaderControlFlow`, `ShaderUsage` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |

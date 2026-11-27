@@ -47,6 +47,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_glsl.h"
 #include "r6/r6_glsl_manifest.h"
 #include "r6/r6_shader_cf.h"
+#include "r6/r6_shader_usage.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
@@ -1272,6 +1273,247 @@ Java_com_wmmt_re6rr_ShaderControlFlow_nativeIndex(JNIEnv *env, jclass cls,
     }
     free(bytes);
     return (jlong)value;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_shader_usage_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[6];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.record_count;
+    values[2] = (jlong)header.uniform_count;
+    values[3] = (jlong)header.resource_count;
+    values[4] = (jlong)header.declared_count;
+    values[5] = (jlong)header.strings_size;
+    return pe_new_longs(env, values, 6);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeRecord(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index) {
+    r6_shader_usage_record_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[11];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_record(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_off;
+    values[1] = (jlong)row.stage;
+    values[2] = (jlong)row.uniform_first;
+    values[3] = (jlong)row.uniform_count;
+    values[4] = (jlong)row.dynamic_cbuffer;
+    values[5] = (jlong)row.resource_first;
+    values[6] = (jlong)row.resource_count;
+    values[7] = (jlong)row.declared_first;
+    values[8] = (jlong)row.declared_count;
+    values[9] = (jlong)row.dynamic_resource;
+    values[10] = (jlong)row.unmapped_resource;
+    return pe_new_longs(env, values, 11);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeName(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    char name[R6_SHADER_USAGE_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_name(bytes, length, (uint32_t)index, name,
+                             sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeFind(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jstring name,
+                                           jint stage) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jint out = -1;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_shader_usage_find(bytes, length, text, (uint32_t)stage,
+                             &index) == R6_OK) {
+        out = (jint)index;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return out;
+}
+
+static jobjectArray usage_named_result(JNIEnv *env, const char *name,
+                                       uint32_t count) {
+    jclass string_class;
+    jobjectArray out;
+    jstring value;
+    char decimal[16];
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if (!string_class) {
+        return NULL;
+    }
+    out = (*env)->NewObjectArray(env, 2, string_class, NULL);
+    if (!out) {
+        return NULL;
+    }
+    value = (*env)->NewStringUTF(env, name);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 0, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    lua_u32_decimal(count, decimal, sizeof(decimal));
+    value = (*env)->NewStringUTF(env, decimal);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 1, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    return out;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeUniform(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint record,
+                                              jint index) {
+    char name[R6_SHADER_USAGE_NAME_CAP];
+    uint32_t count = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jobjectArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_uniform(bytes, length, (uint32_t)record,
+                                (uint32_t)index, name, sizeof(name),
+                                &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = usage_named_result(env, name, count);
+    return out;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeResource(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint record,
+                                               jint index) {
+    char name[R6_SHADER_USAGE_NAME_CAP];
+    uint32_t count = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jobjectArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_resource(bytes, length, (uint32_t)record,
+                                 (uint32_t)index, name, sizeof(name),
+                                 &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = usage_named_result(env, name, count);
+    return out;
+}
+
+static jlongArray usage_find_result(JNIEnv *env, jbyteArray blob,
+                                    uint32_t record, uint32_t kind,
+                                    jstring name) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    uint32_t count = 0;
+    jlong values[2];
+    if (!name) {
+        return NULL;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return NULL;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        (kind == 0u ?
+         r6_shader_usage_find_uniform(bytes, length, record, text, &index,
+                                      &count) :
+         r6_shader_usage_find_resource(bytes, length, record, text, &index,
+                                       &count)) == R6_OK) {
+        values[0] = (jlong)index;
+        values[1] = (jlong)count;
+    } else {
+        free(bytes);
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        return NULL;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeFindUniform(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint record,
+                                                  jstring name) {
+    (void)cls;
+    return usage_find_result(env, blob, (uint32_t)record, 0u, name);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeFindResource(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint record,
+                                                   jstring name) {
+    (void)cls;
+    return usage_find_result(env, blob, (uint32_t)record, 1u, name);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ShaderUsage_nativeDeclared(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint record,
+                                               jint index) {
+    char name[R6_SHADER_USAGE_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_usage_declared(bytes, length, (uint32_t)record,
+                                 (uint32_t)index, name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
 }
 
 JNIEXPORT jlongArray JNICALL
