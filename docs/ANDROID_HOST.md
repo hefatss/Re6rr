@@ -109,7 +109,8 @@ structured SM4 blocks by shader/stage with case and break/continue spans, `Shade
 resolves reflected uniforms and texture/sampler keys with operand counts per stage,
 `Re6Texture` derives NTWD/NTLX mip payload layout and returns RGBA8 pixels from
 inflated containers, `Re6Audio` reads `.nub` bank metadata, tone
-control fields, four getter user parameters, codec-1 total samples and PCM bytes, `EngineSound` selects car/tune layer tones and
+control fields, four getter user parameters, codec-1 total samples, opaque
+registration bytes and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
 Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` through

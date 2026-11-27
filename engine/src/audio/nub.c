@@ -198,6 +198,18 @@ int r6_nub_tone_getters(const void *data, size_t size,
     return R6_OK;
 }
 
+int r6_nub_setup_bytes(const void *data, size_t size,
+                       const r6_nub_tone *tone,
+                       unsigned char out[R6_NUB_SETUP_BYTES]) {
+    if (!data || !tone || !out ||
+        (uint64_t)tone->record_offset + NUB_TONE_SIZE > size) {
+        return R6_ERR_ARG;
+    }
+    r6_memcpy(out, (const unsigned char *)data + tone->record_offset +
+              R6_NUB_SETUP_OFFSET, R6_NUB_SETUP_BYTES);
+    return R6_OK;
+}
+
 int r6_nub_pcm(const void *data, size_t size, const r6_nub_header *header,
                const r6_nub_tone *tone, const void **out, size_t *out_size) {
     uint64_t start;

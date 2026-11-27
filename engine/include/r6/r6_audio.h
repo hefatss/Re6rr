@@ -184,6 +184,18 @@ typedef struct r6_nub_getters {
     uint32_t codec;
 } r6_nub_getters;
 
+/* Opaque record +0x30..+0x5f copied verbatim into a voice slot at bank
+ * registration (FUN_18002eb80 / FUN_180035c40). No envelope meaning is
+ * recovered from the shipped dump; these are raw registration bytes. */
+enum {
+    R6_NUB_SETUP_OFFSET = 0x30,
+    R6_NUB_SETUP_BYTES = 0x30
+};
+
+R6_API int r6_nub_setup_bytes(const void *data, size_t size,
+                              const r6_nub_tone *tone,
+                              unsigned char out[R6_NUB_SETUP_BYTES]);
+
 /* Registration view used by nuSound2BankRegister (FUN_18002eb80). */
 typedef struct r6_bank_setup_tone {
     uint32_t length;

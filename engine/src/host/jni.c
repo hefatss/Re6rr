@@ -5816,6 +5816,31 @@ Java_com_wmmt_re6rr_Re6Audio_nativeGetters(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativeSetupBytes(JNIEnv *env, jclass cls,
+                                             jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    uint32_t count = 0;
+    unsigned char setup[R6_NUB_SETUP_BYTES];
+    jbyteArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK && (uint32_t)index < count &&
+        r6_nub_setup_bytes(bytes, length, &tones[index], setup) == R6_OK) {
+        out = (*env)->NewByteArray(env, (jsize)R6_NUB_SETUP_BYTES);
+        if (out) {
+            (*env)->SetByteArrayRegion(env, out, 0, (jsize)R6_NUB_SETUP_BYTES,
+                                       (const jbyte *)setup);
+        }
+    }
+    free(tones);
+    free(bytes);
+    return out;
+}
+
+JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
                                        jbyteArray data, jint index) {
     unsigned char *bytes = NULL;

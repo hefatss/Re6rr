@@ -53,6 +53,9 @@ def check(dump, lib):
     lib.r6_nub_tone_getters.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                         ctypes.POINTER(Tone),
                                         ctypes.POINTER(Getters)]
+    lib.r6_nub_setup_bytes.restype = ctypes.c_int
+    lib.r6_nub_setup_bytes.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                       ctypes.POINTER(Tone), ctypes.c_void_p]
 
     banks = nub_audio.collect(dump)["banks"]
     root = os.path.join(dump, nub_audio.SOUND_DIR)
@@ -72,11 +75,15 @@ def check(dump, lib):
         assert lib.r6_nub_parse(source, len(raw), ctypes.byref(header), tones,
                                 header.tone_count) == R6_OK
         getters = Getters()
+        setup = ctypes.create_string_buffer(0x30)
         for index, tone in enumerate(tones):
             offset = tone.record_offset
             expected_codec = struct.unpack_from("<I", raw, offset + 0x0c)[0]
             expected_params = struct.unpack_from("<4I", raw, offset + 0xac)
             expected_samples = tone.length // tone.block_align
+            assert lib.r6_nub_setup_bytes(
+                source, len(raw), ctypes.byref(tone), setup) == R6_OK
+            assert setup.raw == raw[offset + 0x30:offset + 0x60], (name, index)
             assert lib.r6_nub_tone_getters(
                 source, len(raw), ctypes.byref(tone),
                 ctypes.byref(getters)) == R6_OK
@@ -102,8 +109,15 @@ def check(dump, lib):
     assert lib.r6_nub_tone_getters(
         source, len(bad), ctypes.byref(moved),
         ctypes.byref(getters)) == R6_ERR_ARG
-    print("nuSound2: all 781 codec-1 tones expose four user params and exact "
-          "total samples; bad codec, null output and bad record rejected")
+    assert lib.r6_nub_setup_bytes(
+        source, len(bad), ctypes.byref(tones[0]), None) == R6_ERR_ARG
+    assert lib.r6_nub_setup_bytes(
+        source, len(bad), ctypes.byref(moved), setup) == R6_ERR_ARG
+    assert lib.r6_nub_setup_bytes(
+        None, len(bad), ctypes.byref(tones[0]), setup) == R6_ERR_ARG
+    print("nuSound2: all 781 codec-1 tones expose four user params, exact "
+          "total samples and 0x30 raw registration bytes; bad codec, null "
+          "output, bad record and null blob rejected")
 
 
 def main():

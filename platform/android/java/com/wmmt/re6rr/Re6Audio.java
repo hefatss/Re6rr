@@ -28,6 +28,12 @@ public final class Re6Audio {
         return nativeGetters(data, index);
     }
 
+    /** Opaque record +0x30..+0x5f copied verbatim at bank registration;
+     *  no envelope meaning is inferred. Null on error. */
+    public static byte[] setupBytes(byte[] data, int index) {
+        return nativeSetupBytes(data, index);
+    }
+
     /** PCM bytes for one tone, or null on error. */
     public static byte[] pcm(byte[] data, int index) {
         return nativePcm(data, index);
@@ -37,5 +43,6 @@ public final class Re6Audio {
     private static native int[] nativeTone(byte[] data, int index);
     private static native double[] nativeControl(byte[] data, int index);
     private static native long[] nativeGetters(byte[] data, int index);
+    private static native byte[] nativeSetupBytes(byte[] data, int index);
     private static native byte[] nativePcm(byte[] data, int index);
 }
