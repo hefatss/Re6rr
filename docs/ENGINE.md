@@ -229,7 +229,7 @@ platform/android/java/        Java side of the JNI bridge
   inventory of 219 globals looked up by the executable, with call counts and
   seven category indices. Lua bodies remain in shipped data scripts; no binding
   is invented.
-- `r6_lua_xref_parse()/row()/name()/func()/table()/user()` — read the derived
+- `r6_lua_xref_parse()/row()/name()/find()/func()/table()/user()` — read the derived
   `R6XRF` map of those 219 names to 222 function RVAs, 28 string/pointer-table
   RVAs and their 65 loading functions. RVAs are reported, never executed.
 - `r6_lua_inventory_parse()/name()/dir()/find()` — read the derived `R6LSI`
@@ -442,9 +442,9 @@ Verified on this dump:
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; find, bad blob, index and capacity rejected |
 | Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; find, bad blob, index, value and capacity rejected |
-| Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; bad blob, index and capacity rejected |
+| Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; find, bad blob, index and capacity rejected |
 | honor schema | all 13 type names match the exe pointer table and 60 ordered fields match `STORY_NATIVE.md`; find, bad blob, type, field and capacity rejected |
-| Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; bad blob, index and capacity rejected |
+| Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; find, bad blob, index and capacity rejected |
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
 | Environment.Lua | all 70 shipped files match `story_catalog.ENV_RE` and `as_int()`; comments, signs, malformed values and null inputs checked |
 | native names | all 1036 names in 9 shipped pointer tables match PE reads; bad kind, index, blob and capacity rejected |

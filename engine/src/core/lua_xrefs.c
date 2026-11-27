@@ -219,3 +219,39 @@ int r6_lua_xref_user(const void *data, size_t size, uint32_t index,
     *rva = r6_u32(bytes, users + user * 4u);
     return R6_OK;
 }
+
+int r6_lua_xref_find(const void *data, size_t size, const char *name,
+                     uint32_t *index) {
+    r6_lua_xref_header header;
+    size_t wanted;
+    uint32_t at;
+    int result = r6_lua_xref_parse(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.count; at++) {
+        char found[R6_LUA_XREF_NAME_CAP];
+        result = r6_lua_xref_name(data, size, at, found, sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

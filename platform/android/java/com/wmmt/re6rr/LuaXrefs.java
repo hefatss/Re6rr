@@ -20,6 +20,11 @@ public final class LuaXrefs {
         return nativeName(blob, index);
     }
 
+    /** row index for an exact Lua name match; -1 if absent. */
+    public static long find(byte[] blob, String name) {
+        return nativeFind(blob, name);
+    }
+
     /** via, function count and table count; null for an invalid index. */
     public static long[] row(byte[] blob, int index) {
         return nativeRow(blob, index);
@@ -43,6 +48,8 @@ public final class LuaXrefs {
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
+
+    private static native long nativeFind(byte[] blob, String name);
 
     private static native long[] nativeRow(byte[] blob, int index);
 

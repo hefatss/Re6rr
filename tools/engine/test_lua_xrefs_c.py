@@ -16,6 +16,7 @@ R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
 R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
 NAME_CAP = 0x80
 
 
@@ -41,6 +42,10 @@ def check(lib):
     lib.r6_lua_xref_name.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                      ctypes.c_uint32, ctypes.c_char_p,
                                      ctypes.c_size_t]
+    lib.r6_lua_xref_find.restype = ctypes.c_int
+    lib.r6_lua_xref_find.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                     ctypes.c_char_p,
+                                     ctypes.POINTER(ctypes.c_uint32)]
     lib.r6_lua_xref_func.restype = ctypes.c_int
     lib.r6_lua_xref_func.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                      ctypes.c_uint32, ctypes.c_uint32,
@@ -107,6 +112,16 @@ def check(lib):
             tables += 1
     assert (funcs, tables) == (222, 28)
 
+    found = ctypes.c_uint32()
+    for index, want in enumerate(rows):
+        assert lib.r6_lua_xref_find(
+            source, len(blob), want["name"].encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == index
+    assert lib.r6_lua_xref_find(
+        source, len(blob), b"R6_NO_SUCH_XREF_NAME",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
+
     first = rows[0]
     assert first["funcs"]
     assert lib.r6_lua_xref_func(source, len(blob), 0, len(first["funcs"]),
@@ -141,8 +156,8 @@ def check(lib):
     assert lib.r6_lua_xref_name(source, len(bad), 0, name,
                                 len(name)) == R6_ERR_FORMAT
     print("lua xrefs: 219 names, 222 function refs, 28 table refs and %d "
-          "table users match bindings.json; bad blob, index and capacity "
-          "rejected" % users)
+          "table users match bindings.json; find, bad blob, index and "
+          "capacity rejected" % users)
 
 
 def main():

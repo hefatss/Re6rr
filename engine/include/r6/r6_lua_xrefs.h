@@ -54,6 +54,10 @@ R6_API int r6_lua_xref_table(const void *data, size_t size, uint32_t index,
 R6_API int r6_lua_xref_user(const void *data, size_t size, uint32_t index,
                             uint32_t which, uint32_t user, uint32_t *rva);
 
+/* First exact name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_lua_xref_find(const void *data, size_t size, const char *name,
+                            uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif
