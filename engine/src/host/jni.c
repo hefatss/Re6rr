@@ -66,6 +66,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_gz_effect_catalog.h"
 #include "r6/r6_xmlt_lists.h"
 #include "r6/r6_msgdb_namespace.h"
+#include "r6/r6_shader_param_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7284,6 +7285,121 @@ Java_com_wmmt_re6rr_MsgdbNamespace_nativeGroup(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Per-car shader Lua parameters: copied paths, model names and float values. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderParamCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_shader_param_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes ||
+        r6_shader_param_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.reserved0;
+    values[4] = (jlong)header.reserved1;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderParamCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_shader_param_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_shader_param_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.model_offset;
+    values[3] = (jlong)file.model_length;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_ShaderParamCatalog_nativeValues(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_shader_param_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jdouble values[R6_SHADER_PARAM_COUNT];
+    jdoubleArray result = NULL;
+    int at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_shader_param_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (at = 0; at < R6_SHADER_PARAM_COUNT; at++) {
+        values[at] = (jdouble)file.values[at];
+    }
+    result = (*env)->NewDoubleArray(env, R6_SHADER_PARAM_COUNT);
+    if (result) {
+        (*env)->SetDoubleArrayRegion(env, result, 0, R6_SHADER_PARAM_COUNT,
+                                     values);
+    }
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ShaderParamCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_shader_param_path(bytes, length, (uint32_t)index, path,
+                             sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ShaderParamCatalog_nativeModel(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char model[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_shader_param_model(bytes, length, (uint32_t)index, model,
+                              sizeof(model)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, model);
     return result;
 }
 

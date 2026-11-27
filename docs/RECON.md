@@ -33,7 +33,7 @@ must come from imports, string references, RTTI and pattern matching.
 
 | Ext | Count | Size | Container |
 |---|---|---|---|
-| `.lua` | 4,885 | 154 MB | plain text, mostly data tables (car spec/colour/position/vinyl, course clip lists) |
+| `.lua` | 4,885 | 154 MB | plain text, mostly data tables (car spec/colour/position/vinyl, course clip lists); `tools/engine/shader_param_catalog.py` inventories 142 `car/shader/parameter/*_ShaderParameter.lua` files with 8 float32 values each |
 | `.bin` | 1,495 | 2.80 GB | raw float32 course geometry (some gzip); `tools/engine/course_paths_catalog.py` inventories 178 `data/course/path` bins |
 | `.nut` | 580 + 10,571 | 1.18 GB + 1.94 GB | gzip, inner `NTWD` (model/scene) |
 | `.tex` | 1,175 + 75 | 406 MB | gzip/raw `XMD.001`; `tools/engine/xmd_asset_catalog.py` inventories headers and streams |
