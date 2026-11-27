@@ -170,6 +170,34 @@ int r6_nub_tone_control(const void *data, size_t size,
     return R6_OK;
 }
 
+int r6_nub_tone_getters(const void *data, size_t size,
+                        const r6_nub_tone *tone, r6_nub_getters *out) {
+    uint32_t codec;
+    uint32_t length;
+    uint32_t block_align;
+    if (!data || !tone || !out ||
+        (uint64_t)tone->record_offset + NUB_TONE_SIZE > size) {
+        return R6_ERR_ARG;
+    }
+    codec = r6_u32(data, tone->record_offset + 0x0c);
+    if (codec != 1u) {
+        return R6_ERR_FORMAT;
+    }
+    length = r6_u32(data, tone->record_offset + 0x14);
+    block_align = r6_u16(data, tone->record_offset + 0xc8);
+    if (!block_align || length % block_align != 0u ||
+        length != tone->length || block_align != tone->block_align) {
+        return R6_ERR_FORMAT;
+    }
+    out->user_param[0] = r6_u32(data, tone->record_offset + 0xac);
+    out->user_param[1] = r6_u32(data, tone->record_offset + 0xb0);
+    out->user_param[2] = r6_u32(data, tone->record_offset + 0xb4);
+    out->user_param[3] = r6_u32(data, tone->record_offset + 0xb8);
+    out->total_samples = length / block_align;
+    out->codec = codec;
+    return R6_OK;
+}
+
 int r6_nub_pcm(const void *data, size_t size, const r6_nub_header *header,
                const r6_nub_tone *tone, const void **out, size_t *out_size) {
     uint64_t start;

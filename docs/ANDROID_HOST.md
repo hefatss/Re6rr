@@ -103,7 +103,7 @@ and RGBA8 upload descriptors from the compiled manifest, and packs std140
 blocks from reflected region order, `NshContainer` validates shipped NSXR
 headers and DXBC chunk tables, `Re6Texture` returns RGBA8 pixels from
 inflated NTWD/NTLX containers, `Re6Audio` reads `.nub` bank metadata, tone
-control fields and PCM bytes, `EngineSound` selects car/tune layer tones and
+control fields, four getter user parameters, codec-1 total samples and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
 Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` through

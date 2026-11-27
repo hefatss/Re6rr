@@ -5313,6 +5313,35 @@ Java_com_wmmt_re6rr_Re6Audio_nativeControl(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6Audio_nativeGetters(JNIEnv *env, jclass cls,
+                                           jbyteArray data, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nub_header header;
+    r6_nub_tone *tones = NULL;
+    r6_nub_getters getters;
+    uint32_t count = 0;
+    jlong values[6];
+    jlongArray out = NULL;
+    (void)cls;
+    if (audio_from_blob(env, data, &bytes, &length, &header, &tones,
+                        &count) == R6_OK && (uint32_t)index < count &&
+        r6_nub_tone_getters(bytes, length, &tones[index],
+                            &getters) == R6_OK) {
+        values[0] = (jlong)getters.user_param[0];
+        values[1] = (jlong)getters.user_param[1];
+        values[2] = (jlong)getters.user_param[2];
+        values[3] = (jlong)getters.user_param[3];
+        values[4] = (jlong)getters.total_samples;
+        values[5] = (jlong)getters.codec;
+        out = pe_new_longs(env, values, 6);
+    }
+    free(tones);
+    free(bytes);
+    return out;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Audio_nativePcm(JNIEnv *env, jclass cls,
                                        jbyteArray data, jint index) {

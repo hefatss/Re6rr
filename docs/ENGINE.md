@@ -84,8 +84,10 @@ platform/android/java/        Java side of the JNI bridge
   vendored miniz in raw-deflate mode. `r6_gzip_inflate` reports the required
   capacity on `R6_ERR_BUFFER`; state is one static scratch block, so calls are
   sequential.
-- `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_pcm()` — bounds-checked
-  nuSound2 bank parse, playback control fields and a zero-copy PCM view over
+- `r6_nub_parse()` / `r6_nub_tone_control()` / `r6_nub_tone_getters()` /
+  `r6_nub_pcm()` — bounds-checked nuSound2 bank parse, playback control fields,
+  the four user parameters at record `+0xac..+0xb8` plus codec-1
+  `PCM length / block align` total samples, and a zero-copy PCM view over
   host-owned bytes. No mixer, resampling or audio device.
 - `r6_audio_fade_frames_to_ms()` / `r6_audio_stream_reserve()` — the recovered
   60 fps BGM fade conversion and the 0x20000000 stream-byte cap. Both are
@@ -409,7 +411,7 @@ Verified on this dump:
 | `R6GB` compiled bindings | `Body.nsh` round-trips 2 records; pixel stage has 2 cbuffers, 16 regions and 3 sampler pairs; all 446 records parse with 797 cbuffers, 2,029 regions and 526 sampler pairs; name find, short, bad-version and bad-index inputs rejected |
 | 578 `.mdl` files, 28,516 NDWD groups | C parser matches `tools/assets/ndwd_records.py` |
 | 20 gzip containers | output byte-identical to Python `gzip`; bad header rejected, short buffer reports required size |
-| 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; bad version and short header rejected |
+| 149 `.nub` banks, 781 tones | C header/tone/control fields and 149 first-tone PCM views match `tools/engine/nub_audio.py`; all 781 codec-1 getter rows expose exact user params and total samples; bad version, short header, bad codec and null output rejected |
 | bank-registration view | all 149 banks and 781 tone length/offset/format rows match `audio_events.bank_setup_view()` and `nub_audio.tones()`; bad version, table, record, short input and capacity rejected |
 | bank slot scan | first free slot found across all 64 slots at stride 0x804; full table, short buffer and null arguments rejected |
 | nuSound2 string tables | 1 bank table and 8 tone tables (648 rows) match `nub_audio.parse_string_table()`; bank ids 1–7, truncated ENGINE id 0 and SYSTEM tone 47 `select.wav` checked; all 648 row names and 601 distinct WAV paths resolve through `find`/`findValue`, absent name/path rejected, bad version/size/kind, short and out-of-range inputs rejected |

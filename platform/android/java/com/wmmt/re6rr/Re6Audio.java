@@ -23,6 +23,11 @@ public final class Re6Audio {
         return nativeControl(data, index);
     }
 
+    /** user_param[0..3], total_samples and codec at record +0x0c; null if bad. */
+    public static long[] getters(byte[] data, int index) {
+        return nativeGetters(data, index);
+    }
+
     /** PCM bytes for one tone, or null on error. */
     public static byte[] pcm(byte[] data, int index) {
         return nativePcm(data, index);
@@ -31,5 +36,6 @@ public final class Re6Audio {
     private static native int[] nativeHeader(byte[] data);
     private static native int[] nativeTone(byte[] data, int index);
     private static native double[] nativeControl(byte[] data, int index);
+    private static native long[] nativeGetters(byte[] data, int index);
     private static native byte[] nativePcm(byte[] data, int index);
 }

@@ -162,6 +162,14 @@ typedef struct r6_nub_control {
     uint32_t voice_bus;
 } r6_nub_control;
 
+/* Getter-export view: nuSound2ToneGetUserParamHandle reads record +0xac..b8;
+ * nuSound2ToneGetTotalSamplesHandle divides PCM length by WAV block align. */
+typedef struct r6_nub_getters {
+    uint32_t user_param[4];
+    uint32_t total_samples;
+    uint32_t codec;
+} r6_nub_getters;
+
 /* Registration view used by nuSound2BankRegister (FUN_18002eb80). */
 typedef struct r6_bank_setup_tone {
     uint32_t length;
@@ -186,6 +194,11 @@ R6_API int r6_nub_parse(const void *data, size_t size, r6_nub_header *header,
 /* Read the control fields for a parsed tone. */
 R6_API int r6_nub_tone_control(const void *data, size_t size,
                                const r6_nub_tone *tone, r6_nub_control *out);
+
+/* Read user parameters and the codec-1 total-sample count for a parsed tone. */
+R6_API int r6_nub_tone_getters(const void *data, size_t size,
+                               const r6_nub_tone *tone,
+                               r6_nub_getters *out);
 
 /* Zero-copy view of the PCM bytes for a parsed tone. The caller owns `data`. */
 R6_API int r6_nub_pcm(const void *data, size_t size,
