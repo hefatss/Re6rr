@@ -201,3 +201,17 @@ void r6_shdr_operand_facts(r6_shdr_operand_facts_t *out) {
     out->nonzero_instructions = 1935u;
     out->saturate_instructions = 408u;
 }
+
+void r6_dxbc_signature_facts(r6_dxbc_signature_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->signature_chunks = 892u;
+    out->isgn_chunks = 446u;
+    out->osgn_chunks = 446u;
+    out->isgn_entries = 1813u;
+    out->isgn_non_sv_entries = 1590u;
+    out->osgn_entries = 1457u;
+    out->sv_position_skipped = 223u;
+}

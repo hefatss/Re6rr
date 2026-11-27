@@ -7595,6 +7595,23 @@ Java_com_wmmt_re6rr_NshContainer_nativeOperandFacts(JNIEnv *env, jclass cls) {
     return pe_new_longs(env, values, 7);
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeSignatureFacts(JNIEnv *env,
+                                                      jclass cls) {
+    r6_dxbc_signature_facts_t facts;
+    jlong values[7];
+    (void)cls;
+    r6_dxbc_signature_facts(&facts);
+    values[0] = (jlong)facts.signature_chunks;
+    values[1] = (jlong)facts.isgn_chunks;
+    values[2] = (jlong)facts.osgn_chunks;
+    values[3] = (jlong)facts.isgn_entries;
+    values[4] = (jlong)facts.isgn_non_sv_entries;
+    values[5] = (jlong)facts.osgn_entries;
+    values[6] = (jlong)facts.sv_position_skipped;
+    return pe_new_longs(env, values, 7);
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
                                            jbyteArray raw, jint offset) {

@@ -34,6 +34,11 @@ OPERAND_NAMES = [
     "saturate_instructions",
 ]
 
+SIGNATURE_NAMES = [
+    "signature_chunks", "isgn_chunks", "osgn_chunks", "isgn_entries",
+    "isgn_non_sv_entries", "osgn_entries", "sv_position_skipped",
+]
+
 
 class Chunk(ctypes.Structure):
     _fields_ = [("tag", ctypes.c_uint32), ("offset", ctypes.c_uint32),
@@ -76,6 +81,10 @@ class OperandFacts(ctypes.Structure):
     _fields_ = [(name, ctypes.c_uint32) for name in OPERAND_NAMES]
 
 
+class SignatureFacts(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint32) for name in SIGNATURE_NAMES]
+
+
 def check(dump, lib):
     lib.r6_nsh_parse.restype = ctypes.c_int
     lib.r6_nsh_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -92,6 +101,8 @@ def check(dump, lib):
                                                ctypes.c_size_t]
     lib.r6_shdr_operand_facts.restype = None
     lib.r6_shdr_operand_facts.argtypes = [ctypes.POINTER(OperandFacts)]
+    lib.r6_dxbc_signature_facts.restype = None
+    lib.r6_dxbc_signature_facts.argtypes = [ctypes.POINTER(SignatureFacts)]
     root = os.path.join(dump, nsxr_shader.SHADER_DIR)
     names = sorted(name for name in os.listdir(root) if name.endswith(".nsh"))
     assert len(names) == 223
@@ -100,6 +111,7 @@ def check(dump, lib):
     totals = {name: 0 for name in nsxr_shader.STAT_FIELDS[:29]}
     reflection = {name: 0 for name in REFLECTION_NAMES}
     operands = {name: 0 for name in OPERAND_NAMES}
+    signatures = {name: 0 for name in SIGNATURE_NAMES}
     creators = set()
     for name in names:
         with open(os.path.join(root, name), "rb") as stream:
@@ -222,6 +234,21 @@ def check(dump, lib):
                     operands["saturate_instructions"] += sum(
                         instruction["flags"]["saturate"]
                         for instruction in code["instructions"])
+                elif part["tag"] in ("ISGN", "OSGN"):
+                    entries = part["signature"]["entries"]
+                    signatures["signature_chunks"] += 1
+                    if part["tag"] == "ISGN":
+                        signatures["isgn_chunks"] += 1
+                        signatures["isgn_entries"] += len(entries)
+                        signatures["isgn_non_sv_entries"] += sum(
+                            not entry["name"].startswith("SV_")
+                            for entry in entries)
+                        signatures["sv_position_skipped"] += sum(
+                            entry["name"] == "SV_POSITION"
+                            for entry in entries)
+                    else:
+                        signatures["osgn_chunks"] += 1
+                        signatures["osgn_entries"] += len(entries)
                 chunks += 1
 
     first_raw = open(os.path.join(root, names[0]), "rb").read()
@@ -305,11 +332,18 @@ def check(dump, lib):
         assert getattr(shdr, field) == operands[field], (
             field, getattr(shdr, field), operands[field])
     lib.r6_shdr_operand_facts(None)
+
+    signature = SignatureFacts()
+    lib.r6_dxbc_signature_facts(ctypes.byref(signature))
+    for field in SIGNATURE_NAMES:
+        assert getattr(signature, field) == signatures[field], (
+            field, getattr(signature, field), signatures[field])
+    lib.r6_dxbc_signature_facts(None)
     print("NSXR: %d files, 2 records each, %d DXBC chunks, all 29 summed "
-          "STAT fields, 23 summed RDEF fields and 7 SHDR operand/modifier "
-          "totals match nsxr_shader.parse_nsh(); the one creator string and "
-          "bad capacities are checked, as are chunk find, short input, bad "
-          "magic and bad sizes" % (len(names), chunks))
+          "STAT fields, 23 summed RDEF fields, 7 SHDR operand/modifier and "
+          "7 ISGN/OSGN totals match nsxr_shader.parse_nsh(); the one creator "
+          "string and bad capacities are checked, as are chunk find, short "
+          "input, bad magic and bad sizes" % (len(names), chunks))
 
 
 def main():

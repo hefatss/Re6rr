@@ -1,7 +1,7 @@
 /* Freestanding reader for the shipped NSXR (.nsh) container and its DXBC
  * chunk tables. No files, allocation or D3D objects: the host supplies bytes.
  * Detailed SHDR/RDEF/ISGN/OSGN payload interpretation stays in the Python
- * recon tools; only aggregate STAT/RDEF/SHDR facts are copied here.
+ * recon tools; only aggregate STAT/RDEF/SHDR/signature facts are copied here.
  */
 #ifndef R6_NSH_H
 #define R6_NSH_H
@@ -148,6 +148,21 @@ typedef struct r6_shdr_operand_facts_t {
 } r6_shdr_operand_facts_t;
 
 R6_API void r6_shdr_operand_facts(r6_shdr_operand_facts_t *out);
+
+/* Summed ISGN/OSGN chunk and entry counts across the 446 shipped DXBC
+ * records. The non-SV ISGN count matches GLSL manifest inputs; the raw count
+ * and per-stage SV_POSITION entries are kept verbatim. */
+typedef struct r6_dxbc_signature_facts_t {
+    uint32_t signature_chunks;
+    uint32_t isgn_chunks;
+    uint32_t osgn_chunks;
+    uint32_t isgn_entries;
+    uint32_t isgn_non_sv_entries;
+    uint32_t osgn_entries;
+    uint32_t sv_position_skipped;
+} r6_dxbc_signature_facts_t;
+
+R6_API void r6_dxbc_signature_facts(r6_dxbc_signature_facts_t *out);
 
 #ifdef __cplusplus
 }

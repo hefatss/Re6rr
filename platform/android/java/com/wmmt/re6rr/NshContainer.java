@@ -47,6 +47,12 @@ public final class NshContainer {
         return nativeOperandFacts();
     }
 
+    /** 7 values: ISGN/OSGN chunk counts, raw/non-SV input entries, output
+     *  entries and skipped SV_POSITION entries across the 446 DXBC records. */
+    public static long[] signatureFacts() {
+        return nativeSignatureFacts();
+    }
+
     private static native long[] nativeParse(byte[] raw);
 
     private static native long[] nativeChunkFind(byte[] raw, int record,
@@ -59,4 +65,6 @@ public final class NshContainer {
     private static native String nativeReflectionCreator();
 
     private static native long[] nativeOperandFacts();
+
+    private static native long[] nativeSignatureFacts();
 }
