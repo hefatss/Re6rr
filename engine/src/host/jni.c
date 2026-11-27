@@ -6103,6 +6103,33 @@ Java_com_wmmt_re6rr_SoundStrings_nativeRowId(JNIEnv *env, jclass cls,
     return result;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_SoundStrings_nativeFind(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint kind,
+                                            jstring name) {
+    uint32_t index = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    jlong result = -1;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_sound_strings_find(bytes, length, (int)kind, text, &index) == R6_OK) {
+        result = (jlong)index;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_LuaAudioBindings_nativeCount(JNIEnv *env, jclass cls) {
     (void)env;

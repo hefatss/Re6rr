@@ -464,6 +464,42 @@ int r6_sound_strings_row(const void *data, size_t size, int kind,
     return R6_OK;
 }
 
+int r6_sound_strings_find(const void *data, size_t size, int kind,
+                          const char *name, uint32_t *index) {
+    r6_sound_strings_header header;
+    size_t wanted;
+    uint32_t at;
+    int result = r6_sound_strings_parse(data, size, kind, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.count; at++) {
+        r6_sound_strings_row_t row;
+        result = r6_sound_strings_row(data, size, kind, at, &row);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(row.name) == wanted &&
+            r6_memcmp(row.name, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 #define R6_AUDIO_BINDING_NONE (-1)
 
 static const r6_audio_binding_t audio_bindings[] = {

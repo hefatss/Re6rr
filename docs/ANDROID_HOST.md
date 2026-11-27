@@ -119,8 +119,8 @@ reservation, `VoiceChain` copies chained-voice records and applies core fields,
 `SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
 stream fade state, `BgmManager` applies playBGM id dispatch, `SoundDispatch`
 copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
-`BankSlots` finds free registration slots, `SoundStrings` reads bank/tone
-names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
+`BankSlots` finds free registration slots, `SoundStrings` finds bank/tone
+names and reads their WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
 camera containers/records, `EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
 last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 runtime
