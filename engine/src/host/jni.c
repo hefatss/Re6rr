@@ -46,6 +46,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_engine_sound.h"
 #include "r6/r6_glsl.h"
 #include "r6/r6_glsl_manifest.h"
+#include "r6/r6_shader_cf.h"
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
@@ -58,6 +59,8 @@ static r6_engine *from_handle(jlong handle) {
 
 static int raw_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
                          size_t *length);
+
+static jlongArray pe_new_longs(JNIEnv *env, const jlong *values, jsize count);
 
 /* Parse a packed descriptor from Java into caller-owned vertex storage. */
 static int course_from_descriptor(JNIEnv *env, jbyteArray descriptor,
@@ -1110,6 +1113,165 @@ Java_com_wmmt_re6rr_LuaInventory_nativeFindSymbol(JNIEnv *env, jclass cls,
         (*env)->SetLongArrayRegion(env, out, 0, 2, values);
     }
     return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_shader_cf_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[6];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.record_count;
+    values[2] = (jlong)header.block_count;
+    values[3] = (jlong)header.case_count;
+    values[4] = (jlong)header.index_count;
+    values[5] = (jlong)header.strings_size;
+    return pe_new_longs(env, values, 6);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeRecord(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    r6_shader_cf_record_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[6];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_record(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_off;
+    values[1] = (jlong)row.stage;
+    values[2] = (jlong)row.first_block;
+    values[3] = (jlong)row.block_count;
+    values[4] = (jlong)row.unmatched_first;
+    values[5] = (jlong)row.unmatched_count;
+    return pe_new_longs(env, values, 6);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jint index) {
+    char name[R6_SHADER_CF_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_name(bytes, length, (uint32_t)index, name,
+                          sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeFind(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jstring name,
+                                                 jint stage) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jint out = -1;
+    (void)cls;
+    if (!name) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_shader_cf_find(bytes, length, text, (uint32_t)stage,
+                          &index) == R6_OK) {
+        out = (jint)index;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeBlock(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    r6_shader_cf_block_t block;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[10];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_block(bytes, length, (uint32_t)index, &block) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)block.kind;
+    values[1] = (jlong)block.start;
+    values[2] = (jlong)block.end;
+    values[3] = (jlong)block.else_index;
+    values[4] = (jlong)block.case_first;
+    values[5] = (jlong)block.case_count;
+    values[6] = (jlong)block.break_first;
+    values[7] = (jlong)block.break_count;
+    values[8] = (jlong)block.continue_first;
+    values[9] = (jlong)block.continue_count;
+    return pe_new_longs(env, values, 10);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeCase(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jint index) {
+    r6_shader_cf_case_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[2];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_case(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.kind;
+    values[1] = (jlong)row.start;
+    return pe_new_longs(env, values, 2);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_ShaderControlFlow_nativeIndex(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    uint32_t value = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_shader_cf_index(bytes, length, (uint32_t)index, &value) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)value;
 }
 
 JNIEXPORT jlongArray JNICALL
