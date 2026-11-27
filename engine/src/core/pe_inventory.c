@@ -10,8 +10,8 @@ static const unsigned char pe_inventory_magic[8] = {
 };
 
 enum {
-    R6_PE_HEADER_SIZE = 120,
-    R6_PE_FUNC_OFF = 120,
+    R6_PE_HEADER_SIZE = 156,
+    R6_PE_FUNC_OFF = 156,
     R6_PE_DLL_OFF = R6_PE_FUNC_OFF + R6_PE_INVENTORY_FUNCS * 16u,
     R6_PE_IMPORT_OFF = R6_PE_DLL_OFF + R6_PE_INVENTORY_DLLS * 12u,
     R6_PE_SECTION_OFF = R6_PE_IMPORT_OFF + R6_PE_INVENTORY_IMPORTS * 12u,
@@ -67,9 +67,21 @@ static int pe_header(const void *data, size_t size,
     header.guid_off = r6_u32(bytes, 108);
     header.pdb_age = r6_u32(bytes, 112);
     header.path_off = r6_u32(bytes, 116);
+    header.rva_min = r6_u32(bytes, 120);
+    header.rva_max = r6_u32(bytes, 124);
+    header.entry_size = r6_u32(bytes, 128);
+    header.symbol_table = r6_u32(bytes, 132);
+    header.symbol_count = r6_u32(bytes, 136);
+    header.debug_type_count = r6_u32(bytes, 140);
+    header.debug_type = r6_u32(bytes, 144);
+    header.sha256_off = r6_u32(bytes, 148);
+    header.exe_path_off = r6_u32(bytes, 152);
     if (!header.strings_size ||
         (size_t)R6_PE_STRINGS_OFF + header.strings_size != size ||
-        header.entry_rva >= header.size_of_image) {
+        header.entry_rva >= header.size_of_image ||
+        header.sha256_off < R6_PE_STRINGS_OFF ||
+        header.exe_path_off < R6_PE_STRINGS_OFF ||
+        header.sha256_off >= size || header.exe_path_off >= size) {
         return R6_ERR_FORMAT;
     }
     r6_memcpy(out, &header, sizeof(header));
@@ -528,5 +540,34 @@ int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
         *age = header.pdb_age;
     }
     return R6_OK;
+}
+
+int r6_pe_inventory_sha256(const void *data, size_t size, char *out,
+                           size_t capacity) {
+    r6_pe_inventory_header header;
+    const unsigned char *bytes = (const unsigned char *)data;
+    int result = pe_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    result = pe_name(bytes, size, header.sha256_off, out, capacity);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (r6_strlen(out) != 64u) {
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+int r6_pe_inventory_exe_path(const void *data, size_t size, char *out,
+                             size_t capacity) {
+    r6_pe_inventory_header header;
+    const unsigned char *bytes = (const unsigned char *)data;
+    int result = pe_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    return pe_name(bytes, size, header.exe_path_off, out, capacity);
 }
 

@@ -54,6 +54,15 @@ typedef struct r6_pe_inventory_header {
     uint32_t guid_off;
     uint32_t pdb_age;
     uint32_t path_off;
+    uint32_t rva_min;
+    uint32_t rva_max;
+    uint32_t entry_size;
+    uint32_t symbol_table;
+    uint32_t symbol_count;
+    uint32_t debug_type_count;
+    uint32_t debug_type;
+    uint32_t sha256_off;
+    uint32_t exe_path_off;
 } r6_pe_inventory_header;
 
 R6_API int r6_pe_inventory_parse(const void *data, size_t size,
@@ -116,6 +125,13 @@ R6_API int r6_pe_inventory_dll_find(const void *data, size_t size,
 R6_API int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
                                size_t guid_capacity, uint32_t *age,
                                char *path, size_t path_capacity);
+
+/* Copied provenance strings from pe.json; no executable bytes are returned. */
+R6_API int r6_pe_inventory_sha256(const void *data, size_t size, char *out,
+                                  size_t capacity);
+
+R6_API int r6_pe_inventory_exe_path(const void *data, size_t size, char *out,
+                                    size_t capacity);
 
 #ifdef __cplusplus
 }

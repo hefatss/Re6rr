@@ -20,7 +20,7 @@ R6_ERR_NOT_FOUND = -7
 U32 = ctypes.c_uint32
 PU32 = ctypes.POINTER(U32)
 BUF = ctypes.c_char_p
-FUNC_OFF = 120
+FUNC_OFF = 156
 DLL_OFF = FUNC_OFF + 70377 * 16
 IMPORT_OFF = DLL_OFF + 28 * 12
 SECTION_OFF = IMPORT_OFF + 825 * 12
@@ -37,7 +37,9 @@ class Header(ctypes.Structure):
         "text_bytes", "leaf", "chained", "with_eh", "reloc_blocks",
         "reloc_entries", "dll_count", "import_count", "export_count",
         "tls_count", "section_count", "strings_size", "guid_off", "pdb_age",
-        "path_off")]
+        "path_off", "rva_min", "rva_max", "entry_size", "symbol_table",
+        "symbol_count", "debug_type_count", "debug_type", "sha256_off",
+        "exe_path_off")]
 
 
 def configure(lib):
@@ -87,6 +89,12 @@ def configure(lib):
     lib.r6_pe_inventory_pdb.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, BUF, ctypes.c_size_t, PU32, BUF,
         ctypes.c_size_t]
+    lib.r6_pe_inventory_sha256.restype = ctypes.c_int
+    lib.r6_pe_inventory_sha256.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, BUF, ctypes.c_size_t]
+    lib.r6_pe_inventory_exe_path.restype = ctypes.c_int
+    lib.r6_pe_inventory_exe_path.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, BUF, ctypes.c_size_t]
 
 
 def check(lib):
@@ -121,6 +129,13 @@ def check(lib):
     assert header.tls_count == len(pe["tls"]["callbacks"])
     assert header.section_count == len(pe["sections"])
     assert header.pdb_age == pe["debug"]["pdb"]["age"]
+    assert header.rva_min == pe["pdata"]["rva_min"]
+    assert header.rva_max == pe["pdata"]["rva_max"]
+    assert header.entry_size == pe["pdata"]["entry_size"]
+    assert header.symbol_table == pe["symbols"]["table"]
+    assert header.symbol_count == pe["symbols"]["count"]
+    assert header.debug_type_count == len(pe["debug"]["types"])
+    assert header.debug_type == pe["debug"]["types"][0]
 
     rva = U32()
     end = U32()
@@ -282,6 +297,16 @@ def check(lib):
     assert ordinal.value == pe["debug"]["pdb"]["age"]
     assert path.value.decode("ascii") == pe["debug"]["pdb"]["path"]
 
+    digest = ctypes.create_string_buffer(65)
+    assert lib.r6_pe_inventory_sha256(source, len(blob), digest,
+                                      len(digest)) == R6_OK
+    assert digest.value.decode("ascii") == pe["sha256"]
+    assert lib.r6_pe_inventory_exe_path(source, len(blob), path,
+                                        len(path)) == R6_OK
+    assert path.value.decode("ascii") == pe["path"]
+    assert lib.r6_pe_inventory_sha256(source, len(blob), digest,
+                                      64) == R6_ERR_BUFFER
+
     assert lib.r6_pe_inventory_func(
         source, len(blob), 70377, ctypes.byref(rva), ctypes.byref(end),
         ctypes.byref(length), ctypes.byref(leaf)) == R6_ERR_ARG
@@ -340,9 +365,9 @@ def check(lib):
         source, len(bad), 0, ctypes.byref(directory_index),
         ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_ERR_FORMAT
     print("PE inventory: 70377 functions, 825 named/ordinal imports, 28 DLLs, "
-          "7 sections, 8 directories and PDB data match pe.json/pdata.json; "
-          "RVA/directory/DLL/import find, all interior/gap RVA covers, "
-          "bad blob, index, row and capacity rejected")
+          "7 sections, 8 directories, PDB and provenance data match "
+          "pe.json/pdata.json; RVA/directory/DLL/import find, all interior/gap "
+          "RVA covers, bad blob, index, row and capacity rejected")
 
 
 def main():

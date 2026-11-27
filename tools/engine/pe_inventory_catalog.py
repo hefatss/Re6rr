@@ -20,7 +20,7 @@ PDATA_REPORT = os.path.join(ROOT, "docs", "recon", "pdata.json")
 
 MAGIC = b"R6PEI\0\1\0"
 VERSION = 1
-HEADER = struct.Struct("<8s28I")
+HEADER = struct.Struct("<8s37I")
 FUNC = struct.Struct("<4I")
 DLL = struct.Struct("<3I")
 IMPORT = struct.Struct("<3I")
@@ -43,6 +43,8 @@ def collect(pe_report=PE_REPORT, pdata_report=PDATA_REPORT):
     assert len(pe["tls"]["callbacks"]) == 1
     assert len(pe["sections"]) == 7
     assert len(pe["directories"]) == 8
+    assert len(pe["sha256"]) == 64
+    assert len(pe["debug"]["types"]) == 1
     return pe, pdata, funcs
 
 
@@ -97,6 +99,8 @@ def build(pe, pdata, funcs):
         for item in pe["directories"])
     guid_off = add(pe["debug"]["pdb"]["guid"])
     path_off = add(pe["debug"]["pdb"]["path"])
+    sha256_off = add(pe["sha256"])
+    exe_path_off = add(pe["path"])
 
     base = int(pe["image_base"], 16)
     header = HEADER.pack(
@@ -110,7 +114,11 @@ def build(pe, pdata, funcs):
         pe["relocations"]["entries"], len(pe["imports"]), 825,
         len(pe["exports"]), len(pe["tls"]["callbacks"]),
         len(pe["sections"]), len(strings), guid_off,
-        pe["debug"]["pdb"]["age"], path_off)
+        pe["debug"]["pdb"]["age"], path_off,
+        pe["pdata"]["rva_min"], pe["pdata"]["rva_max"],
+        pe["pdata"]["entry_size"], pe["symbols"]["table"],
+        pe["symbols"]["count"], len(pe["debug"]["types"]),
+        pe["debug"]["types"][0], sha256_off, exe_path_off)
     return (header + bytes(func_payload) + b"".join(dll_rows) +
             bytes(import_payload) + section_payload + export_payload +
             tls_payload + directory_payload + bytes(strings))

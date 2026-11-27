@@ -1275,7 +1275,7 @@ Java_com_wmmt_re6rr_PeInventory_nativeHeader(JNIEnv *env, jclass cls,
     r6_pe_inventory_header header;
     size_t length = 0;
     unsigned char *bytes = pe_copy_blob(env, blob, &length);
-    jlong values[28];
+    jlong values[37];
     (void)cls;
     if (!bytes ||
         r6_pe_inventory_parse(bytes, length, &header) != R6_OK) {
@@ -1311,7 +1311,55 @@ Java_com_wmmt_re6rr_PeInventory_nativeHeader(JNIEnv *env, jclass cls,
     values[25] = (jlong)header.guid_off;
     values[26] = (jlong)header.pdb_age;
     values[27] = (jlong)header.path_off;
-    return pe_new_longs(env, values, 28);
+    values[28] = (jlong)header.rva_min;
+    values[29] = (jlong)header.rva_max;
+    values[30] = (jlong)header.entry_size;
+    values[31] = (jlong)header.symbol_table;
+    values[32] = (jlong)header.symbol_count;
+    values[33] = (jlong)header.debug_type_count;
+    values[34] = (jlong)header.debug_type;
+    values[35] = (jlong)header.sha256_off;
+    values[36] = (jlong)header.exe_path_off;
+    return pe_new_longs(env, values, 37);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeSha256(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    char digest[65];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    bytes = pe_copy_blob(env, blob, &length);
+    if (!bytes ||
+        r6_pe_inventory_sha256(bytes, length, digest,
+                               sizeof(digest)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, digest);
+    return out;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_PeInventory_nativeExePath(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    char path[512];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    bytes = pe_copy_blob(env, blob, &length);
+    if (!bytes || r6_pe_inventory_exe_path(bytes, length, path,
+                                           sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, path);
+    return out;
 }
 
 JNIEXPORT jlongArray JNICALL

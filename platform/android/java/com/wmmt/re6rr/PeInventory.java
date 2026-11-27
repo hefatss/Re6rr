@@ -10,9 +10,21 @@ public final class PeInventory {
      * timestamp, image base low/high, entry RVA, image size, directory count,
      * .pdata count, unique unwind count, code/text bytes, leaf/chained/EH
      * counts, relocation blocks/entries, DLL/import/export/TLS/section counts,
-     * strings size, PDB GUID offset, PDB age and PDB path offset. */
+     * strings size, PDB GUID offset, PDB age, PDB path offset, pdata RVAs and
+     * entry size, symbol table/count, debug type count/value, SHA-256 offset
+     * and exe path offset. */
     public static long[] header(byte[] blob) {
         return nativeHeader(blob);
+    }
+
+    /** Copied SHA-256 of the shipped executable; null on bad input. */
+    public static String sha256(byte[] blob) {
+        return nativeSha256(blob);
+    }
+
+    /** Copied source executable path; null on bad input. */
+    public static String exePath(byte[] blob) {
+        return nativeExePath(blob);
     }
 
     /** rva, end, size and leaf flag for one .pdata row. */
@@ -105,6 +117,10 @@ public final class PeInventory {
     }
 
     private static native long[] nativeHeader(byte[] blob);
+
+    private static native String nativeSha256(byte[] blob);
+
+    private static native String nativeExePath(byte[] blob);
 
     private static native long[] nativeFunc(byte[] blob, int index);
 
