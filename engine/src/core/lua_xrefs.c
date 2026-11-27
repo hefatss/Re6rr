@@ -255,3 +255,87 @@ int r6_lua_xref_find(const void *data, size_t size, const char *name,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+int r6_lua_xref_find_rva(const void *data, size_t size, uint32_t rva,
+                         r6_lua_xref_hit *hits, uint32_t capacity,
+                         uint32_t *count) {
+    r6_lua_xref_header header;
+    uint32_t total = 0;
+    uint32_t copied = 0;
+    uint32_t row;
+    uint32_t which;
+    uint32_t at;
+    uint32_t value;
+    int result = xref_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (rva < 0x1000u || rva >= 34308096u || (capacity && !hits)) {
+        return R6_ERR_ARG;
+    }
+    for (row = 0; row < header.count; row++) {
+        r6_lua_xref_row_t info;
+        result = r6_lua_xref_row(data, size, row, &info);
+        if (result != R6_OK) {
+            return result;
+        }
+        for (which = 0; which < info.func_count; which++) {
+            result = r6_lua_xref_func(data, size, row, which, &value);
+            if (result != R6_OK) {
+                return result;
+            }
+            if (value == rva) {
+                if (copied < capacity) {
+                    hits[copied].row = row;
+                    hits[copied].kind = R6_LUA_XREF_HIT_FUNC;
+                    hits[copied].which = which;
+                    hits[copied].item = 0;
+                    copied++;
+                }
+                total++;
+            }
+        }
+        for (which = 0; which < info.table_count; which++) {
+            uint32_t kind = 0;
+            uint32_t users = 0;
+            result = r6_lua_xref_table(data, size, row, which, &value, &kind,
+                                       &users);
+            if (result != R6_OK) {
+                return result;
+            }
+            if (value == rva) {
+                if (copied < capacity) {
+                    hits[copied].row = row;
+                    hits[copied].kind = R6_LUA_XREF_HIT_TABLE;
+                    hits[copied].which = which;
+                    hits[copied].item = 0;
+                    copied++;
+                }
+                total++;
+            }
+            for (at = 0; at < users; at++) {
+                result = r6_lua_xref_user(data, size, row, which, at, &value);
+                if (result != R6_OK) {
+                    return result;
+                }
+                if (value == rva) {
+                    if (copied < capacity) {
+                        hits[copied].row = row;
+                        hits[copied].kind = R6_LUA_XREF_HIT_USER;
+                        hits[copied].which = which;
+                        hits[copied].item = at;
+                        copied++;
+                    }
+                    total++;
+                }
+            }
+        }
+    }
+    if (count) {
+        *count = total;
+    }
+    if (!total) {
+        return R6_ERR_NOT_FOUND;
+    }
+    return total > capacity ? R6_ERR_BUFFER : R6_OK;
+}

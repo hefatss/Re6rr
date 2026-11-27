@@ -31,6 +31,11 @@ class Row(ctypes.Structure):
                 ("table_count", ctypes.c_uint32)]
 
 
+class Hit(ctypes.Structure):
+    _fields_ = [("row", ctypes.c_uint32), ("kind", ctypes.c_uint32),
+                ("which", ctypes.c_uint32), ("item", ctypes.c_uint32)]
+
+
 def check(lib):
     lib.r6_lua_xref_parse.restype = ctypes.c_int
     lib.r6_lua_xref_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
@@ -61,6 +66,11 @@ def check(lib):
                                      ctypes.c_uint32, ctypes.c_uint32,
                                      ctypes.c_uint32,
                                      ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_lua_xref_find_rva.restype = ctypes.c_int
+    lib.r6_lua_xref_find_rva.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                         ctypes.c_uint32, ctypes.POINTER(Hit),
+                                         ctypes.c_uint32,
+                                         ctypes.POINTER(ctypes.c_uint32)]
 
     rows = lua_xref_catalog.collect()
     blob = lua_xref_catalog.build(rows)
@@ -122,6 +132,45 @@ def check(lib):
         source, len(blob), b"R6_NO_SUCH_XREF_NAME",
         ctypes.byref(found)) == R6_ERR_NOT_FOUND
 
+    reverse = {}
+    for row_index, want in enumerate(rows):
+        for at, func in enumerate(want["funcs"]):
+            reverse.setdefault(func, []).append((row_index, 0, at, 0))
+        for which, table in enumerate(want["tables"]):
+            reverse.setdefault(table["rva"], []).append(
+                (row_index, 1, which, 0))
+            for item, user in enumerate(table["users"]):
+                reverse.setdefault(user, []).append(
+                    (row_index, 2, which, item))
+    total = ctypes.c_uint32()
+    duplicates = 0
+    for expected_rva, want in reverse.items():
+        hits = (Hit * len(want))()
+        assert lib.r6_lua_xref_find_rva(
+            source, len(blob), expected_rva, hits, len(hits),
+            ctypes.byref(total)) == R6_OK
+        assert total.value == len(want)
+        assert [(hit.row, hit.kind, hit.which, hit.item) for hit in hits] == want
+        if len(want) > 1:
+            duplicates += 1
+    assert duplicates
+    absent = 0x1000
+    while absent in reverse:
+        absent += 1
+    assert lib.r6_lua_xref_find_rva(
+        source, len(blob), absent, None, 0,
+        ctypes.byref(total)) == R6_ERR_NOT_FOUND and total.value == 0
+    for bad_rva in (0xfff, 34308096):
+        assert lib.r6_lua_xref_find_rva(
+            source, len(blob), bad_rva, None, 0,
+            ctypes.byref(total)) == R6_ERR_ARG
+    first_rva = next(iter(reverse))
+    assert lib.r6_lua_xref_find_rva(
+        source, len(blob), first_rva, None, 1,
+        ctypes.byref(total)) == R6_ERR_ARG
+    assert lib.r6_lua_xref_find_rva(
+        source, len(blob), first_rva, None, 0, None) == R6_ERR_BUFFER
+
     first = rows[0]
     assert first["funcs"]
     assert lib.r6_lua_xref_func(source, len(blob), 0, len(first["funcs"]),
@@ -155,9 +204,10 @@ def check(lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_lua_xref_name(source, len(bad), 0, name,
                                 len(name)) == R6_ERR_FORMAT
-    print("lua xrefs: 219 names, 222 function refs, 28 table refs and %d "
-          "table users match bindings.json; find, bad blob, index and "
-          "capacity rejected" % users)
+    print("lua xrefs: 219 names, 222 function refs, 28 table refs, %d table "
+          "users and %d duplicate-RVA groups match bindings.json; both find "
+          "directions, bad blob, index and capacity rejected" %
+          (users, duplicates))
 
 
 def main():

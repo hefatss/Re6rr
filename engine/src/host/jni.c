@@ -443,6 +443,61 @@ Java_com_wmmt_re6rr_LuaXrefs_nativeUsers(JNIEnv *env, jclass cls,
     return out;
 }
 
+/* Reverse lookup returns flat (row, kind, which, item) groups: kind 0 is a
+ * function RVA, 1 a table RVA and 2 a table-loading user RVA. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaXrefs_nativeFindRva(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jlong rva) {
+    r6_lua_xref_hit *hits = NULL;
+    jlong *values = NULL;
+    jlongArray out = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t count = 0;
+    uint32_t second = 0;
+    uint32_t at;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        rva < 0 || rva > 0xffffffffL) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_lua_xref_find_rva(bytes, length, (uint32_t)rva, NULL, 0,
+                             &count) != R6_ERR_BUFFER || !count) {
+        free(bytes);
+        return NULL;
+    }
+    hits = (r6_lua_xref_hit *)malloc((size_t)count * sizeof(*hits));
+    values = (jlong *)malloc((size_t)count * 4u * sizeof(*values));
+    if (!hits || !values) {
+        free(hits);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    if (r6_lua_xref_find_rva(bytes, length, (uint32_t)rva, hits, count,
+                             &second) != R6_OK || second != count) {
+        free(hits);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (at = 0; at < count; at++) {
+        values[at * 4u] = (jlong)hits[at].row;
+        values[at * 4u + 1u] = (jlong)hits[at].kind;
+        values[at * 4u + 2u] = (jlong)hits[at].which;
+        values[at * 4u + 3u] = (jlong)hits[at].item;
+    }
+    out = (*env)->NewLongArray(env, (jsize)(count * 4u));
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, (jsize)(count * 4u), values);
+    }
+    free(hits);
+    free(values);
+    return out;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_EnmaEnums_nativeHeader(JNIEnv *env, jclass cls,
                                            jbyteArray blob) {

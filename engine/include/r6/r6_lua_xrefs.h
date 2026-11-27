@@ -58,6 +58,27 @@ R6_API int r6_lua_xref_user(const void *data, size_t size, uint32_t index,
 R6_API int r6_lua_xref_find(const void *data, size_t size, const char *name,
                             uint32_t *index);
 
+/* Reverse lookup locations: which list and which item held the RVA. */
+enum {
+    R6_LUA_XREF_HIT_FUNC = 0,
+    R6_LUA_XREF_HIT_TABLE = 1,
+    R6_LUA_XREF_HIT_USER = 2
+};
+
+typedef struct r6_lua_xref_hit {
+    uint32_t row;
+    uint32_t kind;
+    uint32_t which;
+    uint32_t item;
+} r6_lua_xref_hit;
+
+/* All (row, kind, which, item) locations with that exact RVA, in stored order.
+ * *count receives the total hit count; up to capacity hits are copied.
+ * R6_ERR_NOT_FOUND means no location matched; R6_ERR_BUFFER means short. */
+R6_API int r6_lua_xref_find_rva(const void *data, size_t size, uint32_t rva,
+                                r6_lua_xref_hit *hits, uint32_t capacity,
+                                uint32_t *count);
+
 #ifdef __cplusplus
 }
 #endif

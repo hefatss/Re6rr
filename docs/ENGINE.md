@@ -298,9 +298,11 @@ platform/android/java/        Java side of the JNI bridge
   inventory of 219 globals looked up by the executable, with call counts and
   seven category indices. Lua bodies remain in shipped data scripts; no binding
   is invented.
-- `r6_lua_xref_parse()/row()/name()/find()/func()/table()/user()` — read the derived
-  `R6XRF` map of those 219 names to 222 function RVAs, 28 string/pointer-table
-  RVAs and their 65 loading functions. RVAs are reported, never executed.
+- `r6_lua_xref_parse()/row()/name()/find()/func()/table()/user()/find_rva()` —
+  read the derived `R6XRF` map of those 219 names to 222 function RVAs, 28
+  string/pointer-table RVAs and their 65 loading functions. `find_rva()` returns
+  every (row, kind, which, item) location with an exact RVA. RVAs are reported,
+  never executed.
 - `r6_lua_inventory_parse()/name()/dir()/find()/symbol()/find_symbol()` — read
   the derived `R6LSI` counts for 4,885 + 167 Lua files across 158 directories,
   the 1,252 defined names and the 215 native / 280 undefined top name/count
@@ -437,7 +439,7 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words, 174,507 xrefs and all reverse RVA hits, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs, scan totals and all reverse RVA hits, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs and resolves an RVA to every location using it, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words, 174,507 xrefs and all reverse RVA hits, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs, scan totals and all reverse RVA hits, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
@@ -557,7 +559,7 @@ Verified on this dump:
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; struct/field find, bad blob, index and capacity rejected |
 | Enma enums | all 16 domains and 1214 names/values match `enma_api.json`; find, bad blob, index, value and capacity rejected |
-| Lua xrefs | 219 names, 222 function refs, 28 table refs and 65 table users match `bindings.json`; find, bad blob, index and capacity rejected |
+| Lua xrefs | 219 names, 222 function refs, 28 table refs, 65 table users and 60 duplicate-RVA groups match `bindings.json`; both find directions, bad blob, index and capacity rejected |
 | honor schema | all 13 type names match the exe pointer table, 60 ordered fields and type-1 ABI offsets/PROPERTY slots/addresses match `STORY_NATIVE.md`; type/field find, bad blob, type, field and capacity rejected |
 | Lua globals | all 219 names, call counts and 7 categories match `LUA_API.md`; find, bad blob, index and capacity rejected |
 | context paths | 406 shipped car/model pairs match `contexts.context()`; bad set, index, name and capacity rejected |
