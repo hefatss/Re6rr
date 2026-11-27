@@ -129,7 +129,7 @@ names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 camera containers/records, `EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
 last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 runtime
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
-exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
+exposes recovered status codes, call sites and three KeyOn user groups, `VoiceCoreTableFacts` exposes the
 192-entry lookup layout,
 `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes shipped global call sites, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories and resolves 1,252 defined plus 495 top name/count rows, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports, 8 PE directories and exe SHA-256/path provenance, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words and 174,507 xrefs, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs and scan totals, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the predicate schema, `EnvironmentLua` parses scene scripts, `NativeNames` resolves shipped pointer
 names, `SceneConfig` packs scenes and resolves native names, and

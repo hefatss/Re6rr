@@ -249,6 +249,34 @@ void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out) {
     out->addresses[7] = 0x140DEE20Aull;
 }
 
+void r6_voice_keyon_users(r6_voice_keyon_users_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->plain[0] = 0x18002A380ull;
+    out->plain[1] = 0x18002A650ull;
+    out->plain[2] = 0x18002A410ull;
+    out->plain[3] = 0x18002A6E0ull;
+    out->plain[4] = 0x180029E00ull;
+    out->plain[5] = 0x18002A490ull;
+    out->point[0] = 0x1800363B0ull;
+    out->point[1] = 0x1800361F0ull;
+    out->point[2] = 0x180036900ull;
+    out->point[3] = 0x180036740ull;
+    out->point[4] = 0x180029CC0ull;
+    out->point[5] = 0x180029EB0ull;
+    out->line[0] = 0x1800365E0ull;
+    out->line[1] = 0x180036A10ull;
+    out->extended[0] = 0u;
+    out->extended[1] = 1u;
+    out->extended[2] = 1u;
+    out->position_floats[0] = 0u;
+    out->position_floats[1] = 3u;
+    out->position_floats[2] = 4u;
+    out->secondary_bytes = 0x0Cu;
+}
+
 void r6_voice_core_table_facts(r6_voice_core_table_facts_t *out) {
     if (!out) {
         return;

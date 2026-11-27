@@ -143,6 +143,19 @@ typedef struct r6_voice_dispatch_facts_t {
 
 R6_API void r6_voice_dispatch_facts(r6_voice_dispatch_facts_t *out);
 
+/* Addresses of the three shipped KeyOn wrapper groups. Zero scalar fields
+ * mean the group has no such argument; no call is made and no memory is read. */
+typedef struct r6_voice_keyon_users_t {
+    uint64_t plain[6];   /* handle, id, handle KeyOn, id KeyOn, chain, id chain */
+    uint64_t point[6];   /* handle, handle chgrp, id, id chgrp, chain, id chain */
+    uint64_t line[2];    /* handle, id */
+    uint32_t extended[3];
+    uint32_t position_floats[3];
+    uint32_t secondary_bytes;
+} r6_voice_keyon_users_t;
+
+R6_API void r6_voice_keyon_users(r6_voice_keyon_users_t *out);
+
 /* FUN_18001ed00 core-voice lookup table facts; instance storage stays host
  * owned and no lookup result is computed here. */
 typedef struct r6_voice_core_table_facts_t {

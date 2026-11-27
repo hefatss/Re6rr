@@ -174,6 +174,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_voice_dispatch_facts()` — copy the recovered bank/3D null error codes,
   chained-tone error and modes, extension blob layout, game vector sources and
   call-site addresses. No native method is called or pointer dereferenced.
+- `r6_voice_keyon_users()` — copy the 14 wrapper addresses and three group
+  shapes for plain, point and line KeyOn users: 6/6/2 addresses, extended
+  flags, position float counts and the point group's 0x0c secondary vector.
+  Absent arguments are zero; no wrapper is called.
 - `r6_voice_core_table_facts()` — copy the 192-entry core-voice table offset,
   stride, chain mode and lookup address from `FUN_18001ed00`; instance storage
   stays host owned.
@@ -447,7 +451,7 @@ Verified on this dump:
 | core-voice lookup facts | 192 entries at +0x44 stride 0x178, mode 7 and lookup address match `audio_events.py`; null output is a no-op |
 | EMTIS | all 16365 tokens, 7 sections, 44 header values and all 416 names match `audio_tables.parse_emtis()`; name/find, bad magic, short capacity and null inputs rejected |
 | WM4_ENGMAP | all 320 shipped sound/group pairs match `audio_tables.parse_engmap()`; conflicts, bad magic and null inputs rejected |
-| voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources and 8 addresses match `audio_events.py`; null output is a no-op |
+| voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources, 8 addresses and 14 KeyOn wrapper addresses match `audio_events.py`; null output is a no-op |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |
 | packed BGM table | 142 ids, 8,644 bytes; every name/path/flag and substring lookup matches `tools/engine/audio_events.py`; bad magic, version, truncation and record offsets rejected |
 | envelope curve port | all 3,584 layers × 6 rpm points match `engine_sound.envelope_output()` with host `math.pow` callbacks; missing hooks and zero divisor rejected |

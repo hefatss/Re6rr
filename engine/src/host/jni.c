@@ -7798,6 +7798,28 @@ Java_com_wmmt_re6rr_VoiceDispatchFacts_nativeAll(JNIEnv *env, jclass cls) {
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VoiceDispatchFacts_nativeKeyOnUsers(JNIEnv *env,
+                                                        jclass cls) {
+    r6_voice_keyon_users_t users;
+    jlong values[21];
+    uint32_t index;
+    (void)cls;
+    r6_voice_keyon_users(&users);
+    for (index = 0; index < 6u; index++) {
+        values[index] = (jlong)users.plain[index];
+        values[6u + index] = (jlong)users.point[index];
+    }
+    values[12] = (jlong)users.line[0];
+    values[13] = (jlong)users.line[1];
+    for (index = 0; index < 3u; index++) {
+        values[14u + index] = (jlong)users.extended[index];
+        values[17u + index] = (jlong)users.position_floats[index];
+    }
+    values[20] = (jlong)users.secondary_bytes;
+    return pe_new_longs(env, values, 21);
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_VoiceCoreTableFacts_nativeAll(JNIEnv *env, jclass cls) {
     r6_voice_core_table_facts_t facts;
     jlong values[5];

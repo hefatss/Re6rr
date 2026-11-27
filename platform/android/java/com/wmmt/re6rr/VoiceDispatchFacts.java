@@ -45,5 +45,15 @@ public final class VoiceDispatchFacts {
         return Arrays.copyOfRange(all(), 24, 32);
     }
 
+    /** 21 values: 6 plain wrapper addresses, 6 point wrapper addresses,
+     *  2 line wrapper addresses, 3 extended flags, 3 position float counts
+     *  and the secondary vector byte count. Zero means the group has no
+     *  such argument; no wrapper is called. */
+    public static long[] keyOnUsers() {
+        return nativeKeyOnUsers();
+    }
+
     private static native long[] nativeAll();
+
+    private static native long[] nativeKeyOnUsers();
 }
