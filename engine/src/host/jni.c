@@ -893,13 +893,33 @@ Java_com_wmmt_re6rr_SceneEnvStats_nativeFind(JNIEnv *env, jclass cls,
     return out;
 }
 
+static void lua_u32_decimal(uint32_t value, char *out, size_t capacity) {
+    char digits[16];
+    size_t count = 0;
+    size_t at;
+    if (!capacity) {
+        return;
+    }
+    do {
+        digits[count++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    } while (value && count < sizeof(digits));
+    if (count + 1u > capacity) {
+        count = capacity - 1u;
+    }
+    for (at = 0; at < count; at++) {
+        out[at] = digits[count - 1u - at];
+    }
+    out[count] = 0;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_LuaInventory_nativeHeader(JNIEnv *env, jclass cls,
                                               jbyteArray blob) {
     r6_lua_inventory_header header;
     unsigned char *bytes = NULL;
     size_t length = 0;
-    jlong values[15];
+    jlong values[27];
     jlongArray out = NULL;
     uint32_t at;
     (void)cls;
@@ -920,9 +940,21 @@ Java_com_wmmt_re6rr_LuaInventory_nativeHeader(JNIEnv *env, jclass cls,
         values[7 + at * 6] = (jlong)header.undefined[at];
         values[8 + at * 6] = (jlong)header.native_candidates[at];
     }
-    out = (*env)->NewLongArray(env, 15);
+    values[15] = (jlong)header.defined_name_count[0];
+    values[16] = (jlong)header.defined_name_off[0];
+    values[17] = (jlong)header.native_top_count[0];
+    values[18] = (jlong)header.native_top_off[0];
+    values[19] = (jlong)header.undefined_top_count[0];
+    values[20] = (jlong)header.undefined_top_off[0];
+    values[21] = (jlong)header.defined_name_count[1];
+    values[22] = (jlong)header.defined_name_off[1];
+    values[23] = (jlong)header.native_top_count[1];
+    values[24] = (jlong)header.native_top_off[1];
+    values[25] = (jlong)header.undefined_top_count[1];
+    values[26] = (jlong)header.undefined_top_off[1];
+    out = (*env)->NewLongArray(env, 27);
     if (out) {
-        (*env)->SetLongArrayRegion(env, out, 0, 15, values);
+        (*env)->SetLongArrayRegion(env, out, 0, 27, values);
     }
     return out;
 }
@@ -996,6 +1028,87 @@ Java_com_wmmt_re6rr_LuaInventory_nativeFind(JNIEnv *env, jclass cls,
     }
     free(bytes);
     (*env)->ReleaseStringUTFChars(env, name, text);
+    return out;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeSymbol(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint root,
+                                              jint kind, jint index) {
+    char name[R6_LUA_INVENTORY_NAME_CAP];
+    char decimal[16];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t count = 0;
+    jobjectArray out = NULL;
+    jclass string_class;
+    jstring value;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_inventory_symbol(bytes, length, (uint32_t)root,
+                                (uint32_t)kind, (uint32_t)index, name,
+                                sizeof(name), &count) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if (!string_class) {
+        return NULL;
+    }
+    out = (*env)->NewObjectArray(env, 2, string_class, NULL);
+    if (!out) {
+        return NULL;
+    }
+    value = (*env)->NewStringUTF(env, name);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 0, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    lua_u32_decimal(count, decimal, sizeof(decimal));
+    value = (*env)->NewStringUTF(env, decimal);
+    if (value) {
+        (*env)->SetObjectArrayElement(env, out, 1, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+    return out;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LuaInventory_nativeFindSymbol(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint root,
+                                                  jint kind, jstring name) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    uint32_t count = 0;
+    jlong values[2];
+    jlongArray out;
+    (void)cls;
+    if (!name) {
+        return NULL;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        return NULL;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_lua_inventory_find_symbol(bytes, length, (uint32_t)root,
+                                     (uint32_t)kind, text, &index,
+                                     &count) != R6_OK) {
+        free(bytes);
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        return NULL;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    values[0] = (jlong)index;
+    values[1] = (jlong)count;
+    out = (*env)->NewLongArray(env, 2);
+    if (out) {
+        (*env)->SetLongArrayRegion(env, out, 0, 2, values);
+    }
     return out;
 }
 

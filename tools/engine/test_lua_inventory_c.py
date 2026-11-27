@@ -32,7 +32,13 @@ class Header(ctypes.Structure):
                 ("defined", ctypes.c_uint32 * 2),
                 ("calls", ctypes.c_uint32 * 2),
                 ("undefined", ctypes.c_uint32 * 2),
-                ("native_candidates", ctypes.c_uint32 * 2)]
+                ("native_candidates", ctypes.c_uint32 * 2),
+                ("defined_name_count", ctypes.c_uint32 * 2),
+                ("defined_name_off", ctypes.c_uint32 * 2),
+                ("native_top_count", ctypes.c_uint32 * 2),
+                ("native_top_off", ctypes.c_uint32 * 2),
+                ("undefined_top_count", ctypes.c_uint32 * 2),
+                ("undefined_top_off", ctypes.c_uint32 * 2)]
 
 
 class Dir(ctypes.Structure):
@@ -56,6 +62,16 @@ def check(lib):
     lib.r6_lua_inventory_find.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                           ctypes.c_uint32, ctypes.c_char_p,
                                           ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_lua_inventory_symbol.restype = ctypes.c_int
+    lib.r6_lua_inventory_symbol.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.c_uint32, ctypes.c_char_p, ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_uint32)]
+    lib.r6_lua_inventory_find_symbol.restype = ctypes.c_int
+    lib.r6_lua_inventory_find_symbol.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint32),
+        ctypes.POINTER(ctypes.c_uint32)]
 
     roots, dirs = lua_inventory_catalog.collect()
     blob = lua_inventory_catalog.build(roots, dirs)
@@ -64,11 +80,54 @@ def check(lib):
     assert lib.r6_lua_inventory_parse(source, len(blob),
                                       ctypes.byref(header)) == R6_OK
     assert header.root_count == 2 and header.dir_count == 158
-    assert header.strings_size == len(blob) - (76 + 158 * 20)
+    symbol_rows = sum(
+        len(root["defined_names"]) * 4 +
+        (len(root["native_top"]) + len(root["undefined_top"])) * 8
+        for root in roots)
+    assert header.strings_size == len(blob) - (124 + 158 * 20 + symbol_rows)
     for root in range(2):
         for key in ROOT_KEYS:
             assert getattr(header, key)[root] == roots[root][key], \
                 (root, key, roots[root][key])
+
+    symbol = ctypes.create_string_buffer(NAME_CAP)
+    found = ctypes.c_uint32()
+    count = ctypes.c_uint32()
+    kinds = (("defined_names", "native_top", "undefined_top"))
+    kind_ids = (0, 1, 2)
+    for root in range(2):
+        for kind_id, key in zip(kind_ids, kinds):
+            pairs = ([(item, 0) for item in roots[root][key]] if kind_id == 0
+                     else roots[root][key])
+            firsts = {}
+            for position, (item, _) in enumerate(pairs):
+                firsts.setdefault(item, position)
+            for position, (item, expected_count) in enumerate(pairs):
+                assert lib.r6_lua_inventory_symbol(
+                    source, len(blob), root, kind_id, position, symbol,
+                    len(symbol), ctypes.byref(count)) == R6_OK
+                assert symbol.value.decode("utf8") == item
+                assert count.value == expected_count
+                assert lib.r6_lua_inventory_find_symbol(
+                    source, len(blob), root, kind_id, item.encode("utf8"),
+                    ctypes.byref(found), ctypes.byref(count)) == R6_OK
+                assert found.value == firsts[item]
+                assert count.value == expected_count
+            assert lib.r6_lua_inventory_symbol(
+                source, len(blob), root, kind_id, len(pairs), symbol,
+                len(symbol), ctypes.byref(count)) == R6_ERR_ARG
+            assert lib.r6_lua_inventory_find_symbol(
+                source, len(blob), root, kind_id, b"R6_NO_SUCH_NAME",
+                ctypes.byref(found), ctypes.byref(count)) == R6_ERR_NOT_FOUND
+    assert lib.r6_lua_inventory_symbol(
+        source, len(blob), 0, 3, 0, symbol, len(symbol),
+        ctypes.byref(count)) == R6_ERR_ARG
+    assert lib.r6_lua_inventory_symbol(
+        source, len(blob), 2, 0, 0, symbol, len(symbol),
+        ctypes.byref(count)) == R6_ERR_ARG
+    assert lib.r6_lua_inventory_find_symbol(
+        source, len(blob), 0, 0, b"", ctypes.byref(found),
+        ctypes.byref(count)) == R6_ERR_ARG
 
     name = ctypes.create_string_buffer(NAME_CAP)
     row = Dir()
@@ -113,12 +172,12 @@ def check(lib):
     assert lib.r6_lua_inventory_parse(source, len(bad),
                                       ctypes.byref(header)) == R6_ERR_FORMAT
     bad = bytearray(blob)
-    struct.pack_into("<I", bad, 76 + 4, 0)
+    struct.pack_into("<I", bad, 124 + 4, 0)
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_lua_inventory_name(source, len(bad), 0, name,
                                      len(name)) == R6_ERR_FORMAT
     bad = bytearray(blob)
-    struct.pack_into("<I", bad, 76, 2)
+    struct.pack_into("<I", bad, 124, 2)
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_lua_inventory_dir(source, len(bad), 0,
                                     ctypes.byref(row)) == R6_ERR_FORMAT

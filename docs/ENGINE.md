@@ -35,7 +35,7 @@ engine/include/r6/r6_game.h   game flow, SConfigPlay byte bridge, scene camid/na
 engine/include/r6/r6_context.h  ordered per-car Lua script path templates
 engine/include/r6/r6_lua_globals.h  shipped Lua global call-site inventory reader
 engine/include/r6/r6_lua_xrefs.h  Lua name to native function/table reference reader
-engine/include/r6/r6_lua_inventory.h  shipped Lua file and directory count reader
+engine/include/r6/r6_lua_inventory.h  shipped Lua count, directory and name reader
 engine/include/r6/r6_asset_inventory.h  shipped extension, magic, folder and shader sample counts
 engine/include/r6/r6_pe_inventory.h  shipped PE header, .pdata, import and symbol inventory reader
 engine/include/r6/r6_name_runs.h  shipped string-pointer run, name and code-reference reader
@@ -241,9 +241,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_lua_xref_parse()/row()/name()/find()/func()/table()/user()` — read the derived
   `R6XRF` map of those 219 names to 222 function RVAs, 28 string/pointer-table
   RVAs and their 65 loading functions. RVAs are reported, never executed.
-- `r6_lua_inventory_parse()/name()/dir()/find()` — read the derived `R6LSI`
-  counts for 4,885 + 167 Lua files across 158 directories. Only counts and
-  directory names are packed; noisy undefined/native name guesses are not.
+- `r6_lua_inventory_parse()/name()/dir()/find()/symbol()/find_symbol()` — read
+  the derived `R6LSI` counts for 4,885 + 167 Lua files across 158 directories,
+  the 1,252 defined names and the 215 native / 280 undefined top name/count
+  pairs. `find_symbol()` returns the first exact name in one root/kind table.
 - `r6_asset_inventory_parse()/ext()/magic()/folder()/find_ext()/find_magic()/find_folder()/shader()/find_shader()` — read the
   derived `R6AIV` counts: 32 extension rows, 7 inner-magic rows, 27 top-folder
   rows and 40 shader samples with copied paths and 16-byte prefixes.
@@ -458,7 +459,7 @@ Verified on this dump:
 | Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; name/user find, bad blob, index, row and capacity rejected |
 | PE inventory | all 70,377 `.pdata` rows, 825 named/ordinal imports, 28 DLLs, 7 sections, 8 directories, 2 exports, PDB and provenance metadata match `pe.json`/`pdata.json`; RVA/directory/DLL/import find, all interior/gap RVA covers, bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; ext/magic/folder/shader find, bad blob, index and capacity rejected |
-| Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |
+| Lua inventory | 2 roots, 158 dirs, all root counts, 1,252 defined names and all 215 native / 280 undefined top name/count pairs match `lua.json`; bad blob, root, kind, capacity and missing name rejected |
 | Scene env | all 122 dirs, 59 present, 488 actor slots, 186 nonzero, 36 actor values and 26 stage values match shipped `Environment.Lua` files; bad blob, index and capacity rejected |
 | Enma exports | all 172 mangled names and ordinals match `enma_api.json`; bad blob, index and capacity rejected |
 | Enma defaults | all 32 structs, 89 fields and 2642 constant bytes match `enma_api.json`; struct/field find, bad blob, index and capacity rejected |
