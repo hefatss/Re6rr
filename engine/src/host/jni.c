@@ -71,6 +71,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_filter_dictionary_catalog.h"
 #include "r6/r6_nut_file_catalog.h"
 #include "r6/r6_default_ghost_catalog.h"
+#include "r6/r6_enma_error_log_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7764,6 +7765,81 @@ Java_com_wmmt_re6rr_DefaultGhostCatalog_nativePath(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_default_ghost_path(bytes, length, (uint32_t)index, path,
                               sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+/* Enma error-log layout facts: copied paths, sizes and line counts. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaErrorLogCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    r6_enma_error_log_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_enma_error_log_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.total_bytes;
+    values[4] = (jlong)header.total_lines;
+    values[5] = (jlong)header.crlf_count;
+    values[6] = (jlong)header.sector_lines;
+    values[7] = (jlong)header.vector_lines;
+    values[8] = (jlong)header.sector_files;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_EnmaErrorLogCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob, jint index) {
+    r6_enma_error_log_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_enma_error_log_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.shape;
+    values[5] = (jlong)file.line_min;
+    values[6] = (jlong)file.line_max;
+    values[7] = (jlong)file.crlf;
+    values[8] = (jlong)file.tokens;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EnmaErrorLogCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob, jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_enma_error_log_path(bytes, length, (uint32_t)index, path,
+                               sizeof(path)) != R6_OK) {
         free(bytes);
         return NULL;
     }

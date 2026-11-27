@@ -75,6 +75,7 @@ set(R6_CORE
     engine/src/game/filter_dictionary_catalog.c
     engine/src/game/nut_file_catalog.c
     engine/src/game/default_ghost_catalog.c
+    engine/src/game/enma_error_log_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

@@ -256,6 +256,9 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
 - Content is data: car specification (151 files), car positions (255), colours,
   vinyl/sticker tables, course clip lists (`course/stage/*/clip`), plus settings.
 - 812 names defined in Lua itself; real flow logic stays in the executable.
+- `data/Enma` has 6 `ytErrorLogMerge*.txt` tables, 4,010 CRLF lines;
+  `tools/engine/enma_error_log_catalog.py` copies layout facts but no numeric
+  log values.
 - `data_jp/filter` has 17 Lua files; `tools/engine/filter_dictionary_catalog.py`
   copies line kinds, byte spans and true/false tokens but no dictionary words.
 - 219 identifiers called from Lua that exist as strings in the executable — the
