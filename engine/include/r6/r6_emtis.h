@@ -1,6 +1,7 @@
 /* Freestanding reader for the shipped EMTIS numeric section table. No CRT,
  * files or libm: the host supplies text bytes and this reports section bounds,
- * the first eight tokens of each section and prefix name counts. */
+ * the first eight tokens of each section, prefix name counts and copied
+ * source WAV names. */
 #ifndef R6_EMTIS_H
 #define R6_EMTIS_H
 
@@ -41,6 +42,14 @@ typedef struct r6_emtis_t {
 } r6_emtis_t;
 
 R6_API int r6_emtis_parse(const void *text, size_t size, r6_emtis_t *out);
+
+/* Copy one name line after the four numeric header lines. */
+R6_API int r6_emtis_name(const void *text, size_t size, uint32_t index,
+                         char *name, size_t capacity);
+
+/* First exact name line; R6_ERR_NOT_FOUND means no line matched. */
+R6_API int r6_emtis_find_name(const void *text, size_t size,
+                              const char *name, uint32_t *index);
 
 #ifdef __cplusplus
 }

@@ -111,7 +111,7 @@ Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` th
 through `EnmaDefaults`, `enma_exports.r6eex` through `EnmaExports`, `scene_env.r6ses` through
 `SceneEnvStats`, `honor_schema.r6hon` through `HonorSchema`, `EngineRuntime` evaluates the 16
 layers using host libm, `EngmapTable` reads the 320 sound/group pairs, `EmtisTable` reads EMTIS
-sections and name counts,
+sections, prefix counts and 416 source WAV names with exact-name lookup,
 `VoiceRequest` builds and reads 0xa0 KeyOn records with
 copied extension blobs, `Config3D` reads and validates 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` handles fade timing and stream

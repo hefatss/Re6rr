@@ -16,7 +16,7 @@ engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and 
 engine/include/r6/r6_envelope.h  pitch/volume curve evaluation with host math hooks
 engine/include/r6/r6_engine_runtime.h  full 16-layer state evaluation and runtime constants
 engine/include/r6/r6_engmap.h    WM4_ENGMAP engine sound/group pair reader
-engine/include/r6/r6_emtis.h    EMTIS numeric section and prefix name reader
+engine/include/r6/r6_emtis.h    EMTIS numeric section and source WAV name reader
 engine/include/r6/r6_voice.h  recovered 0xa0 KeyOn request, 32 chained-voice records, chain arithmetic, dispatch status and core-voice lookup facts
 engine/include/r6/r6_config_3d.h  config_3d.bin section reader and dB amplitude conversion
 engine/include/r6/r6_glsl.h   std140 UBO packing and RGBA8 upload descriptors for emitted GLSL
@@ -156,9 +156,11 @@ platform/android/java/        Java side of the JNI bridge
   Speaker matrix, mode and core-voice lookup targets are not written.
 - `r6_engmap_parse()` — read the `WM4_ENGMAP` text table into 320 engine
   sound/group pairs, rejecting count mismatches and conflicting groups.
-- `r6_emtis_parse()` — read the `EMTIS` header, 16365 numeric tokens, seven
-  marker-delimited sections with their first eight tokens, and the four
-  source-name prefix counts. No meaning is assigned to the numeric sections.
+- `r6_emtis_parse()` / `r6_emtis_name()` / `r6_emtis_find_name()` — read the
+  `EMTIS` header, 16365 numeric tokens, seven marker-delimited sections with
+  their first eight tokens, the four source-name prefix counts and 416 copied
+  source WAV names. `find_name()` returns the first exact name line. No meaning
+  is assigned to the numeric sections.
 - `r6_audio_layout_facts()` — copy the 64 bank slot offsets, cleanup record
   layout, stream reserve/limit, bank version and voice/meta table constants.
   No pointer is dereferenced.
@@ -418,7 +420,7 @@ Verified on this dump:
 | chained-voice records | 32 records x 52 f32 slots read and write byte-exact against the `audio_events.CHAIN_VOICE_STATE` field map; 7 core fields apply with native clamp/pitch and leave other bytes untouched; bad index, short buffer and null arguments rejected |
 | audio layout facts | 5 slot fields, 3 cleanup record fields, stream reserve/limit, version and 4 voice/meta fields match `audio_events.py`; null output is a no-op |
 | core-voice lookup facts | 192 entries at +0x44 stride 0x178, mode 7 and lookup address match `audio_events.py`; null output is a no-op |
-| EMTIS | all 16365 tokens, 7 sections, 44 header values and 416 names match `audio_tables.parse_emtis()`; bad magic and null inputs rejected |
+| EMTIS | all 16365 tokens, 7 sections, 44 header values and all 416 names match `audio_tables.parse_emtis()`; name/find, bad magic, short capacity and null inputs rejected |
 | WM4_ENGMAP | all 320 shipped sound/group pairs match `audio_tables.parse_engmap()`; conflicts, bad magic and null inputs rejected |
 | voice dispatch facts | 8 bank errors, 3 null errors, chain error/modes, ext blob layout, game vector sources and 8 addresses match `audio_events.py`; null output is a no-op |
 | mixer C port | 68 buses at 0x48 stride, raw offsets 0x00/0x10/0x14/0x18/0x1c, fade over frames and piecewise dB↔volume match `tools/engine/audio_events.py`; bad index, short array and calibration rejected |

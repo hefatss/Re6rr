@@ -136,41 +136,73 @@ static void emtis_section(r6_emtis_t *out, int32_t start, int32_t index) {
     section->length = index - start;
 }
 
+static int emtis_hspace(unsigned char value) {
+    return value == ' ' || value == '\t' || value == '\r';
+}
+
+static int emtis_name_line(const unsigned char *bytes, size_t size, size_t *at,
+                           size_t *begin, size_t *end) {
+    while (*at < size) {
+        size_t cursor = *at;
+        size_t first = *at;
+        size_t last;
+        while (cursor < size && bytes[cursor] != '\n' && bytes[cursor] != '\r') {
+            cursor++;
+        }
+        last = cursor;
+        while (first < last && emtis_hspace(bytes[first])) {
+            first++;
+        }
+        while (last > first && emtis_hspace(bytes[last - 1u])) {
+            last--;
+        }
+        while (cursor < size && bytes[cursor] != '\n') {
+            cursor++;
+        }
+        *at = cursor < size ? cursor + 1u : cursor;
+        if (first < last) {
+            *begin = first;
+            *end = last;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static size_t emtis_names_begin(const void *text, size_t size) {
+    const unsigned char *bytes = (const unsigned char *)text;
+    emtis_cursor cursor;
+    size_t next = 0;
+    emtis_line(bytes, size, next, &cursor, &next);
+    emtis_line(bytes, size, next, &cursor, &next);
+    emtis_line(bytes, size, next, &cursor, &next);
+    emtis_line(bytes, size, next, &cursor, &next);
+    return next;
+}
+
 static void emtis_names(const unsigned char *bytes, size_t begin, size_t size,
                         r6_emtis_t *out) {
     static const char *prefixes[R6_EMTIS_NAME_PREFIXES] = {
         "Missfire", "Turbin", "Intake", "Engine"
     };
     size_t at = begin;
-    while (at < size) {
-        size_t end = at;
-        size_t first = at;
-        uint32_t index;
-        while (end < size && bytes[end] != '\n' && bytes[end] != '\r') {
-            end++;
-        }
-        while (first < end && (bytes[first] == ' ' || bytes[first] == '\t')) {
-            first++;
-        }
-        if (first < end) {
-            out->name_count++;
-            for (index = 0; index < R6_EMTIS_NAME_PREFIXES; index++) {
-                size_t length = 0;
-                while (prefixes[index][length]) {
-                    length++;
-                }
-                if ((size_t)(end - first) >= length &&
-                    r6_memcmp(bytes + first, prefixes[index], length) == 0 &&
-                    (first + length == end || bytes[first + length] == '/')) {
-                    out->name_counts[index]++;
-                    break;
-                }
+    size_t first;
+    size_t end;
+    uint32_t index;
+    while (emtis_name_line(bytes, size, &at, &first, &end)) {
+        out->name_count++;
+        for (index = 0; index < R6_EMTIS_NAME_PREFIXES; index++) {
+            size_t length = 0;
+            while (prefixes[index][length]) {
+                length++;
+            }
+            if ((size_t)(end - first) >= length &&
+                r6_memcmp(bytes + first, prefixes[index], length) == 0 &&
+                (first + length == end || bytes[first + length] == '/')) {
+                out->name_counts[index]++;
+                break;
             }
         }
-        while (end < size && bytes[end] != '\n') {
-            end++;
-        }
-        at = end < size ? end + 1u : end;
     }
 }
 
@@ -240,4 +272,74 @@ int r6_emtis_parse(const void *text, size_t size, r6_emtis_t *out) {
     out->token_count = index;
     emtis_names(bytes, name_start, size, out);
     return R6_OK;
+}
+
+int r6_emtis_name(const void *text, size_t size, uint32_t index,
+                  char *name, size_t capacity) {
+    const unsigned char *bytes = (const unsigned char *)text;
+    r6_emtis_t table;
+    size_t at;
+    size_t begin;
+    size_t end;
+    uint32_t count = 0;
+    int result = r6_emtis_parse(text, size, &table);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name || !capacity) {
+        return R6_ERR_ARG;
+    }
+    if (index >= table.name_count) {
+        return R6_ERR_ARG;
+    }
+    at = emtis_names_begin(text, size);
+    while (count < table.name_count &&
+           emtis_name_line(bytes, size, &at, &begin, &end)) {
+        if (count == index) {
+            size_t length = end - begin;
+            if (length + 1u > capacity) {
+                return R6_ERR_BUFFER;
+            }
+            r6_memcpy(name, bytes + begin, length);
+            name[length] = 0;
+            return R6_OK;
+        }
+        count++;
+    }
+    return R6_ERR_FORMAT;
+}
+
+int r6_emtis_find_name(const void *text, size_t size, const char *name,
+                       uint32_t *index) {
+    const unsigned char *bytes = (const unsigned char *)text;
+    r6_emtis_t table;
+    size_t at;
+    size_t begin;
+    size_t end;
+    size_t wanted;
+    uint32_t count = 0;
+    int result = r6_emtis_parse(text, size, &table);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    at = emtis_names_begin(text, size);
+    while (count < table.name_count &&
+           emtis_name_line(bytes, size, &at, &begin, &end)) {
+        if (end - begin == wanted &&
+            r6_memcmp(bytes + begin, name, wanted) == 0) {
+            if (index) {
+                *index = count;
+            }
+            return R6_OK;
+        }
+        count++;
+    }
+    return R6_ERR_NOT_FOUND;
 }

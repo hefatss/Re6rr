@@ -6587,6 +6587,52 @@ Java_com_wmmt_re6rr_EmtisTable_nativeParse(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_EmtisTable_nativeName(JNIEnv *env, jclass cls,
+                                          jbyteArray raw, jint index) {
+    char name[0x100];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK ||
+        r6_emtis_name(bytes, length, (uint32_t)index, name,
+                      sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_EmtisTable_nativeFindName(JNIEnv *env, jclass cls,
+                                              jbyteArray raw, jstring name) {
+    uint32_t index = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    (void)cls;
+    if (raw_from_blob(env, raw, &bytes, &length) != R6_OK || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_emtis_find_name(bytes, length, text, &index) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jlong)index;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_EngmapTable_nativeParse(JNIEnv *env, jclass cls,
                                             jbyteArray raw) {

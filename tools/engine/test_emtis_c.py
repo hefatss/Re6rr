@@ -16,6 +16,9 @@ import test_engine  # noqa: E402
 R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
+R6_ERR_BUFFER = -6
+R6_ERR_NOT_FOUND = -7
+NAME_CAP = 0x100
 
 
 class Section(ctypes.Structure):
@@ -44,6 +47,14 @@ def check(dump, lib):
     lib.r6_emtis_parse.restype = ctypes.c_int
     lib.r6_emtis_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                    ctypes.POINTER(Table)]
+    lib.r6_emtis_name.restype = ctypes.c_int
+    lib.r6_emtis_name.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                  ctypes.c_uint32, ctypes.c_char_p,
+                                  ctypes.c_size_t]
+    lib.r6_emtis_find_name.restype = ctypes.c_int
+    lib.r6_emtis_find_name.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
+                                       ctypes.c_char_p,
+                                       ctypes.POINTER(ctypes.c_uint32)]
     path = os.path.join(dump, nub_audio.SOUND_DIR, "emtis.tbl")
     with open(path, "rb") as stream:
         raw = stream.read()
@@ -68,6 +79,28 @@ def check(dump, lib):
         want["name_counts"][prefix]
         for prefix in ("Missfire", "Turbin", "Intake", "Engine")]
 
+    name = ctypes.create_string_buffer(NAME_CAP)
+    found = ctypes.c_uint32()
+    firsts = {}
+    for index, expected in enumerate(want["names"]):
+        firsts.setdefault(expected, index)
+    for index, expected in enumerate(want["names"]):
+        assert lib.r6_emtis_name(source, len(raw), index, name,
+                                 len(name)) == R6_OK
+        assert name.value.decode("ascii") == expected
+        assert lib.r6_emtis_find_name(
+            source, len(raw), expected.encode("ascii"),
+            ctypes.byref(found)) == R6_OK
+        assert found.value == firsts[expected]
+    assert lib.r6_emtis_find_name(
+        source, len(raw), b"R6_NO_SUCH_WAV",
+        ctypes.byref(found)) == R6_ERR_NOT_FOUND
+    assert lib.r6_emtis_name(source, len(raw), len(want["names"]), name,
+                             len(name)) == R6_ERR_ARG
+    assert lib.r6_emtis_name(source, len(raw), 0, name, 1) == R6_ERR_BUFFER
+    assert lib.r6_emtis_find_name(source, len(raw), b"",
+                                  ctypes.byref(found)) == R6_ERR_ARG
+
     bad = b"NOTIS 3 3\n1 2\n3 4\n60026\n"
     source = ctypes.create_string_buffer(bad, len(bad))
     assert lib.r6_emtis_parse(source, len(bad),
@@ -75,8 +108,14 @@ def check(dump, lib):
     assert lib.r6_emtis_parse(None, len(raw), ctypes.byref(table)) == R6_ERR_ARG
     assert lib.r6_emtis_parse(source, 0, ctypes.byref(table)) == R6_ERR_ARG
     assert lib.r6_emtis_parse(source, len(bad), None) == R6_ERR_ARG
-    print("emtis: 16365 tokens, 7 sections, 44 header values and 416 names "
-          "match audio_tables.parse_emtis(); bad magic and null inputs rejected")
+    assert lib.r6_emtis_name(source, len(bad), 0, name,
+                             len(name)) == R6_ERR_FORMAT
+    assert lib.r6_emtis_find_name(
+        source, len(bad), b"Missfire/missfire_01.wav",
+        ctypes.byref(found)) == R6_ERR_FORMAT
+    print("emtis: 16365 tokens, 7 sections, 44 header values and all 416 names "
+          "match audio_tables.parse_emtis(); name/find, bad magic, short "
+          "capacity and null inputs rejected")
 
 
 def main():

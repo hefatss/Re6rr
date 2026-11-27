@@ -26,5 +26,19 @@ public final class EmtisTable {
         return parsed == null ? null : Arrays.copyOfRange(parsed, 253, 257);
     }
 
+    /** Copied source WAV name at an index; null on bad input. */
+    public static String name(byte[] raw, int index) {
+        return nativeName(raw, index);
+    }
+
+    /** Row index of the first exact source WAV name; -1 if absent. */
+    public static long findName(byte[] raw, String name) {
+        return nativeFindName(raw, name);
+    }
+
     private static native double[] nativeParse(byte[] raw);
+
+    private static native String nativeName(byte[] raw, int index);
+
+    private static native long nativeFindName(byte[] raw, String name);
 }
