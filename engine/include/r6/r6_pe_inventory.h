@@ -99,6 +99,10 @@ R6_API int r6_pe_inventory_directory_find(const void *data, size_t size,
                                           uint32_t dir_index,
                                           uint32_t *row_index);
 
+/* First row with the exact DLL name. */
+R6_API int r6_pe_inventory_dll_find(const void *data, size_t size,
+                                    const char *name, uint32_t *index);
+
 R6_API int r6_pe_inventory_pdb(const void *data, size_t size, char *guid,
                                size_t guid_capacity, uint32_t *age,
                                char *path, size_t path_capacity);
