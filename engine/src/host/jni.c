@@ -62,6 +62,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_course_paths_catalog.h"
 #include "r6/r6_story_key_namespace.h"
 #include "r6/r6_loadlist_catalog.h"
+#include "r6/r6_reloc_inventory.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6803,6 +6804,106 @@ Java_com_wmmt_re6rr_LoadlistCatalog_nativeStreamName(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Shipped PE relocation facts: copied numbers only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelocInventory_nativeHeader(JNIEnv *env, jclass cls,
+                                                jbyteArray blob) {
+    r6_reloc_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[22];
+    jlongArray result = NULL;
+    uint32_t at;
+    (void)cls;
+    if (!bytes || r6_reloc_inventory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.directory_rva;
+    values[2] = (jlong)header.directory_size;
+    values[3] = (jlong)header.section_count;
+    values[4] = (jlong)header.block_count;
+    values[5] = (jlong)header.entry_count;
+    for (at = 0; at < 16; at++) {
+        values[6 + at] = (jlong)header.type_counts[at];
+    }
+    result = pe_new_longs(env, values, 22);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelocInventory_nativeSection(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_reloc_section_t section;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_reloc_inventory_section(bytes, length, (uint32_t)index,
+                                   &section) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)section.rva;
+    values[1] = (jlong)section.size;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelocInventory_nativeBlock(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_reloc_block_t block;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_reloc_inventory_block(bytes, length, (uint32_t)index,
+                                 &block) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)block.page_rva;
+    values[1] = (jlong)block.block_size;
+    values[2] = (jlong)block.entry_first;
+    values[3] = (jlong)block.entry_count;
+    values[4] = (jlong)block.section_index;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelocInventory_nativeEntry(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_reloc_entry_t entry;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_reloc_inventory_entry(bytes, length, (uint32_t)index,
+                                 &entry) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)entry.offset;
+    values[1] = (jlong)entry.type;
+    values[2] = (jlong)entry.rva;
+    values[3] = (jlong)entry.block_index;
+    result = pe_new_longs(env, values, 4);
     return result;
 }
 

@@ -14,6 +14,7 @@ Reports: `pe.json`, `lua.json`, `assets.json`, plus `lua_api.txt`, `formats.txt`
 | Image base / entry | `0x140000000` / RVA `0x0DEE6F0` |
 | Sections | `.text` 16.5 MB, `.rdata` 11.8 MB, `.data` 2.5 MB, `.pdata` 825 KB, `.reloc` 620 KB |
 | Packing | none — normal section names, full `.reloc`, `.pdata` intact |
+| `.reloc` | **1,833** blocks / **270,128** entries (825 type 0, 269,303 type 10); `tools/engine/reloc_inventory_catalog.py` copies page/section facts without applying fixups |
 | Functions (`.pdata`) | **70,377** (38,905 distinct unwind records) |
 | Symbols | no COFF symbols; PDB path only: `C:\jenkins\sharedspace\trunk_wmn6RR_Koshien_Product\wmn6\x64\Release\wmn6r.pdb` |
 | Imports | 28 DLLs / 825 symbols: d3d11, dxgi, D3DCOMPILER_43, lua5.1, SDL2-side libs (`nuSound2_win64`), `Wg6Enma_Release_IDL0`, `bngrw`, `hasp_windows_x64_30382`, MF/MFPlat/MFReadWrite, WS2_32/MSWSOCK, dbghelp |

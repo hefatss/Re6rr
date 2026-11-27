@@ -37,6 +37,7 @@ SOURCES = [
     "engine/src/assets/xmd.c",
     "engine/src/assets/asset_inventory.c",
     "engine/src/core/pe_inventory.c",
+    "engine/src/core/reloc_inventory.c",
     "engine/src/core/name_runs.c",
     "engine/src/core/lua_reg_tables.c",
     "engine/src/core/path_strings.c",
