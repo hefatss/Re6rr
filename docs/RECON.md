@@ -55,6 +55,11 @@ The 20 root `FBK_W6W_*.bin` / `GBK_W6W_*.bin` files are gzip banks with 22
 `tools/engine/wmbk_bank_catalog.py` copies gzip header words, record headers
 and byte spans, but does not decode record payload words.
 
+The 9 `data/ghost/default_ghost_*.bin` tables hold 69,056 records at stride
+136; `tools/engine/default_ghost_catalog.py` copies paths, counts, code words
+and NUL-terminated name-length ranges, but no ghost names, ids or trajectory
+values.
+
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64
 bytes are inventoried by `tools/engine/act_headers_catalog.py`, but no section
 or animation semantics are inferred. The 67 `.med` files all have zero bytes

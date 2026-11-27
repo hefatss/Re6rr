@@ -93,6 +93,7 @@ SOURCES = [
     "engine/src/game/wmbk_bank_catalog.c",
     "engine/src/game/filter_dictionary_catalog.c",
     "engine/src/game/nut_file_catalog.c",
+    "engine/src/game/default_ghost_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
