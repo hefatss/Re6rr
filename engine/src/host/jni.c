@@ -52,6 +52,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
 #include "r6/r6_story_keys.h"
+#include "r6/r6_act_headers.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -5671,6 +5672,90 @@ Java_com_wmmt_re6rr_Re6Engine_nativeStoryKeysFact(JNIEnv *env, jclass cls,
     values[1] = (jint)table_index;
     result = story_ints(env, values, 2);
     free(bytes);
+    return result;
+}
+
+/* Raw .ACT header prefixes: counts, file sizes, copied paths and 64-byte
+ * prefixes. No actor or animation semantics cross the bridge. */
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_ActHeaders_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_act_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint values[4];
+    jintArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_act_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)header.version;
+    values[1] = (jint)header.count;
+    values[2] = (jint)header.prefix_size;
+    values[3] = (jint)header.strings_size;
+    result = story_ints(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_ActHeaders_nativeSize(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    uint32_t file_size = 0;
+    jlong result = -1;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_act_size(bytes, length, (uint32_t)index, &file_size) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    result = (jlong)file_size;
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_ActHeaders_nativePath(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    char path[256];
+    size_t path_len = 0;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_act_path(bytes, length, (uint32_t)index, path,
+                    sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    while (path_len < sizeof(path) && path[path_len]) {
+        path_len++;
+    }
+    result = story_byte_array(env, path, path_len);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_ActHeaders_nativePrefix(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    unsigned char prefix[R6_ACT_PREFIX_SIZE];
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_act_prefix(bytes, length, (uint32_t)index, prefix,
+                      sizeof(prefix)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = story_byte_array(env, (const char *)prefix, sizeof(prefix));
     return result;
 }
 

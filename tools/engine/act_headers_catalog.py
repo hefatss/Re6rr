@@ -1,0 +1,73 @@
+r"""Pack the raw header prefix of every shipped .ACT effect actor.
+
+    python tools/engine/act_headers_catalog.py \
+        --dump D:\Games\W6W-05 --out build/tmp/act_headers.r6act
+
+Every file starts with `RESOURCE:NU`. Only the path, file size and first 64
+bytes are copied; no section, actor or animation semantics are inferred.
+"""
+
+import argparse
+import glob
+import json
+import os
+import struct
+
+MAGIC = b"R6ACT\0\1\0"
+VERSION = 1
+HEADER = struct.Struct("<8sIIII")
+RECORD = struct.Struct("<III64s")
+PREFIX_SIZE = 64
+ACT_MAGIC = b"RESOURCE:NU"
+
+
+def collect(dump):
+    paths = []
+    for path in glob.glob(os.path.join(dump, "**", "*.[Aa][Cc][Tt]"),
+                          recursive=True):
+        with open(path, "rb") as stream:
+            prefix = stream.read(PREFIX_SIZE)
+        if not prefix.startswith(ACT_MAGIC):
+            raise ValueError("not a RESOURCE:NU actor: %s" % path)
+        paths.append((os.path.relpath(path, dump).replace("\\", "/"),
+                      os.path.getsize(path), prefix))
+    paths.sort(key=lambda row: row[0])
+    return paths
+
+
+def build(rows):
+    strings = bytearray()
+    payload = bytearray()
+    for path, size, prefix in rows:
+        raw = path.encode("ascii")
+        offset = len(strings)
+        strings.extend(raw + b"\0")
+        payload.extend(RECORD.pack(offset, len(raw), size, prefix))
+    header = HEADER.pack(MAGIC, VERSION, len(rows), PREFIX_SIZE, len(strings))
+    return header + bytes(payload) + bytes(strings)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dump", default=os.environ.get(
+        "WMMT6_DUMP", r"D:\Games\W6W-05"))
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--report")
+    args = parser.parse_args()
+    rows = collect(args.dump)
+    blob = build(rows)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    with open(args.out, "wb") as stream:
+        stream.write(blob)
+    if args.report:
+        with open(args.report, "w", encoding="utf8") as stream:
+            json.dump([{"path": path, "size": size,
+                        "prefix": prefix.hex()} for path, size, prefix in rows],
+                      stream, indent=2)
+    print("%s: %d RESOURCE:NU actors, %d bytes" %
+          (args.out, len(rows), len(blob)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

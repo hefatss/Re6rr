@@ -47,6 +47,10 @@ must come from imports, string references, RTTI and pattern matching.
 | `.nuf` | 1 | 9.5 KB | `NUF` — font (`engine/default_font`) |
 | `.med` | 28 + 39 | 3.9 MB | motion data |
 
+All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64
+bytes are inventoried by `tools/engine/act_headers_catalog.py`, but no section
+or animation semantics are inferred.
+
 Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
 `NTWD`, `XMD` and `NDWD` have per-format parsers. `NSXR` is now decoded too:
 223 `.nsh` files wrap two DXBC blobs each, with `RDEF`, `ISGN`, `OSGN`, `SHDR`
