@@ -30,9 +30,38 @@ public final class SceneBridge {
         return nativeRuntimeCamera(records, frame);
     }
 
+    /** version, record count, strings offset and strings size. */
+    public static long[] identityHeader(byte[] blob) {
+        return nativeIdentityHeader(blob);
+    }
+
+    /** name offset, 1 when the camera files are byte-identical, and camid. */
+    public static long[] identityRecord(byte[] blob, int index) {
+        return nativeIdentityRecord(blob, index);
+    }
+
+    /** Shipped episode name, or null for an invalid blob or index. */
+    public static String identityName(byte[] blob, int index) {
+        return nativeIdentityName(blob, index);
+    }
+
+    /** First episode with an exact name, or -1. */
+    public static long identityFind(byte[] blob, String episode) {
+        return nativeIdentityFind(blob, episode);
+    }
+
     private static native int nativeWriteCamid(byte[] scene, byte[] config);
 
     private static native int nativeContainerOffset(int slot);
 
     private static native int nativeRuntimeCamera(byte[] records, int frame);
+
+    private static native long[] nativeIdentityHeader(byte[] blob);
+
+    private static native long[] nativeIdentityRecord(byte[] blob, int index);
+
+    private static native String nativeIdentityName(byte[] blob, int index);
+
+    private static native long nativeIdentityFind(byte[] blob,
+                                                  String episode);
 }

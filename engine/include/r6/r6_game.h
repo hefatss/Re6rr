@@ -104,6 +104,39 @@ R6_API int r6_scene_container_offset(uint32_t slot, size_t *out);
 R6_API int r6_scene_runtime_camera(const void *records, size_t size,
                                    int32_t frame);
 
+/* Derived R6SCI map of whether CamData.EES equals CamData<camid>.EES for each
+ * shipped Environment.Lua episode. Equality is a byte comparison, not a camera
+ * semantic claim. */
+enum { R6_SCENE_IDENTITY_NAME_CAP = 0x40 };
+
+typedef struct r6_scene_identity_header {
+    uint32_t version;
+    uint32_t record_count;
+    uint32_t strings_off;
+    uint32_t strings_size;
+} r6_scene_identity_header;
+
+typedef struct r6_scene_identity_record_t {
+    uint32_t name_off;
+    uint32_t matches;
+    int32_t cam_id;
+} r6_scene_identity_record_t;
+
+R6_API int r6_scene_identity_parse(const void *data, size_t size,
+                                   r6_scene_identity_header *out);
+
+R6_API int r6_scene_identity_record(const void *data, size_t size,
+                                    uint32_t index,
+                                    r6_scene_identity_record_t *out);
+
+R6_API int r6_scene_identity_name(const void *data, size_t size,
+                                  uint32_t index, char *name,
+                                  size_t capacity);
+
+/* First exact episode-name match; R6_ERR_NOT_FOUND means no row matched. */
+R6_API int r6_scene_identity_find(const void *data, size_t size,
+                                  const char *name, uint32_t *index);
+
 /* EventScene2 container layout validated by FUN_1401cd0a0 / FUN_1401cd650. */
 enum {
     R6_EES_KIND_CAM = 0,

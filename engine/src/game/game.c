@@ -299,6 +299,130 @@ int r6_scene_runtime_camera(const void *records, size_t size, int32_t frame) {
     return -1;
 }
 
+static const unsigned char scene_identity_magic[8] = {
+    'R', '6', 'S', 'C', 'I', 0, 1, 0
+};
+
+static int scene_identity_header(const void *data, size_t size,
+                                 r6_scene_identity_header *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint64_t strings_off;
+    if (!bytes || !out || size < 24u ||
+        r6_memcmp(bytes, scene_identity_magic,
+                  sizeof(scene_identity_magic)) != 0 ||
+        read_u32(bytes, 8) != 1u || !read_u32(bytes, 12)) {
+        return R6_ERR_FORMAT;
+    }
+    strings_off = 24u + (uint64_t)read_u32(bytes, 12) * 12u;
+    if (read_u32(bytes, 16) != strings_off || !read_u32(bytes, 20) ||
+        strings_off + read_u32(bytes, 20) != size) {
+        return R6_ERR_FORMAT;
+    }
+    out->version = 1u;
+    out->record_count = read_u32(bytes, 12);
+    out->strings_off = (uint32_t)strings_off;
+    out->strings_size = read_u32(bytes, 20);
+    return R6_OK;
+}
+
+int r6_scene_identity_parse(const void *data, size_t size,
+                            r6_scene_identity_header *out) {
+    return scene_identity_header(data, size, out);
+}
+
+int r6_scene_identity_record(const void *data, size_t size, uint32_t index,
+                             r6_scene_identity_record_t *out) {
+    r6_scene_identity_header header;
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t at;
+    int result = scene_identity_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!out || index >= header.record_count) {
+        return R6_ERR_ARG;
+    }
+    at = 24u + index * 12u;
+    out->name_off = read_u32(bytes, at);
+    out->matches = read_u32(bytes, at + 4u);
+    out->cam_id = (int32_t)read_u32(bytes, at + 8u);
+    if (out->matches > 1u || out->name_off < header.strings_off ||
+        out->name_off >= header.strings_off + header.strings_size) {
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+int r6_scene_identity_name(const void *data, size_t size, uint32_t index,
+                           char *name, size_t capacity) {
+    r6_scene_identity_header header;
+    r6_scene_identity_record_t row;
+    const unsigned char *bytes = (const unsigned char *)data;
+    uint32_t end;
+    size_t written = 0;
+    int result = r6_scene_identity_record(data, size, index, &row);
+    if (result != R6_OK) {
+        return result;
+    }
+    result = scene_identity_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name || !capacity) {
+        return R6_ERR_ARG;
+    }
+    end = header.strings_off + header.strings_size;
+    while (row.name_off + written < end && bytes[row.name_off + written]) {
+        if (written + 1u >= capacity) {
+            return R6_ERR_BUFFER;
+        }
+        name[written] = (char)bytes[row.name_off + written];
+        written++;
+    }
+    if (row.name_off + written >= end) {
+        return R6_ERR_FORMAT;
+    }
+    name[written] = 0;
+    return R6_OK;
+}
+
+int r6_scene_identity_find(const void *data, size_t size, const char *name,
+                           uint32_t *index) {
+    r6_scene_identity_header header;
+    r6_scene_identity_record_t row;
+    uint32_t at;
+    char candidate[R6_SCENE_IDENTITY_NAME_CAP];
+    size_t wanted;
+    int result = scene_identity_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name || !index) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.record_count; at++) {
+        result = r6_scene_identity_record(data, size, at, &row);
+        if (result != R6_OK) {
+            return result;
+        }
+        result = r6_scene_identity_name(data, size, at, candidate,
+                                        sizeof(candidate));
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(candidate) == wanted &&
+            r6_memcmp(candidate, name, wanted) == 0) {
+            *index = at;
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 static float ees_f32(const unsigned char *bytes, size_t at) {
     float value;
     r6_memcpy(&value, bytes + at, sizeof(value));

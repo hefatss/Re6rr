@@ -7133,6 +7133,95 @@ Java_com_wmmt_re6rr_SceneBridge_nativeRuntimeCamera(JNIEnv *env, jclass cls,
     return result;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeIdentityHeader(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    r6_scene_identity_header header;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[4];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_scene_identity_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.record_count;
+    values[2] = (jlong)header.strings_off;
+    values[3] = (jlong)header.strings_size;
+    return pe_new_longs(env, values, 4);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeIdentityRecord(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    r6_scene_identity_record_t row;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jlong values[3];
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_scene_identity_record(bytes, length, (uint32_t)index, &row) !=
+        R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_off;
+    values[1] = (jlong)row.matches;
+    values[2] = (jlong)row.cam_id;
+    return pe_new_longs(env, values, 3);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeIdentityName(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char name[R6_SCENE_IDENTITY_NAME_CAP];
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    jstring out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
+        r6_scene_identity_name(bytes, length, (uint32_t)index, name,
+                               sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    out = (*env)->NewStringUTF(env, name);
+    return out;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_SceneBridge_nativeIdentityFind(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jstring episode) {
+    const char *text = NULL;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint32_t index = 0;
+    jlong out = -1;
+    (void)cls;
+    if (!episode) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, episode, NULL);
+    if (!text) {
+        return -1;
+    }
+    if (raw_from_blob(env, blob, &bytes, &length) == R6_OK &&
+        r6_scene_identity_find(bytes, length, text, &index) == R6_OK) {
+        out = (jlong)index;
+    }
+    free(bytes);
+    (*env)->ReleaseStringUTFChars(env, episode, text);
+    return out;
+}
+
 JNIEXPORT jintArray JNICALL
 Java_com_wmmt_re6rr_EesContainer_nativeParse(JNIEnv *env, jclass cls,
                                              jbyteArray raw) {

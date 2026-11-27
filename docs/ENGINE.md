@@ -236,6 +236,10 @@ platform/android/java/        Java side of the JNI bridge
   `r6_scene_runtime_camera()` — copy scene `+0x24` to config `+0x70`, resolve
   the five camera containers at `+0x2d78` with a `0x1b0` stride, and find the
   first non-empty camera record covering a frame. All inputs are caller-owned.
+- `r6_scene_identity_parse()/record()/name()/find()` — read the derived `R6SCI`
+  byte-equality map for `CamData.EES` versus `CamData<camid>.EES` across the 59
+  shipped `Environment.Lua` episodes: 58 match, `ESeries_055` (camid 2) does
+  not. Equality is copied as a fact; no camera field is reinterpreted.
 - `r6_ees_camera_fields()` — copy the 31 fields named by `FUN_1401e0330` from
   one `0x160`-byte `.EES` camera record. Native names and declared types are
   preserved, including the f32 members printed with `%d`.
@@ -471,6 +475,7 @@ Verified on this dump:
 | game flow | select car → course → race → result, invalid transitions rejected, 16 named SConfigPlay fields at 0x008–0x63c round-trip, short buffer rejected |
 | road surface | 558 shipped FUKUOKA LOADLIST labels and 7 precedence cases match `course_surface.classify()`; 405 road, 2 grass, 2 gravel, 156 unknown; null name rejected |
 | scene bridge | 5 camid values and all 59 shipped episodes copy to config +0x70 and resolve 0x2d78 + slot*0x1b0; runtime first-match camera equals `scene_bridge.py` and invalid buffers rejected |
+| scene camera identity | all 59 shipped episode names, camids and byte-equality flags match `scene_bridge.build()`; 58 identical files and `ESeries_055` camid 2 exception; bad blob, index, name and capacity rejected |
 | EES container | all 1129 shipped files (720 cam, 409 car) match `ees_scene.parse_ees()`; short, unknown and inconsistent headers rejected |
 | EES camera fields | all 31 named fields match `ees_fields.camera_fields()` on 255 shipped `CamData.EES` records; sentinel, short offset and null arguments rejected |
 | EES frame lookup | all 14 shipped frame values match the `FUN_1401c8f60` last-match oracle; short buffer, overlong count and null input rejected |

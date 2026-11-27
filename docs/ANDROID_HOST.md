@@ -125,8 +125,9 @@ stream fade state, `BgmManager` applies playBGM id dispatch, `SoundDispatch`
 copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 `BankSlots` finds free registration slots, `SoundStrings` finds bank/tone
 names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
-`CourseSurface` classifies road names, `SceneBridge` copies camid and resolves
-camera containers/records, `EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
+`CourseSurface` classifies road names, `SceneBridge` copies camid, resolves
+camera containers/records and reads the 59-episode camera-file identity map,
+`EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
 last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 runtime
 fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes, call sites and three KeyOn user groups, `VoiceCoreTableFacts` exposes the
