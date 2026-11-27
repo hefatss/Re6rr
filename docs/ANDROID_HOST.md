@@ -95,6 +95,8 @@ still sees only bytes.
   the spinner still uses raw `PLC_*` codes;
 - `CarCatalog.engineSound()` supplies the verbatim `EngineSound` value needed
   by `EngineSound.find()`; the current spinner does not yet call it;
+- `CustomCatalog.tuneIndexForModel()` resolves a selected `PLC_*` model to the
+  151-row per-car tune record; no UI wiring was added;
 - `StoryCatalog.summary()` returns 15 raw phase/kind/flag counts from
   `story.r6story`; the UI still shows only the episode count;
 - load status shows customization colour/wheel counts and episode count when

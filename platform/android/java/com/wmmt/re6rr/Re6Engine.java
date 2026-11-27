@@ -387,6 +387,11 @@ public final class Re6Engine implements AutoCloseable {
             return name(3, index);
         }
 
+        /** Index of the PLC_* tune record, or -1 when absent. */
+        public int tuneIndexForModel(String model) {
+            return nativeCustomCatalogFindTune(blob, model);
+        }
+
         /** aeroCategory limitedParts pureFront pureRear customFront customRear
          *  changeTuningDisp customGTWing wingAH wingN, then 11 default and
          *  40 custom colour IDs. */
@@ -557,6 +562,7 @@ public final class Re6Engine implements AutoCloseable {
     private static native byte[] nativeCustomCatalogColorName(byte[] blob, int index);
     private static native byte[] nativeCustomCatalogName(byte[] blob, int section, int index);
     private static native int nativeCustomCatalogFlags(byte[] blob, int section, int index);
+    private static native int nativeCustomCatalogFindTune(byte[] blob, String model);
     private static native int[] nativeCustomCatalogTune(byte[] blob, int index);
     private static native float[] nativeCustomCatalogTire(byte[] blob, int index);
     private static native int[] nativeStoryCatalogCounts(byte[] blob);

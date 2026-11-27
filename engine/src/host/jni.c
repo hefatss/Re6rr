@@ -4898,6 +4898,28 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogFlags(
     return result;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogFindTune(
+        JNIEnv *env, jclass cls, jbyteArray blob, jstring model) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    r6_custom_catalog catalog;
+    const char *text;
+    jint result = -1;
+    (void)cls;
+    if (!model || custom_from_blob(env, blob, &bytes, &length, &catalog) !=
+        R6_OK) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, model, NULL);
+    if (text) {
+        result = (jint)r6_custom_catalog_find_tune(&catalog, text);
+        (*env)->ReleaseStringUTFChars(env, model, text);
+    }
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jintArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCustomCatalogTune(JNIEnv *env, jclass cls,
                                                      jbyteArray blob,

@@ -67,6 +67,8 @@ sizes in colour/wheel/aero/tune/tire order. `color(index)` returns
 `id icon feel body0[4] body1[4] spec[4] params[4]`; `colorName(index)` decodes
 the CP932 message-DB label. `wheelName`, `wheelFlags`, `aeroName`,
 `aeroFlags`, `tuneModel`, `tune` and `tire` expose the remaining sections.
+`tuneIndexForModel()` resolves a `PLC_*` model to its tune index using the same
+exact-match C lookup as the ctypes test; unknown models return `-1`.
 `tune()` returns 10 scalar fields followed by 11 default and 40 custom colour
 IDs. Java only owns the byte array; the native layer validates and copies
 fixed-size records.
