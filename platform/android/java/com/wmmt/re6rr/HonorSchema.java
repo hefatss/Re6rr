@@ -30,6 +30,11 @@ public final class HonorSchema {
         return nativeField(blob, type, field);
     }
 
+    /** field index for an exact label in one type; -1 if absent. */
+    public static long findField(byte[] blob, int type, String name) {
+        return nativeFindField(blob, type, name);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeType(byte[] blob, int type);
@@ -39,4 +44,7 @@ public final class HonorSchema {
     private static native int nativeFieldCount(byte[] blob, int type);
 
     private static native String nativeField(byte[] blob, int type, int field);
+
+    private static native long nativeFindField(byte[] blob, int type,
+                                                String name);
 }

@@ -39,6 +39,11 @@ R6_API int r6_honor_schema_find_type(const void *data, size_t size,
 R6_API int r6_honor_schema_field(const void *data, size_t size, uint32_t type,
                                  uint32_t field, char *out, size_t capacity);
 
+/* First exact field label in one predicate type. */
+R6_API int r6_honor_schema_find_field(const void *data, size_t size,
+                                      uint32_t type, const char *name,
+                                      uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif

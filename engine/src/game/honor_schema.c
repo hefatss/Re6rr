@@ -137,3 +137,50 @@ int r6_honor_schema_field(const void *data, size_t size, uint32_t type,
     return honor_copy(bytes, &header,
                       r6_u32(bytes, row + 8u + field * 4u), out, capacity);
 }
+
+int r6_honor_schema_find_field(const void *data, size_t size, uint32_t type,
+                               const char *name, uint32_t *index) {
+    r6_honor_schema_header header;
+    uint32_t count = 0;
+    uint32_t at;
+    size_t wanted;
+    char type_name[R6_HONOR_NAME_CAP];
+    int result = honor_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name || type >= header.type_count) {
+        return R6_ERR_ARG;
+    }
+    result = r6_honor_schema_type(data, size, type, type_name,
+                                  sizeof(type_name), &count);
+    if (result == R6_ERR_ARG) {
+        return R6_ERR_FORMAT;
+    }
+    if (result != R6_OK) {
+        return result;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < count; at++) {
+        char found[R6_HONOR_NAME_CAP];
+        result = r6_honor_schema_field(data, size, type, at, found,
+                                       sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

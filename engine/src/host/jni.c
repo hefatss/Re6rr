@@ -2963,6 +2963,35 @@ Java_com_wmmt_re6rr_HonorSchema_nativeField(JNIEnv *env, jclass cls,
     return out;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_HonorSchema_nativeFindField(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint type,
+                                               jstring name) {
+    uint32_t index = 0;
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    const char *text = NULL;
+    (void)cls;
+    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (!text) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_honor_schema_find_field(bytes, length, (uint32_t)type, text,
+                                   &index) != R6_OK) {
+        (*env)->ReleaseStringUTFChars(env, name, text);
+        free(bytes);
+        return -1;
+    }
+    (*env)->ReleaseStringUTFChars(env, name, text);
+    free(bytes);
+    return (jlong)index;
+}
+
 JNIEXPORT jobjectArray JNICALL
 Java_com_wmmt_re6rr_ContextPaths_nativeList(JNIEnv *env, jclass cls,
                                             jstring car, jstring model) {

@@ -44,6 +44,10 @@ def check(dump, lib):
     lib.r6_honor_schema_field.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                           ctypes.c_uint32, ctypes.c_uint32,
                                           ctypes.c_char_p, ctypes.c_size_t]
+    lib.r6_honor_schema_find_field.restype = ctypes.c_int
+    lib.r6_honor_schema_find_field.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32,
+        ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint32)]
 
     rows = honor_schema_catalog.collect()
     blob = honor_schema_catalog.build(rows)
@@ -69,6 +73,11 @@ def check(dump, lib):
             assert lib.r6_honor_schema_field(source, len(blob), index, field,
                                              name, len(name)) == R6_OK
             assert name.value.decode("ascii") == want
+            found_field = ctypes.c_uint32()
+            assert lib.r6_honor_schema_find_field(
+                source, len(blob), index, want.encode("ascii"),
+                ctypes.byref(found_field)) == R6_OK
+            assert found_field.value == field
             fields += 1
     assert fields == 60
 
@@ -81,6 +90,13 @@ def check(dump, lib):
     assert lib.r6_honor_schema_find_type(
         source, len(blob), b"R6_NO_SUCH_TYPE",
         ctypes.byref(found)) == R6_ERR_NOT_FOUND
+    absent_field = ctypes.c_uint32()
+    assert lib.r6_honor_schema_find_field(
+        source, len(blob), 0, b"R6_NO_SUCH_FIELD",
+        ctypes.byref(absent_field)) == R6_ERR_NOT_FOUND
+    assert lib.r6_honor_schema_find_field(
+        source, len(blob), 13, b"car",
+        ctypes.byref(absent_field)) == R6_ERR_ARG
 
     assert lib.r6_honor_schema_type(source, len(blob), 13, name, len(name),
                                     None) == R6_ERR_ARG
@@ -114,8 +130,8 @@ def check(dump, lib):
     assert lib.r6_honor_schema_field(source, len(bad), 0, 0, name,
                                      len(name)) == R6_ERR_FORMAT
     print("honor schema: 13 shipped type names and 60 ordered fields match "
-          "STORY_NATIVE.md and the exe pointer table; find, bad blob, type, "
-          "field and capacity rejected")
+          "STORY_NATIVE.md and the exe pointer table; type/field find, "
+          "bad blob, type, field and capacity rejected")
 
 
 def main():
