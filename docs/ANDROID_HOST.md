@@ -103,6 +103,8 @@ still sees only bytes.
   `story.r6story`; the UI still shows only the episode count;
 - `StoryKeys` exposes the 101 keys hard-coded by the executable and their
   direct/table source; no UI behaviour depends on it yet;
+- `NufHeaders` exposes 22 `.NUF` paths, file sizes and raw 64-byte prefixes;
+  glyph tables are not interpreted;
 - `LmdCatalog` exposes 985 `.LMD` gzip/XMD header facts and three stream sizes
   per file; payloads are not inflated by the core;
 - `ActHeaders` exposes 170 `.ACT` paths, file sizes and raw 64-byte prefixes;
@@ -134,7 +136,7 @@ registration bytes and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
 Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` through
-`LuaXrefs`, `lua_inventory.r6lsi` through `LuaInventory`, `asset_inventory.r6aiv` through `AssetInventory`, `pe_inventory.r6pei` through `PeInventory`, `name_runs.r6ntr` through `NameRuns`, `lua_reg_tables.r6lreg` through `LuaRegTables`, `path_strings.r6pst` through `PathStrings`, `enma_sim.r6esim` through `EnmaSimFacts`, `ref_words.r6ref` through `RefWords`, `pdata_stats.r6pds` through `PdataStats`, `string_xrefs.r6sxr` through `StringXrefs`, `lmd.r6lmd` through `LmdCatalog`, `act_headers.r6act` through `ActHeaders`, `med_headers.r6med` through `MedHeaders`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
+`LuaXrefs`, `lua_inventory.r6lsi` through `LuaInventory`, `asset_inventory.r6aiv` through `AssetInventory`, `pe_inventory.r6pei` through `PeInventory`, `name_runs.r6ntr` through `NameRuns`, `lua_reg_tables.r6lreg` through `LuaRegTables`, `path_strings.r6pst` through `PathStrings`, `enma_sim.r6esim` through `EnmaSimFacts`, `ref_words.r6ref` through `RefWords`, `pdata_stats.r6pds` through `PdataStats`, `string_xrefs.r6sxr` through `StringXrefs`, `lmd.r6lmd` through `LmdCatalog`, `nuf_headers.r6nuf` through `NufHeaders`, `act_headers.r6act` through `ActHeaders`, `med_headers.r6med` through `MedHeaders`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
 through `EnmaDefaults`, `enma_exports.r6eex` through `EnmaExports`, `scene_env.r6ses` through
 `SceneEnvStats`, `honor_schema.r6hon` through `HonorSchema`, `EngineRuntime` evaluates the 16
 layers using host libm, `EngmapTable` reads the 320 sound/group pairs, `EmtisTable` reads EMTIS
@@ -165,7 +167,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `ShaderControlFlow.java`, `ShaderUsage.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `LuaInventory.java`, `AssetInventory.java`, `PeInventory.java`, `NameRuns.java`, `LuaRegTables.java`, `PathStrings.java`, `EnmaSimFacts.java`, `RefWords.java`, `PdataStats.java`, `StringXrefs.java`, `LmdCatalog.java`, `ActHeaders.java`, `MedHeaders.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Container.java`,
+`GlslBindings.java`, `NshContainer.java`, `ShaderControlFlow.java`, `ShaderUsage.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `LuaInventory.java`, `AssetInventory.java`, `PeInventory.java`, `NameRuns.java`, `LuaRegTables.java`, `PathStrings.java`, `EnmaSimFacts.java`, `RefWords.java`, `PdataStats.java`, `StringXrefs.java`, `LmdCatalog.java`, `NufHeaders.java`, `ActHeaders.java`, `MedHeaders.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Container.java`,
 `Re6MeshRecords.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax

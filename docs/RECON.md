@@ -44,7 +44,7 @@ must come from imports, string references, RTTI and pattern matching.
 | `.act` | 170 | 6.8 MB | `RESOURCE:NU` — effect actors |
 | `.lmd` | 985 | 13 MB | gzip → `XMD.001` — flash UI; gzip/XMD headers and stream sizes are inventoried by `tools/engine/lmd_catalog.py` |
 | `.xmlt` | 591 | 1.0 MB | XML text (story lines, cut-in tables) |
-| `.nuf` | 1 | 9.5 KB | `NUF` — font (`engine/default_font`) |
+| `.nuf` | 22 | 0.7 MB | `NUF`/`NFH` — fonts; `tools/engine/nuf_headers_catalog.py` inventories paths, sizes and first 64 bytes |
 | `.med` | 28 + 39 | 3.9 MB | motion data |
 
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64

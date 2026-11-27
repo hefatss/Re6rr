@@ -55,6 +55,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_act_headers.h"
 #include "r6/r6_med_headers.h"
 #include "r6/r6_lmd_catalog.h"
+#include "r6/r6_nuf_headers.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6026,6 +6027,89 @@ Java_com_wmmt_re6rr_LmdCatalog_nativeStream(JNIEnv *env, jclass cls,
     values[0] = (jlong)offset;
     values[1] = (jlong)stream_size;
     result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+/* Raw .NUF/NFH font header prefixes: copied counts, sizes, paths and bytes. */
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_NufHeaders_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_nuf_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint values[4];
+    jintArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_nuf_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)header.version;
+    values[1] = (jint)header.count;
+    values[2] = (jint)header.prefix_size;
+    values[3] = (jint)header.strings_size;
+    result = story_ints(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_NufHeaders_nativeSize(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    uint32_t file_size = 0;
+    jlong result = -1;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_nuf_size(bytes, length, (uint32_t)index, &file_size) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    result = (jlong)file_size;
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_NufHeaders_nativePath(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    char path[256];
+    size_t path_len = 0;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_nuf_path(bytes, length, (uint32_t)index, path,
+                    sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    while (path_len < sizeof(path) && path[path_len]) {
+        path_len++;
+    }
+    result = story_byte_array(env, path, path_len);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_NufHeaders_nativePrefix(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    unsigned char prefix[R6_NUF_PREFIX_SIZE];
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_nuf_prefix(bytes, length, (uint32_t)index, prefix,
+                      sizeof(prefix)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = story_byte_array(env, (const char *)prefix, sizeof(prefix));
     return result;
 }
 
