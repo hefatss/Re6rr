@@ -83,6 +83,7 @@ SOURCES = [
     "engine/src/game/ees_inventory.c",
     "engine/src/game/xmd_asset_catalog.c",
     "engine/src/game/course_paths_catalog.c",
+    "engine/src/game/story_key_namespace.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

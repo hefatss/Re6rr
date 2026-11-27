@@ -76,8 +76,12 @@ reference `drive_story_2_0` directly and index a 100-pointer table at RVA
 `0x12ffd20`; the table holds `drive_story_TipsEnd00`..`drive_story_TipsEnd99`.
 All 101 names exist in the 647 `drive_story_*` entries of `msgdb.lua`; the
 other 546 keys have no observed reference in those two functions. The C reader
-copies names and the direct/table source fact only. No dialogue, unlock or
-mission-order semantics are inferred.
+copies names and the direct/table source fact only. `story_key_namespace_catalog.py`
+also packs a `.r6skn` blob with all 647 msgdb names: the 101 observed native
+keys keep their source/table facts and the remaining 546 are marked
+message-DB-only. `StoryKeyNamespace` wraps that blob with `header()`, `name()`,
+`find()` and `fact()`. No scene, dialogue, unlock or mission-order semantics
+are inferred.
 
 ## JNI
 

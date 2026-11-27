@@ -60,6 +60,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_ees_inventory.h"
 #include "r6/r6_xmd_asset_catalog.h"
 #include "r6/r6_course_paths_catalog.h"
+#include "r6/r6_story_key_namespace.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6558,6 +6559,97 @@ Java_com_wmmt_re6rr_CoursePaths_nativeRouteRef(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Complete shipped drive_story_* key namespace with observed source flags. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StoryKeyNamespace_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_story_key_namespace_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_story_key_namespace_parse(
+            bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.count;
+    values[2] = (jlong)header.native_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.header_size;
+    values[5] = (jlong)header.strings_offset;
+    values[6] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StoryKeyNamespace_nativeName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_story_key_namespace_name(bytes, length, (uint32_t)index, name,
+                                    sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_StoryKeyNamespace_nativeFind(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jstring name) {
+    const char *text;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint result = -1;
+    (void)cls;
+    if (!bytes || !name) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, name, NULL);
+    if (text) {
+        result = (jint)r6_story_key_namespace_find(bytes, length, text);
+        (*env)->ReleaseStringUTFChars(env, name, text);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StoryKeyNamespace_nativeFact(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    uint32_t source = 0;
+    uint32_t table_index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_story_key_namespace_fact(bytes, length, (uint32_t)index, &source,
+                                    &table_index) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)source;
+    values[1] = (jlong)table_index;
+    result = pe_new_longs(env, values, 2);
     return result;
 }
 
