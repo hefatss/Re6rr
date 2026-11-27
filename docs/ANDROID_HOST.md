@@ -89,6 +89,8 @@ still sees only bytes.
 
 - `character car` overrides the model spinner through
   `CarCatalog.carIndexForCharacter()` — e.g. `CRC_928GT_Masaki`;
+- `CarCatalog.engineSound()` supplies the verbatim `EngineSound` value needed
+  by `EngineSound.find()`; the current spinner does not yet call it;
 - load status shows customization colour/wheel counts and episode count when
   `custom.r6custom` / `story.r6story` are present.
 - `course descriptor` selects the `.r6course` file.

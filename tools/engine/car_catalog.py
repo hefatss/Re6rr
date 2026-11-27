@@ -21,8 +21,10 @@ import sys
 import car_mapping
 
 MAGIC = b"R6CAR\0\1\0"
-VERSION = 2
-RECORD_SIZE = 144
+VERSION = 3
+RECORD_SIZE = 148
+LEGACY_VERSION = 2
+LEGACY_RECORD_SIZE = 144
 MAP_SIZE = 48
 HEADER_SIZE = 24
 
@@ -163,10 +165,13 @@ def text_field(value, size, encoding="cp932"):
     return raw + b"\0" * (size - len(raw))
 
 
-def pack(entries, mappings=None):
+def pack(entries, mappings=None, version=VERSION, record_size=RECORD_SIZE):
     mappings = [row for row in (mappings or []) if row.get("model")]
+    if (version == 3 and record_size != RECORD_SIZE) or \
+            (version in (1, 2) and record_size != LEGACY_RECORD_SIZE):
+        raise ValueError("version and record size disagree")
     blob = bytearray(MAGIC)
-    blob += struct.pack("<IIII", VERSION, len(entries), RECORD_SIZE,
+    blob += struct.pack("<IIII", version, len(entries), record_size,
                         len(mappings))
     for entry in entries:
         blob += text_field(entry["model"], MODEL_SIZE)
@@ -180,12 +185,14 @@ def pack(entries, mappings=None):
                             float(entry["tire_width_front"]),
                             float(entry["tire_width_rear"]))
         blob += struct.pack("<I", entry["maker_id"])
+        if record_size == RECORD_SIZE:
+            blob += struct.pack("<HH", entry["engine_sound"], 0)
     for row in mappings:
         blob += text_field(row["car"], MODEL_SIZE)
         blob += text_field(row["model"], MODEL_SIZE)
-    if len(blob) != HEADER_SIZE + RECORD_SIZE * len(entries) + \
+    if len(blob) != HEADER_SIZE + record_size * len(entries) + \
             MAP_SIZE * len(mappings):
-        raise ValueError("record layout does not match RECORD_SIZE")
+        raise ValueError("record layout does not match record_size")
     return bytes(blob)
 
 

@@ -15,6 +15,8 @@ extern "C" {
 #define R6_CAR_NAME_SIZE 64
 #define R6_CAR_MAKER_SIZE 24
 #define R6_CAR_RECORD_SIZE 144
+#define R6_CAR_RECORD_SIZE_V3 148
+#define R6_CAR_ENGINE_SOUND_OFFSET 144
 #define R6_CAR_MAP_SIZE 48
 #define R6_CAR_HEADER_SIZE 24
 
@@ -49,10 +51,11 @@ typedef struct r6_car_info {
 } r6_car_info;
 
 /* Packed layout: 8-byte magic "R6CAR\0\1\0", u32 version, u32 car count,
- * u32 record size 144, u32 mapping count, then count 144-byte records and
- * mapping_count 48-byte CRC_* -> PLC_* pairs. Version 1 has no mappings and
- * requires a zero mapping count. On R6_ERR_BUFFER, *count holds the required
- * car capacity. */
+ * u32 record size, u32 mapping count, then count records and mapping_count
+ * 48-byte CRC_* -> PLC_* pairs. Versions 1/2 use 144-byte records; version 3
+ * uses 148-byte records with EngineSound at +144 and a reserved u16. Version
+ * 1 has no mappings and requires a zero mapping count. On R6_ERR_BUFFER,
+ * *count holds the required car capacity. */
 R6_API int r6_car_catalog_parse(const void *data, size_t size,
                                 r6_car_info *cars, size_t capacity,
                                 size_t *count);
@@ -60,6 +63,11 @@ R6_API int r6_car_catalog_find_model(const r6_car_info *cars, size_t count,
                                      const char *model);
 R6_API int r6_car_catalog_find_id(const r6_car_info *cars, size_t count,
                                   uint16_t model_id);
+/* Verbatim EngineSound from a version-3 blob (0..31 in the shipped catalog).
+ * Older blobs have no field and return R6_ERR_FORMAT. */
+R6_API int r6_car_catalog_engine_sound(const void *data, size_t size,
+                                       size_t index, uint16_t *out);
+
 /* Raw-blob lookups into the mapping section; no unpacked storage needed. */
 R6_API int r6_car_catalog_character_count(const void *data, size_t size);
 R6_API int r6_car_catalog_find_character(const void *data, size_t size,

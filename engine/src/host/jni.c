@@ -4492,6 +4492,26 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogCount(JNIEnv *env, jclass cls,
     return rc == R6_ERR_BUFFER ? (jint)count : 0;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogEngineSound(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    uint16_t sound = 0;
+    jint out = -1;
+    (void)cls;
+    if (index < 0 || raw_from_blob(env, blob, &bytes, &length) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    if (r6_car_catalog_engine_sound(bytes, length, (size_t)index,
+                                    &sound) == R6_OK) {
+        out = (jint)sound;
+    }
+    free(bytes);
+    return out;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogModel(JNIEnv *env, jclass cls,
                                                     jbyteArray blob,

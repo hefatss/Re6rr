@@ -281,6 +281,12 @@ public final class Re6Engine implements AutoCloseable {
             return nativeCarCatalogCount(blob);
         }
 
+        /** EngineSound for the native ENGMAP lookup, or -1 on old blobs or
+         *  bad index. Available in .r6car version 3. */
+        public int engineSound(int index) {
+            return nativeCarCatalogEngineSound(blob, index);
+        }
+
         /** Raw model code bytes, normally ASCII such as PLC_928GT. */
         public byte[] model(int index) {
             return nativeCarCatalogModel(blob, index);
@@ -515,6 +521,8 @@ public final class Re6Engine implements AutoCloseable {
     private static native byte[] nativeGameWriteConfig(long handle);
     private static native int nativeGameReadConfig(long handle, byte[] blob);
     private static native int nativeCarCatalogCount(byte[] blob);
+    private static native int nativeCarCatalogEngineSound(byte[] blob,
+                                                          int index);
     private static native byte[] nativeCarCatalogModel(byte[] blob, int index);
     private static native float[] nativeCarCatalogInfo(byte[] blob, int index);
     private static native int nativeCarCatalogCharacterCount(byte[] blob);

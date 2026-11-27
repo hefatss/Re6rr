@@ -96,6 +96,11 @@ def main():
                                                   ctypes.c_size_t,
                                                   ctypes.c_char_p]
     lib.r6_car_catalog_find_character.restype = ctypes.c_int
+    lib.r6_car_catalog_engine_sound.argtypes = [ctypes.c_char_p,
+                                                ctypes.c_size_t,
+                                                ctypes.c_size_t,
+                                                ctypes.POINTER(ctypes.c_uint16)]
+    lib.r6_car_catalog_engine_sound.restype = ctypes.c_int
 
     needed = ctypes.c_size_t()
     rc = lib.r6_car_catalog_parse(blob, len(blob), None, 0,
@@ -148,6 +153,29 @@ def main():
     else:
         print("  PLC_928GT: index %d, model id 120, 330 hp, PORSCHE" % index)
 
+    sound = ctypes.c_uint16()
+    sound_mismatches = 0
+    for index, entry in enumerate(entries):
+        rc = lib.r6_car_catalog_engine_sound(blob, len(blob), index,
+                                             ctypes.byref(sound))
+        if rc != R6_OK or sound.value != entry["engine_sound"]:
+            sound_mismatches += 1
+            if sound_mismatches <= 3:
+                failures.append("EngineSound %s: rc=%d value=%d expected=%d" %
+                                (entry["model"], rc, sound.value,
+                                 entry["engine_sound"]))
+    if sound_mismatches:
+        failures.append("%d/%d EngineSound rows differ" %
+                        (sound_mismatches, len(entries)))
+    elif lib.r6_car_catalog_engine_sound(blob, len(blob), len(entries),
+                                         ctypes.byref(sound)) != R6_ERR_ARG:
+        failures.append("out-of-range EngineSound index accepted")
+    elif lib.r6_car_catalog_engine_sound(blob, len(blob), 0, None) != R6_ERR_ARG:
+        failures.append("null EngineSound output accepted")
+    else:
+        print("  EngineSound: %d rows match PLC_* specification values" %
+              len(entries))
+
     mapped_count = lib.r6_car_catalog_character_count(blob, len(blob))
     if mapped_count != len(mapped):
         failures.append("character count %d, expected %d" %
@@ -172,11 +200,16 @@ def main():
         print("  characters: %d mappings, CRC_928GT_Masaki -> PLC_928GT" %
               mapped_count)
 
-    legacy = bytearray(car_catalog.pack(entries, []))
+    legacy = bytearray(car_catalog.pack(
+        entries, [], version=car_catalog.LEGACY_VERSION,
+        record_size=car_catalog.LEGACY_RECORD_SIZE))
     legacy[8:12] = struct.pack("<I", 1)
     legacy = bytes(legacy)
     if lib.r6_car_catalog_character_count(legacy, len(legacy)) != 0:
         failures.append("version-1 catalog has mappings")
+    if lib.r6_car_catalog_engine_sound(legacy, len(legacy), 0,
+                                       ctypes.byref(sound)) != R6_ERR_FORMAT:
+        failures.append("legacy catalog exposes EngineSound")
     maps_bad = bytearray(blob)
     maps_bad[20:24] = struct.pack("<I", 0xffff)
     if lib.r6_car_catalog_character_count(bytes(maps_bad),

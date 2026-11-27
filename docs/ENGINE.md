@@ -357,7 +357,9 @@ platform/android/java/        Java side of the JNI bridge
   to its row index in one table. No name tables are fabricated.
 - `r6_car_catalog_parse()` and `r6_car_catalog_find_model/find_id()` — parse a
   packed `.r6car` blob built by `tools/engine/car_catalog.py`; see
-  `docs/P5_CARS.md`.
+  `docs/P5_CARS.md`. `r6_car_catalog_engine_sound()` reads the verbatim
+  `EngineSound` field added in version 3; older blobs return
+  `R6_ERR_FORMAT`.
 - `r6_enma_enum_parse()/name()/find_domain()/count()/value()/find()` — read the derived
   `R6EME` inventory of 16 Enma enums and 1214 value names recovered from the
   shipped DLL exports, with ordinal and value lookups.
@@ -543,7 +545,7 @@ Verified on this dump:
 | native names | all 1036 names in 9 shipped pointer tables match PE reads and resolve through `find`; bad kind, index, blob and capacity rejected |
 | scene config | 0x28 packing matches `scene_config.write_scene()`; all 408 shipped car/stage/day names resolve through `find`; three live eStage copies match `STORY_NATIVE.md` and the 26-value stage domain matches `scene_env_catalog`; bad blob, bad version, bad kind and short capacity rejected |
 | stage-effect catalog | 6 shipped symbolic sounds read from the `R6STG` blob with matching set/symbol/file/tone name/wav, bank 3 tones 14/15, positions and loop flags; symbol lookup, bad magic and short blob checked |
-| car catalog | 151 `PLC_*` specs packed to 21,768 bytes, all fields match Python; `PLC_928GT` found by model and id; malformed blobs rejected |
+| car catalog | 151 `PLC_*` specs packed to 26,068 bytes (version 3, 148-byte records), all fields and 151 `EngineSound` values match Python; `PLC_928GT` found by model and id; legacy v1/v2 and malformed blobs rejected |
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |
 | story catalog | 122 episodes, 3,309 messages, 3,484 events and 647 `drive_story_*` keys packed to 386,681 bytes; sampled records and shared strings round-trip; malformed blobs rejected |
 

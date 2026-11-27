@@ -26,9 +26,9 @@ Little endian, 24-byte header, car records then mapping records:
 | Offset | Size | Field |
 | --- | --- | --- |
 | 0 | 8 | magic `R6CAR\0\1\0` |
-| 8 | 4 | version `2` (`1` = no mappings) |
+| 8 | 4 | version `3` (`1` = no mappings, `2` = old 144-byte layout) |
 | 12 | 4 | car record count |
-| 16 | 4 | record size `144` |
+| 16 | 4 | record size `148` (`144` for versions 1/2) |
 | 20 | 4 | mapping count |
 | 24 | 24 | `model`, e.g. `PLC_928GT` |
 | 48 | 64 | display name from `CarDataNameUS_1/2` or Japanese fallback |
@@ -46,6 +46,8 @@ Little endian, 24-byte header, car records then mapping records:
 | 156 | 4 | `PureTireWidthFront` |
 | 160 | 4 | `PureTireWidthRear` |
 | 164 | 4 | `MakerID` |
+| 168 | 2 | `EngineSound` (version 3 only, 0..31 in the shipped catalog) |
+| 170 | 2 | reserved zero (version 3 only) |
 
 Mapping records are 48 bytes each and follow all car records:
 

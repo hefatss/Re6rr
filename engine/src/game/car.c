@@ -5,7 +5,8 @@
 #include "core/internal.h"
 
 static int catalog_layout(const unsigned char *bytes, size_t size,
-                          size_t *car_count, size_t *map_count) {
+                          size_t *car_count, size_t *map_count,
+                          size_t *out_record_size) {
     static const unsigned char magic[8] = {
         'R', '6', 'C', 'A', 'R', 0, 1, 0
     };
@@ -16,7 +17,7 @@ static int catalog_layout(const unsigned char *bytes, size_t size,
     size_t car_bytes;
     size_t required;
 
-    if (!bytes || !car_count || !map_count) {
+    if (!bytes || !car_count || !map_count || !out_record_size) {
         return R6_ERR_ARG;
     }
     if (size < R6_CAR_HEADER_SIZE) {
@@ -26,21 +27,22 @@ static int catalog_layout(const unsigned char *bytes, size_t size,
         return R6_ERR_FORMAT;
     }
     version = r6_u32(bytes, 8);
-    if (version != 1u && version != 2u) {
+    if (version < 1u || version > 3u) {
         return R6_ERR_FORMAT;
     }
     car_count_value = r6_u32(bytes, 12);
     record_size = r6_u32(bytes, 16);
     map_count_value = r6_u32(bytes, 20);
-    if (record_size != R6_CAR_RECORD_SIZE ||
+    if (record_size != (version == 3u ? R6_CAR_RECORD_SIZE_V3
+                                      : R6_CAR_RECORD_SIZE) ||
             (version == 1u && map_count_value != 0u)) {
         return R6_ERR_FORMAT;
     }
     if ((size_t)car_count_value > ((size_t)-1 - R6_CAR_HEADER_SIZE) /
-            R6_CAR_RECORD_SIZE) {
+            record_size) {
         return R6_ERR_FORMAT;
     }
-    car_bytes = (size_t)car_count_value * R6_CAR_RECORD_SIZE;
+    car_bytes = (size_t)car_count_value * record_size;
     if ((size_t)map_count_value >
             ((size_t)-1 - R6_CAR_HEADER_SIZE - car_bytes) /
             R6_CAR_MAP_SIZE) {
@@ -53,6 +55,7 @@ static int catalog_layout(const unsigned char *bytes, size_t size,
     }
     *car_count = car_count_value;
     *map_count = map_count_value;
+    *out_record_size = record_size;
     return R6_OK;
 }
 
@@ -91,13 +94,14 @@ int r6_car_catalog_parse(const void *data, size_t size,
     const unsigned char *bytes = (const unsigned char *)data;
     size_t car_count = 0;
     size_t map_count = 0;
+    size_t record_size = 0;
     size_t i;
     int rc;
 
     if (!data || !count) {
         return R6_ERR_ARG;
     }
-    rc = catalog_layout(bytes, size, &car_count, &map_count);
+    rc = catalog_layout(bytes, size, &car_count, &map_count, &record_size);
     if (rc != R6_OK) {
         return rc;
     }
@@ -107,7 +111,7 @@ int r6_car_catalog_parse(const void *data, size_t size,
     }
     for (i = 0; i < car_count; i++) {
         r6_memcpy(&cars[i], bytes + R6_CAR_HEADER_SIZE +
-                  i * R6_CAR_RECORD_SIZE, R6_CAR_RECORD_SIZE);
+                  i * record_size, R6_CAR_RECORD_SIZE);
     }
     *count = car_count;
     return R6_OK;
@@ -147,12 +151,37 @@ int r6_car_catalog_find_id(const r6_car_info *cars, size_t count,
     return -1;
 }
 
+int r6_car_catalog_engine_sound(const void *data, size_t size,
+                                size_t index, uint16_t *out) {
+    const unsigned char *bytes = (const unsigned char *)data;
+    size_t car_count = 0;
+    size_t map_count = 0;
+    size_t record_size = 0;
+    if (!bytes || !out) {
+        return R6_ERR_ARG;
+    }
+    if (catalog_layout(bytes, size, &car_count, &map_count,
+                       &record_size) != R6_OK) {
+        return R6_ERR_FORMAT;
+    }
+    if (r6_u32(bytes, 8) != 3u || record_size != R6_CAR_RECORD_SIZE_V3) {
+        return R6_ERR_FORMAT;
+    }
+    if (index >= car_count) {
+        return R6_ERR_ARG;
+    }
+    *out = r6_u16(bytes, R6_CAR_HEADER_SIZE + index * record_size +
+                  R6_CAR_ENGINE_SOUND_OFFSET);
+    return R6_OK;
+}
+
 int r6_car_catalog_character_count(const void *data, size_t size) {
     const unsigned char *bytes = (const unsigned char *)data;
     size_t car_count = 0;
     size_t map_count = 0;
-    if (catalog_layout(bytes, size, &car_count, &map_count) != R6_OK ||
-            map_count > 0x7fffffffu) {
+    size_t record_size = 0;
+    if (catalog_layout(bytes, size, &car_count, &map_count,
+                       &record_size) != R6_OK || map_count > 0x7fffffffu) {
         return -1;
     }
     return (int)map_count;
@@ -165,12 +194,14 @@ int r6_car_catalog_find_character(const void *data, size_t size,
     const unsigned char *cars;
     size_t car_count = 0;
     size_t map_count = 0;
+    size_t record_size = 0;
     size_t length;
     size_t i;
     size_t j;
 
     if (!data || !character ||
-            catalog_layout(bytes, size, &car_count, &map_count) != R6_OK) {
+            catalog_layout(bytes, size, &car_count, &map_count,
+                           &record_size) != R6_OK) {
         return -1;
     }
     length = text_length(character, R6_CAR_MODEL_SIZE);
@@ -178,7 +209,7 @@ int r6_car_catalog_find_character(const void *data, size_t size,
         return -1;
     }
     cars = bytes + R6_CAR_HEADER_SIZE;
-    maps = cars + car_count * R6_CAR_RECORD_SIZE;
+    maps = cars + car_count * record_size;
     for (i = 0; i < map_count; i++) {
         const unsigned char *entry = maps + i * R6_CAR_MAP_SIZE;
         const unsigned char *model = entry + R6_CAR_MODEL_SIZE;
@@ -191,7 +222,7 @@ int r6_car_catalog_find_character(const void *data, size_t size,
             continue;
         }
         for (j = 0; j < car_count; j++) {
-            if (field_equals(cars + j * R6_CAR_RECORD_SIZE,
+            if (field_equals(cars + j * record_size,
                              (const char *)model, model_length,
                              R6_CAR_MODEL_SIZE)) {
                 return (int)j;
