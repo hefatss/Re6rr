@@ -59,6 +59,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_mtmp.h"
 #include "r6/r6_ees_inventory.h"
 #include "r6/r6_xmd_asset_catalog.h"
+#include "r6/r6_course_paths_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6429,6 +6430,134 @@ Java_com_wmmt_re6rr_XmdAssets_nativeStream(JNIEnv *env, jclass cls,
     values[0] = (jlong)offset;
     values[1] = (jlong)size;
     result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+/* Course routes and path-bin facts: copied strings and numbers only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativeHeader(JNIEnv *env, jclass cls,
+                                             jbyteArray blob) {
+    r6_course_paths_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes ||
+        r6_course_paths_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.route_count;
+    values[2] = (jlong)header.ref_count;
+    values[3] = (jlong)header.file_count;
+    values[4] = (jlong)header.strings_size;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativeFile(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    r6_course_paths_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_paths_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.file_size;
+    values[1] = (jlong)file.triple_count;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativePath(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    char path[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_paths_path(bytes, length, (uint32_t)index, path,
+                             sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativeRoute(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index) {
+    r6_course_paths_route_t route;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_paths_route(bytes, length, (uint32_t)index, &route) !=
+        R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)route.area_id;
+    values[1] = (jlong)route.loop;
+    values[2] = (jlong)route.camera_direction;
+    values[3] = (jlong)route.path_first;
+    values[4] = (jlong)route.path_count;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativeRouteName(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_paths_route_name(bytes, length, (uint32_t)index, name,
+                                   sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CoursePaths_nativeRouteRef(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_paths_route_ref(bytes, length, (uint32_t)index, name,
+                                  sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
     return result;
 }
 
