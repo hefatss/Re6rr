@@ -35,8 +35,8 @@ must come from imports, string references, RTTI and pattern matching.
 | `.lua` | 4,885 | 154 MB | plain text, mostly data tables (car spec/colour/position/vinyl, course clip lists) |
 | `.bin` | 1,495 | 2.80 GB | raw float32 course geometry (some gzip) |
 | `.nut` | 580 + 10,571 | 1.18 GB + 1.94 GB | gzip, inner `NTWD` (model/scene) |
-| `.tex` | 1,175 + 75 | 406 MB | gzip, inner `XMD` |
-| `.mdl` | 578 + 32 | 188 MB | gzip, inner `XMD.001` |
+| `.tex` | 1,175 + 75 | 406 MB | gzip/raw `XMD.001`; `tools/engine/xmd_asset_catalog.py` inventories headers and streams |
+| `.mdl` | 578 + 32 | 188 MB | gzip `XMD.001`; `tools/engine/xmd_asset_catalog.py` inventories headers and streams |
 | `.nub` | 149 | 3.45 GB | raw sound banks (`data/sound/BGM...`) |
 | `.ees` | 1,129 | 2.89 GB | raw `EventScene2` header + typed arrays — scene camera/car data |
 | `.nud` | 371 | 6.2 MB | `NDWD` — navimap |

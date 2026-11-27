@@ -81,6 +81,7 @@ SOURCES = [
     "engine/src/game/nuf_headers.c",
     "engine/src/game/mtmp.c",
     "engine/src/game/ees_inventory.c",
+    "engine/src/game/xmd_asset_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
