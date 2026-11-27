@@ -271,6 +271,8 @@ public final class Re6Engine implements AutoCloseable {
     /** Wraps the packed .r6car catalog produced by
      *  tools/engine/car_catalog.py. */
     public static class CarCatalog {
+        private static final java.nio.charset.Charset SHIFT_JIS =
+                java.nio.charset.Charset.forName("Shift_JIS");
         private final byte[] blob;
 
         public CarCatalog(byte[] blob) {
@@ -279,6 +281,22 @@ public final class Re6Engine implements AutoCloseable {
 
         public int count() {
             return nativeCarCatalogCount(blob);
+        }
+
+        /** Display name decoded from the cp932 field already in .r6car. */
+        public String name(int index) {
+            return text(index, 0);
+        }
+
+        /** Maker decoded from the cp932 field already in .r6car. */
+        public String maker(int index) {
+            return text(index, 1);
+        }
+
+        private String text(int index, int field) {
+            byte[] raw = nativeCarCatalogText(blob, index, field);
+            return raw == null ? null : SHIFT_JIS.decode(
+                    java.nio.ByteBuffer.wrap(raw)).toString();
         }
 
         /** EngineSound for the native ENGMAP lookup, or -1 on old blobs or
@@ -523,6 +541,8 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeCarCatalogCount(byte[] blob);
     private static native int nativeCarCatalogEngineSound(byte[] blob,
                                                           int index);
+    private static native byte[] nativeCarCatalogText(byte[] blob, int index,
+                                                       int field);
     private static native byte[] nativeCarCatalogModel(byte[] blob, int index);
     private static native float[] nativeCarCatalogInfo(byte[] blob, int index);
     private static native int nativeCarCatalogCharacterCount(byte[] blob);

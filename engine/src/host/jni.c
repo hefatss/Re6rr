@@ -4513,6 +4513,60 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogEngineSound(
 }
 
 JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogText(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob, jint index,
+                                                   jint field) {
+    r6_car_info *cars = NULL;
+    unsigned char *bytes = NULL;
+    jsize length;
+    size_t needed = 0;
+    size_t count = 0;
+    size_t size = 0;
+    size_t limit;
+    const char *text;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!blob || index < 0 || (field != 0 && field != 1)) {
+        return NULL;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return NULL;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    if (r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &needed) !=
+        R6_ERR_BUFFER || (size_t)index >= needed) {
+        free(bytes);
+        return NULL;
+    }
+    cars = (r6_car_info *)malloc(needed * sizeof(*cars));
+    if (!cars) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_car_catalog_parse(bytes, (size_t)length, cars, needed, &count) !=
+        R6_OK) {
+        free(cars);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    text = field == 0 ? cars[index].name : cars[index].maker;
+    limit = field == 0 ? R6_CAR_NAME_SIZE : R6_CAR_MAKER_SIZE;
+    while (size < limit && text[size]) {
+        size++;
+    }
+    result = (*env)->NewByteArray(env, (jsize)size);
+    if (result && size) {
+        (*env)->SetByteArrayRegion(env, result, 0, (jsize)size,
+                                   (const jbyte *)text);
+    }
+    free(cars);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogModel(JNIEnv *env, jclass cls,
                                                     jbyteArray blob,
                                                     jint index) {

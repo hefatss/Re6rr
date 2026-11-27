@@ -398,8 +398,8 @@ platform/android/java/        Java side of the JNI bridge
 the loaded Lua context, step, read state, destroy) and the `nativeRace*`
 family (create with SConfigPlay-like rules, step with course vertices and a
 vehicle state, read state, destroy), the `nativeGame*` family (phase flow
-and SConfigPlay byte round-trip) and the `nativeCarCatalog*` family (model and
-numeric lookup). Java owns assets and
+and SConfigPlay byte round-trip) and the `nativeCarCatalog*` family (model,
+numeric, EngineSound and cp932 text lookup). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`.
 `Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, `Re6Container` walks
 inflated XMD.001 stream tables and copies stream bytes/tags,
