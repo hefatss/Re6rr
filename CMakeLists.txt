@@ -68,6 +68,7 @@ set(R6_CORE
     engine/src/game/story_key_namespace.c
     engine/src/game/loadlist_catalog.c
     engine/src/game/gz_effect_catalog.c
+    engine/src/game/xmlt_lists.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

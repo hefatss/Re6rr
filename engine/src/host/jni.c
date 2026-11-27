@@ -64,6 +64,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_loadlist_catalog.h"
 #include "r6/r6_reloc_inventory.h"
 #include "r6/r6_gz_effect_catalog.h"
+#include "r6/r6_xmlt_lists.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7002,6 +7003,179 @@ Java_com_wmmt_re6rr_GzEffectCatalog_nativePrefix(JNIEnv *env, jclass cls,
         (*env)->SetByteArrayRegion(env, result, 0, R6_GZ_EFFECT_PREFIX_SIZE,
                                    (const jbyte *)file.prefix);
     }
+    return result;
+}
+
+/* XMLT list/seed/field structure: copied names and numbers only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeHeader(JNIEnv *env, jclass cls,
+                                           jbyteArray blob) {
+    r6_xmlt_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_xmlt_lists_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.list_count;
+    values[3] = (jlong)header.seed_count;
+    values[4] = (jlong)header.field_count;
+    values[5] = (jlong)header.type_count;
+    values[6] = (jlong)header.tag_count;
+    values[7] = (jlong)header.string_size;
+    values[8] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeFile(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    r6_xmlt_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.list_first;
+    values[1] = (jlong)file.list_count;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativePath(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_path(bytes, length, (uint32_t)index, path,
+                     sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeList(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    r6_xmlt_list_t list;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_list(bytes, length, (uint32_t)index, &list) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)list.type_index;
+    values[1] = (jlong)list.seed_first;
+    values[2] = (jlong)list.seed_count;
+    values[3] = (jlong)list.field_first;
+    values[4] = (jlong)list.field_count;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeType(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_type(bytes, length, (uint32_t)index, name,
+                     sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeSeed(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    r6_xmlt_seed_t seed;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_seed(bytes, length, (uint32_t)index, &seed) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)seed.list_index;
+    values[1] = (jlong)seed.field_first;
+    values[2] = (jlong)seed.field_count;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeField(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    r6_xmlt_field_t field;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_field(bytes, length, (uint32_t)index, &field) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)field.seed_index;
+    values[1] = (jlong)field.tag_index;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_XmltLists_nativeTag(JNIEnv *env, jclass cls,
+                                        jbyteArray blob, jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmlt_tag(bytes, length, (uint32_t)index, name,
+                    sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
     return result;
 }
 
