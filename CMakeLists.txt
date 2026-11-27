@@ -57,6 +57,7 @@ set(R6_CORE
     engine/src/game/story.c
     engine/src/game/story_keys.c
     engine/src/game/act_headers.c
+    engine/src/game/med_headers.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

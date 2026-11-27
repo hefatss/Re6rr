@@ -53,6 +53,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_story.h"
 #include "r6/r6_story_keys.h"
 #include "r6/r6_act_headers.h"
+#include "r6/r6_med_headers.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -5756,6 +5757,80 @@ Java_com_wmmt_re6rr_ActHeaders_nativePrefix(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = story_byte_array(env, (const char *)prefix, sizeof(prefix));
+    return result;
+}
+
+/* Validated .MED header facts: plain counts, copied words and copied paths. */
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_MedHeaders_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_med_header header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint values[4];
+    jintArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_med_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)header.version;
+    values[1] = (jint)header.count;
+    values[2] = (jint)header.header_off;
+    values[3] = (jint)header.strings_size;
+    result = story_ints(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_MedHeaders_nativeRow(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    r6_med_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_med_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.file_size;
+    values[1] = (jlong)row.frames;
+    values[2] = (jlong)row.word0;
+    values[3] = (jlong)row.word2;
+    values[4] = (jlong)row.word3;
+    values[5] = (jlong)row.word4;
+    values[6] = (jlong)row.word5;
+    values[7] = (jlong)row.word6;
+    values[8] = (jlong)row.word7;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_MedHeaders_nativePath(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    char path[256];
+    size_t path_len = 0;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_med_path(bytes, length, (uint32_t)index, path,
+                    sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    while (path_len < sizeof(path) && path[path_len]) {
+        path_len++;
+    }
+    result = story_byte_array(env, path, path_len);
     return result;
 }
 

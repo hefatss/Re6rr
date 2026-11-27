@@ -49,7 +49,11 @@ must come from imports, string references, RTTI and pattern matching.
 
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64
 bytes are inventoried by `tools/engine/act_headers_catalog.py`, but no section
-or animation semantics are inferred.
+or animation semantics are inferred. The 67 `.med` files all have zero bytes
+through `0xff` and eight u32 words at `0x100` encoding frame count, three
+section sizes, two derived byte counts and total file size;
+`tools/engine/med_headers_catalog.py` validates and packs those headers, but no
+frame or animation data is interpreted.
 
 Gzip is a plain gzip stream (no encryption detected on samples). Inner formats
 `NTWD`, `XMD` and `NDWD` have per-format parsers. `NSXR` is now decoded too:
