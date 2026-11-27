@@ -61,6 +61,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_xmd_asset_catalog.h"
 #include "r6/r6_course_paths_catalog.h"
 #include "r6/r6_story_key_namespace.h"
+#include "r6/r6_loadlist_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -6650,6 +6651,158 @@ Java_com_wmmt_re6rr_StoryKeyNamespace_nativeFact(JNIEnv *env, jclass cls,
     values[0] = (jlong)source;
     values[1] = (jlong)table_index;
     result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+/* Stage LOADLIST facts: copied strings, offsets and sizes only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_loadlist_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_loadlist_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.block_count;
+    values[3] = (jlong)header.stream_count;
+    values[4] = (jlong)header.strings_size;
+    values[5] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_loadlist_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.block_first;
+    values[1] = (jlong)file.block_count;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char path[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_path(bytes, length, (uint32_t)index, path,
+                         sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeBlock(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_loadlist_block_t block;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_block(bytes, length, (uint32_t)index, &block) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)block.section;
+    values[1] = (jlong)block.source_size;
+    values[2] = (jlong)block.inflated_size;
+    values[3] = (jlong)block.wrapped;
+    values[4] = (jlong)block.stream_first;
+    values[5] = (jlong)block.stream_count;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeBinPath(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char path[256];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_bin_path(bytes, length, (uint32_t)index, path,
+                             sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeStream(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob,
+                                                 jint index) {
+    r6_loadlist_stream_t stream;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_stream(bytes, length, (uint32_t)index, &stream) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)stream.offset;
+    values[1] = (jlong)stream.size;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_LoadlistCatalog_nativeStreamName(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char name[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_loadlist_stream_name(bytes, length, (uint32_t)index, name,
+                                sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
     return result;
 }
 

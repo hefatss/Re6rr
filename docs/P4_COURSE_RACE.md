@@ -86,6 +86,9 @@ from Lua with section IDs starting at 101. Matching that order:
   `ROAD_ADDR {offset,size,...}` with `ROAD_NAME {"...",...}` per section.
 - The `BIN` entry resolves to `model/bin/*_SECT<id>.bin`, a gzip container whose
   inflated payload holds NDWD streams at those offsets.
+  `tools/engine/loadlist_catalog.py` inventories all 76 files, 343 sections and
+  17,163 stream descriptors in `.r6lls` without copying geometry; the C reader
+  rechecks every offset against the inflated bin size.
 - Course NDWD streams use 28-byte vertices:
   `f32 y, f32 z, f32 u, f32 v, u32 color, u32 normal, f32 x`. The same 10-unit
   scale as the path bins applies.

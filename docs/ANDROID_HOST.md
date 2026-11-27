@@ -105,6 +105,8 @@ still sees only bytes.
   101 observed native sources and 546 message-DB-only names;
 - `StoryKeys` exposes the 101 keys hard-coded by the executable and their
   direct/table source; no UI behaviour depends on it yet;
+- `LoadlistCatalog` exposes 76 LOADLIST files, 343 section blocks and 17,163
+  NDWD stream descriptors; geometry and surface classes are not copied;
 - `CoursePaths` exposes 33 route rows, 143 exact `.bin` refs and 178 path-bin
   sizes/triples; duplicate basenames are not resolved;
 - `XmdAssets` exposes 1860 `.TEX`/`.MDL` XMD.001 header facts and 28,863 stream
@@ -146,7 +148,7 @@ registration bytes and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
 `BgmCatalog` resolves BGM ids and names, `ContextPaths` returns the ordered
 Lua bundle paths, `lua_globals.r6lua` through `LuaGlobals`, `lua_xrefs.r6xrf` through
-`LuaXrefs`, `lua_inventory.r6lsi` through `LuaInventory`, `asset_inventory.r6aiv` through `AssetInventory`, `pe_inventory.r6pei` through `PeInventory`, `name_runs.r6ntr` through `NameRuns`, `lua_reg_tables.r6lreg` through `LuaRegTables`, `path_strings.r6pst` through `PathStrings`, `enma_sim.r6esim` through `EnmaSimFacts`, `ref_words.r6ref` through `RefWords`, `pdata_stats.r6pds` through `PdataStats`, `string_xrefs.r6sxr` through `StringXrefs`, `lmd.r6lmd` through `LmdCatalog`, `nuf_headers.r6nuf` through `NufHeaders`, `mtmp.r6mtmp` through `MtmpTables`, `ees_inventory.r6ees` through `EesInventory`, `xmd_assets.r6xas` through `XmdAssets`, `course_paths.r6cps` through `CoursePaths`, `story_key_namespace.r6skn` through `StoryKeyNamespace`, `act_headers.r6act` through `ActHeaders`, `med_headers.r6med` through `MedHeaders`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
+`LuaXrefs`, `lua_inventory.r6lsi` through `LuaInventory`, `asset_inventory.r6aiv` through `AssetInventory`, `pe_inventory.r6pei` through `PeInventory`, `name_runs.r6ntr` through `NameRuns`, `lua_reg_tables.r6lreg` through `LuaRegTables`, `path_strings.r6pst` through `PathStrings`, `enma_sim.r6esim` through `EnmaSimFacts`, `ref_words.r6ref` through `RefWords`, `pdata_stats.r6pds` through `PdataStats`, `string_xrefs.r6sxr` through `StringXrefs`, `lmd.r6lmd` through `LmdCatalog`, `nuf_headers.r6nuf` through `NufHeaders`, `mtmp.r6mtmp` through `MtmpTables`, `ees_inventory.r6ees` through `EesInventory`, `xmd_assets.r6xas` through `XmdAssets`, `course_paths.r6cps` through `CoursePaths`, `loadlist.r6lls` through `LoadlistCatalog`, `story_key_namespace.r6skn` through `StoryKeyNamespace`, `act_headers.r6act` through `ActHeaders`, `med_headers.r6med` through `MedHeaders`, `enma_enums.r6eme` through `EnmaEnums`, `enma_defaults.r6edf`
 through `EnmaDefaults`, `enma_exports.r6eex` through `EnmaExports`, `scene_env.r6ses` through
 `SceneEnvStats`, `honor_schema.r6hon` through `HonorSchema`, `EngineRuntime` evaluates the 16
 layers using host libm, `EngmapTable` reads the 320 sound/group pairs, `EmtisTable` reads EMTIS
@@ -161,7 +163,8 @@ copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 `BankSlots` finds free registration slots, `SoundStrings` finds bank/tone
 names and WAV paths, `LuaAudioBindings` reads the twelve Lua binding rows,
 `CourseSurface` classifies road names, `CoursePaths` exposes 33 route rows,
-143 exact `.bin` refs and 178 path bins, `SceneBridge` copies camid, resolves
+143 exact `.bin` refs and 178 path bins, `LoadlistCatalog` exposes 76 LOADLIST
+files, 343 section blocks and 17163 NDWD stream descriptors, `SceneBridge` copies camid, resolves
 camera containers/records and reads the 59-episode camera-file identity map,
 `EesContainer` parses shipped headers, `EesCamera` reads named fields, filters type 0/2 and resolves frames with
 last-match semantics, `EesCarInfo` reads car ids, `EesCarEffect` copies the 40 runtime
@@ -178,7 +181,7 @@ All.Net code exists.
 ## Validation
 
 Desktop checks compile `Re6Engine.java`, `AssetProvider.java`,
-`GlslBindings.java`, `NshContainer.java`, `ShaderControlFlow.java`, `ShaderUsage.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `LuaInventory.java`, `AssetInventory.java`, `PeInventory.java`, `NameRuns.java`, `LuaRegTables.java`, `PathStrings.java`, `EnmaSimFacts.java`, `RefWords.java`, `PdataStats.java`, `StringXrefs.java`, `LmdCatalog.java`, `NufHeaders.java`, `MtmpTables.java`, `EesInventory.java`, `XmdAssets.java`, `CoursePaths.java`, `StoryKeyNamespace.java`, `ActHeaders.java`, `MedHeaders.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Container.java`,
+`GlslBindings.java`, `NshContainer.java`, `ShaderControlFlow.java`, `ShaderUsage.java`, `EngmapTable.java`, `EmtisTable.java`, `NativeNames.java`, `ContextPaths.java`, `LuaGlobals.java`, `LuaXrefs.java`, `LuaInventory.java`, `AssetInventory.java`, `PeInventory.java`, `NameRuns.java`, `LuaRegTables.java`, `PathStrings.java`, `EnmaSimFacts.java`, `RefWords.java`, `PdataStats.java`, `StringXrefs.java`, `LmdCatalog.java`, `NufHeaders.java`, `MtmpTables.java`, `EesInventory.java`, `XmdAssets.java`, `CoursePaths.java`, `LoadlistCatalog.java`, `StoryKeyNamespace.java`, `ActHeaders.java`, `MedHeaders.java`, `EnmaEnums.java`, `EnmaDefaults.java`, `EnmaExports.java`, `SceneEnvStats.java`, `HonorSchema.java`, `Re6Texture.java`, `Re6Container.java`,
 `Re6MeshRecords.java`, `Re6Audio.java` and `EngineSound.java`
 via `tools/engine/build_host.py`. `MainActivity.java` is
 Android-only; its syntax

@@ -65,6 +65,7 @@ set(R6_CORE
     engine/src/game/xmd_asset_catalog.c
     engine/src/game/course_paths_catalog.c
     engine/src/game/story_key_namespace.c
+    engine/src/game/loadlist_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
