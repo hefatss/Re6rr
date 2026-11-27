@@ -42,7 +42,7 @@ must come from imports, string references, RTTI and pattern matching.
 | `.nud` | 371 | 6.2 MB | `NDWD` — navimap |
 | `.nsh` | 257 | 1.4 MB | `NSXR` — compiled shader blobs |
 | `.act` | 170 | 6.8 MB | `RESOURCE:NU` — effect actors |
-| `.lmd` | 985 | 13 MB | gzip — flash UI |
+| `.lmd` | 985 | 13 MB | gzip → `XMD.001` — flash UI; gzip/XMD headers and stream sizes are inventoried by `tools/engine/lmd_catalog.py` |
 | `.xmlt` | 591 | 1.0 MB | XML text (story lines, cut-in tables) |
 | `.nuf` | 1 | 9.5 KB | `NUF` — font (`engine/default_font`) |
 | `.med` | 28 + 39 | 3.9 MB | motion data |

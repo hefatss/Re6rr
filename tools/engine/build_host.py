@@ -77,6 +77,7 @@ SOURCES = [
     "engine/src/game/story_keys.c",
     "engine/src/game/act_headers.c",
     "engine/src/game/med_headers.c",
+    "engine/src/game/lmd_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

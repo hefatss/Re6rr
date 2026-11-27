@@ -379,6 +379,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_story_keys_parse()/name()/find()/fact()` — read the `.r6sk` inventory of
   101 story keys hard-coded by `wmn6r.exe`, with exact ASCII lookup and the
   direct/table source fact; see `docs/P5_STORY.md`.
+- `r6_lmd_parse()/file()/path()/stream()` — read the `.r6lmd` inventory of 985
+  shipped `.LMD` files: gzip header facts, ISIZE, XMD.001 version and three
+  stream offsets/sizes. Gzip and XMD payloads are not interpreted.
 - `r6_act_parse()/size()/path()/prefix()` — read the `.r6act` inventory of 170
   shipped `.ACT` files: relative path, file size and first 64 bytes. All files
   start with `RESOURCE:NU`; no section or animation semantics are inferred.
@@ -538,7 +541,7 @@ Verified on this dump:
 | SM4 control flow | 446 records, 303 blocks, 2448 cases and 2478 break/continue indices match `nsxr_shader.control_flow()`; `Body.nsh` pixel has two 9-case switches; bad blob, index, stage and capacity rejected |
 | SHDR usage map | 446 records, 1645 uniform rows, 1052 resource rows and 1052 declarations match `nsxr_shader`; 5502 static cbuffer operands, 8 dynamic, 1360 resource uses, zero dynamic/unmapped; bad blob, index and stage rejected |
 | compiled vertex layout | 823 attributes, 18,143 bytes; locations, semantics and masks match emitted `Body.nsh` GLSL and C lookups; bad magic/version/truncation/index rejected |
-| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `ActHeaders`, `MedHeaders`, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `NameRuns`, `LuaRegTables`, `PathStrings`, `EnmaSimFacts`, `RefWords`, `PdataStats`, `StringXrefs`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig`, `ShaderControlFlow`, `ShaderUsage` and `StageEffect` wrappers |
+| JNI C + Java bridge | syntax-checked with `clang`/`javac` against installed JDK, including car, customization, story catalog, `LmdCatalog`, `ActHeaders`, `MedHeaders`, `GlslBindings`, `NshContainer`, `Re6Texture`, `Re6Audio`, `EngineSound`, `VertexLayout`, `BgmCatalog`, `EngineRuntime`, `EngmapTable`, `EmtisTable`, `VoiceRequest`, `Config3D`, `BankSetup`, `AudioStream`, `VoiceChain`, `SoundInit`, `BgmFade`, `BgmManager`, `SoundDispatch`, `SoundConfig`, `BankSlots`, `SoundStrings`, `LuaAudioBindings`, `CourseSurface`, `SceneBridge`, `EesContainer`, `EesCamera`, `EesCarInfo`, `EesCarEffect`, `EesCarDisp`, `AudioLayoutFacts`, `VoiceDispatchFacts`, `VoiceCoreTableFacts`, `ContextPaths`, `LuaGlobals`, `LuaXrefs`, `LuaInventory`, `AssetInventory`, `PeInventory`, `NameRuns`, `LuaRegTables`, `PathStrings`, `EnmaSimFacts`, `RefWords`, `PdataStats`, `StringXrefs`, `EnmaEnums`, `EnmaDefaults`, `EnmaExports`, `SceneEnvStats`, `HonorSchema`, `EnvironmentLua`, `NativeNames`, `SceneConfig`, `ShaderControlFlow`, `ShaderUsage` and `StageEffect` wrappers |
 | vehicle model | idle stable, throttle/brake/steer respond, grass grip cuts yaw 1.839 → 1.017 rad, road clamp holds lateral 1.050 m, 600 mixed frames finite; 928GT config = 242,715 W, 2.508 m wheelbase, 1.546 m track, 5 gears |
 | course + race | 100 m straight and 400 m closed square project correctly; lap wrap, countdown, ordered checkpoints/goal, off-road, wrong-way, rival gap/place/contact, follow-course AI and 180 coupled vehicle frames pass |
 | shipped course descriptor | Fukuoka: 2,816 vertices, 56,344 bytes, closed, sections 101–104, width 2.0–10.0 m; Turnpike: 195 grass + 10 gravel samples; C parser matches the Python generator |
@@ -579,6 +582,7 @@ Verified on this dump:
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |
 | story catalog | 122 episodes, 3,309 messages, 3,484 events and 647 `drive_story_*` keys packed to 386,681 bytes; sampled records and shared strings round-trip; all 15 summary fields match Python; malformed blobs rejected |
 | native story keys | 101 hard-coded keys (1 direct, 100 table) match `wmn6r.exe` and all exist in msgdb.lua; exact lookup, source facts and malformed blobs checked |
+| LMD catalog | 985 gzip/XMD.001 paths, header facts and three stream sizes each match the dump; bad magic/version/counts/ISIZE/XMD, bad paths and stream sizes rejected |
 | ACT headers | 170 `RESOURCE:NU` paths, sizes and 64-byte prefixes match the dump; bad magic/version/prefix, truncation, bad path, null output and short buffers rejected |
 | MED headers | 67 zero-prefixed 0x100 headers, frame counts, derived byte counts, sizes and paths match the dump; bad magic/version/offset/counts and truncated or short-buffer inputs rejected |
 

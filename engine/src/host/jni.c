@@ -54,6 +54,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_story_keys.h"
 #include "r6/r6_act_headers.h"
 #include "r6/r6_med_headers.h"
+#include "r6/r6_lmd_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -5878,6 +5879,103 @@ Java_com_wmmt_re6rr_MedHeaders_nativePath(JNIEnv *env, jclass cls,
         path_len++;
     }
     result = story_byte_array(env, path, path_len);
+    return result;
+}
+
+/* LMD gzip/XMD.001 header facts: only copied numbers and paths. */
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_LmdCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    r6_lmd_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint values[4];
+    jintArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_lmd_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jint)header.version;
+    values[1] = (jint)header.file_count;
+    values[2] = (jint)header.stream_count;
+    values[3] = (jint)header.strings_size;
+    result = story_ints(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LmdCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    r6_lmd_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_lmd_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.compressed_size;
+    values[1] = (jlong)file.gzip_flags;
+    values[2] = (jlong)file.gzip_mtime;
+    values[3] = (jlong)file.gzip_xfl_os;
+    values[4] = (jlong)file.expected_size;
+    values[5] = (jlong)file.inflated_size;
+    values[6] = (jlong)file.xmd_version;
+    values[7] = (jlong)file.stream_first;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_LmdCatalog_nativePath(JNIEnv *env, jclass cls,
+                                          jbyteArray blob, jint index) {
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    char path[256];
+    size_t path_len = 0;
+    jbyteArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_lmd_path(bytes, length, (uint32_t)index, path,
+                    sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    while (path_len < sizeof(path) && path[path_len]) {
+        path_len++;
+    }
+    result = story_byte_array(env, path, path_len);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_LmdCatalog_nativeStream(JNIEnv *env, jclass cls,
+                                            jbyteArray blob, jint index,
+                                            jint local) {
+    uint32_t offset = 0;
+    uint32_t stream_size = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || local < 0 ||
+        r6_lmd_stream(bytes, length, (uint32_t)index, (uint32_t)local,
+                      &offset, &stream_size) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)offset;
+    values[1] = (jlong)stream_size;
+    result = pe_new_longs(env, values, 2);
     return result;
 }
 
