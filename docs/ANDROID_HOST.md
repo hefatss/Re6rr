@@ -76,7 +76,7 @@ tree to app external files:
 
 Open `platform/android` in Android Studio (AGP 8.5+, SDK 34, NDK required by
 CMake). The app reads `cars.r6car`, the optional `custom.r6custom` and
-`story.r6story`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
+`story.r6story`, `story_keys.r6sk`, every `*.r6course` in that directory, `glsl/bindings.r6glsl`
 through `GlslBindings`, `glsl/vertex.r6gv` through `VertexLayout`,
 `engine_sound.r6esnd` through `EngineSound`, `bgm.r6bgm` through
 `BgmCatalog`, `stage_effect.r6stg` through `StageEffect`,
@@ -100,6 +100,8 @@ still sees only bytes.
   151-row per-car tune record; no UI wiring was added;
 - `StoryCatalog.summary()` returns 15 raw phase/kind/flag counts from
   `story.r6story`; the UI still shows only the episode count;
+- `StoryKeys` exposes the 101 keys hard-coded by the executable and their
+  direct/table source; no UI behaviour depends on it yet;
 - load status shows customization colour/wheel counts and episode count when
   `custom.r6custom` / `story.r6story` are present.
 - `course descriptor` selects the `.r6course` file.

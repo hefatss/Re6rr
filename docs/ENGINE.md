@@ -368,6 +368,9 @@ platform/android/java/        Java side of the JNI bridge
   branch/ending/environment flags, enum-zero episodes and empty key values in a
   validated `.r6story` catalog. No unlock or mission-order semantics are
   inferred; see `docs/P5_STORY.md`.
+- `r6_story_keys_parse()/name()/find()/fact()` — read the `.r6sk` inventory of
+  101 story keys hard-coded by `wmn6r.exe`, with exact ASCII lookup and the
+  direct/table source fact; see `docs/P5_STORY.md`.
 - `r6_enma_enum_parse()/name()/find_domain()/count()/value()/find()` — read the derived
   `R6EME` inventory of 16 Enma enums and 1214 value names recovered from the
   shipped DLL exports, with ordinal and value lookups.
@@ -403,7 +406,8 @@ the loaded Lua context, step, read state, destroy) and the `nativeRace*`
 family (create with SConfigPlay-like rules, step with course vertices and a
 vehicle state, read state, destroy), the `nativeGame*` family (phase flow
 and SConfigPlay byte round-trip), the `nativeCarCatalog*` family (model,
-numeric, EngineSound, cp932 text and exact model/ID lookup) and the `nativeCustomCatalog*`
+numeric, EngineSound, cp932 text and exact model/ID lookup), the
+`nativeStoryKeys*` family and the `nativeCustomCatalog*`
 family (records plus exact colour/wheel/aero/tune lookups). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`.
 `Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, `Re6Container` walks
@@ -560,6 +564,7 @@ Verified on this dump:
 | car catalog | 151 `PLC_*` specs packed to 26,068 bytes (version 3, 148-byte records), all fields and 151 `EngineSound` values match Python; `PLC_928GT` found by model and id; legacy v1/v2 and malformed blobs rejected |
 | custom catalog | 250 colours, 107 wheels, 261 aero/parts, 151 tunes and 42 tire scales packed to 70,368 bytes; all five sections round-trip; malformed blobs rejected |
 | story catalog | 122 episodes, 3,309 messages, 3,484 events and 647 `drive_story_*` keys packed to 386,681 bytes; sampled records and shared strings round-trip; all 15 summary fields match Python; malformed blobs rejected |
+| native story keys | 101 hard-coded keys (1 direct, 100 table) match `wmn6r.exe` and all exist in msgdb.lua; exact lookup, source facts and malformed blobs checked |
 
 NTWD streams in the sampled `.tex` files are type 2; the type-1 branch is now
 covered by the eight NTLX ARGB8 entries in `cmn_dressup_aero_s.nut`, parsed and

@@ -74,6 +74,7 @@ SOURCES = [
     "engine/src/game/car.c",
     "engine/src/game/custom.c",
     "engine/src/game/story.c",
+    "engine/src/game/story_keys.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

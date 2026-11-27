@@ -515,6 +515,42 @@ public final class Re6Engine implements AutoCloseable {
         }
     }
 
+    /** Story keys hard-coded by wmn6r.exe, packed by story_keys_catalog.py. */
+    public static class StoryKeys {
+        private final byte[] blob;
+        private final int[] counts;
+
+        public StoryKeys(byte[] blob) {
+            this.blob = blob;
+            this.counts = nativeStoryKeysCounts(blob);
+            if (counts == null || counts.length != 4) {
+                throw new IllegalArgumentException("bad .r6sk blob");
+            }
+        }
+
+        /** native count, table count, msgdb key count, matched count. */
+        public int[] counts() {
+            return counts.clone();
+        }
+
+        /** ASCII story key for one native row. */
+        public String name(int index) {
+            byte[] raw = nativeStoryKeysName(blob, index);
+            return raw == null ? null : new String(raw,
+                   java.nio.charset.StandardCharsets.US_ASCII);
+        }
+
+        /** Native row index for an exact key, or -1 when absent. */
+        public int find(String key) {
+            return nativeStoryKeysFind(blob, key);
+        }
+
+        /** source (1 direct, 2 table) and table index (0xffffffff direct). */
+        public int[] fact(int index) {
+            return nativeStoryKeysFact(blob, index);
+        }
+    }
+
     public String lastError() {
         check();
         return nativeLastError(handle);
@@ -587,6 +623,10 @@ public final class Re6Engine implements AutoCloseable {
     private static native byte[] nativeStoryCatalogText(byte[] blob, int section, int index);
     private static native int nativeStoryCatalogFindEpisode(byte[] blob, String name);
     private static native int nativeStoryCatalogFindKey(byte[] blob, String key);
+    private static native int[] nativeStoryKeysCounts(byte[] blob);
+    private static native byte[] nativeStoryKeysName(byte[] blob, int index);
+    private static native int nativeStoryKeysFind(byte[] blob, String key);
+    private static native int[] nativeStoryKeysFact(byte[] blob, int index);
     private static native int nativeCarCatalogCharacterIndex(byte[] blob, String character);
 
     static {

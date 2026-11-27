@@ -68,9 +68,21 @@ name and `drive_story_*` key. `r6_story_catalog_summary()` counts the stored
 phase, kind and flag fields directly; it does not infer dialogue, unlock or
 mission-order semantics.
 
+## Native story-key inventory
+
+`tools/engine/story_keys_catalog.py` reads `wmn6r.exe` and packs a separate
+`.r6sk` blob. `f_4a3680` (RVA `0x4a3680`) and `f_4a3730` (RVA `0x4a3730`)
+reference `drive_story_2_0` directly and index a 100-pointer table at RVA
+`0x12ffd20`; the table holds `drive_story_TipsEnd00`..`drive_story_TipsEnd99`.
+All 101 names exist in the 647 `drive_story_*` entries of `msgdb.lua`; the
+other 546 keys have no observed reference in those two functions. The C reader
+copies names and the direct/table source fact only. No dialogue, unlock or
+mission-order semantics are inferred.
+
 ## JNI
 
-`Re6Engine.StoryCatalog` wraps the blob on Android. `count(section)` uses
+`Re6Engine.StoryKeys` wraps the `.r6sk` blob on Android with `counts()`,
+`name()`, `find()` and `fact()`. `Re6Engine.StoryCatalog` wraps the blob on Android. `count(section)` uses
 episode/message/event/key/string order. `episode()` and `episodeName()` expose
 the episode tree; `message()`, `event()` and `key()` expose fixed records.
 `messageText()`, `eventText()`, `keyId()` and `keyValue()` decode UTF-8 text
@@ -88,6 +100,11 @@ malformed blobs. Result: 122 episodes, 3,309 messages, 3,484 events, 647 story
 keys, 204,057 string bytes, 386,681 bytes total. Summary: message phases
 236/3,005/68, event phases 342/3,074/68, event kinds 304/106/186/2,888,
 branch B 21, ending 1, environment 59, enum-zero 22 and empty key values 149.
+
+`python tools/engine/test_story_keys_c.py` checks all 101 native keys and source
+facts against the executable pointer table and `msgdb.lua`, plus malformed and
+short-buffer inputs. Result: 1 direct key, 100 table keys, 101/647 msgdb keys
+present, 3,868 bytes.
 
 ## Gaps
 

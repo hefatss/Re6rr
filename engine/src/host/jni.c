@@ -51,6 +51,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_physics.h"
 #include "r6/r6_race.h"
 #include "r6/r6_story.h"
+#include "r6/r6_story_keys.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -5376,6 +5377,118 @@ Java_com_wmmt_re6rr_Re6Engine_nativeStoryCatalogFindKey(
         result = (jint)r6_story_catalog_find_key(&catalog, value);
         (*env)->ReleaseStringUTFChars(env, key, value);
     }
+    free(bytes);
+    return result;
+}
+
+/* Native story-key inventory: a packed R6SK blob in, plain counts/names/facts
+ * out. No key text is interpreted beyond exact ASCII matching. */
+static int story_keys_from_blob(JNIEnv *env, jbyteArray blob,
+                                unsigned char **bytes,
+                                r6_story_keys_catalog *catalog) {
+    jsize length;
+    *bytes = NULL;
+    if (!blob) {
+        return R6_ERR_ARG;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    if ((*env)->ExceptionCheck(env)) {
+        return R6_ERR_ARG;
+    }
+    *bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!*bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)*bytes);
+    if ((*env)->ExceptionCheck(env) ||
+        r6_story_keys_parse(*bytes, (size_t)length, catalog) != R6_OK) {
+        free(*bytes);
+        *bytes = NULL;
+        return R6_ERR_FORMAT;
+    }
+    return R6_OK;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryKeysCounts(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    unsigned char *bytes = NULL;
+    r6_story_keys_catalog catalog;
+    jint values[4];
+    jintArray result = NULL;
+    (void)cls;
+    if (story_keys_from_blob(env, blob, &bytes, &catalog) != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jint)catalog.native_count;
+    values[1] = (jint)catalog.table_count;
+    values[2] = (jint)catalog.msgdb_count;
+    values[3] = (jint)catalog.matched_count;
+    result = story_ints(env, values, 4);
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryKeysName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    r6_story_keys_catalog catalog;
+    char text[64];
+    jbyteArray result = NULL;
+    (void)cls;
+    if (index < 0 || story_keys_from_blob(env, blob, &bytes, &catalog) !=
+        R6_OK) {
+        return NULL;
+    }
+    if (r6_story_keys_name(&catalog, (size_t)index, text,
+                           sizeof(text)) == R6_OK) {
+        result = story_byte_array(env, text, story_cstr_length(text));
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryKeysFind(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jstring name) {
+    unsigned char *bytes = NULL;
+    r6_story_keys_catalog catalog;
+    const char *value;
+    jint result = -1;
+    (void)cls;
+    if (story_keys_from_blob(env, blob, &bytes, &catalog) != R6_OK) {
+        return -1;
+    }
+    value = name ? (*env)->GetStringUTFChars(env, name, NULL) : NULL;
+    if (value) {
+        result = (jint)r6_story_keys_find(&catalog, value);
+        (*env)->ReleaseStringUTFChars(env, name, value);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeStoryKeysFact(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    unsigned char *bytes = NULL;
+    r6_story_keys_catalog catalog;
+    uint32_t source = 0;
+    uint32_t table_index = 0;
+    jint values[2];
+    jintArray result = NULL;
+    (void)cls;
+    if (index < 0 || story_keys_from_blob(env, blob, &bytes, &catalog) !=
+        R6_OK ||
+        r6_story_keys_fact(&catalog, (size_t)index, &source,
+                           &table_index) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    values[0] = (jint)source;
+    values[1] = (jint)table_index;
+    result = story_ints(env, values, 2);
     free(bytes);
     return result;
 }
