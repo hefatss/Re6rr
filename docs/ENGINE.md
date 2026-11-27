@@ -92,6 +92,10 @@ platform/android/java/        Java side of the JNI bridge
   `0x30+sum(section_size)+offset`. All 44,176 shipped subrecords have `extra=0`
   and a flag-zero raw record, which the native loader rejects; no material or
   texture meaning is inferred.
+- `r6_nut_container_facts()` — copy the 11 file-level NTWD/NTLX header values:
+  verbatim container tag, version, entries, total, payload/descriptor sizes,
+  packed words, first GIDX, derived payload offset and the empirical
+  exact-layout flag. No descriptor or pixel bytes are dereferenced.
 - `r6_nut_layout_facts()` — derive the 16-byte-aligned mip layout of one
   NTWD/NTLX descriptor: full declared payload including cube faces, per-face
   size, aligned level-0 bytes, declared/available levels and the cube flag.
@@ -471,7 +475,8 @@ Verified on this dump:
 | `set_number` + scripted getter | 42, round-trips through Lua global |
 | ordered context bundle | reproduces the same `GetTirePos` |
 | missing function / bad chunk | clean rc + zeroed vector, no crash |
-| 1,175 `.tex` files, 5,365 NTWD streams, 17,014 texture headers | C parser matches `tools/assets/ntwd_texture.py`; 8 NTLX headers and pixels also match |
+| 1,250 `.tex` files, 5,664 NTWD streams, 17,877 texture headers | C parser matches `tools/assets/ntwd_texture.py`; 143 NTLX entries and pixels also match |
+| 11,151 `.nut` files | `r6_nut_container_facts()` matches `nut_texture.py` on all 11 header fields; 11,008 NTWD / 143 NTLX and 9,599 exact-layout rows; bad magic, short blob, version 3, zero entries, small descriptor and null input/output rejected |
 | 142 shipped `.nut` textures + one cube face | `r6_nut_decode_rgba()` matches Python RGBA byte-for-byte |
 | 50,180 shipped NTWD type-2 entries | `r6_nut_layout_facts()` matches `nut_texture.expected_size()`, `level_size()` and `available_levels()`; 228 cube entries and three short-mip rows included; bad format/levels/width and null inputs rejected |
 | `Body.nsh` AlphaTest / CustomParameter / PerDraw | `r6_glsl_pack_ubo()` matches Python std140 bytes; short buffer and bad region rejected |

@@ -5,6 +5,13 @@ public final class Re6Texture {
     private Re6Texture() {
     }
 
+    /** File-level header facts; null on invalid input. Returns container,
+     *  version, entries, total, payload size, descriptor size, packed0,
+     *  packed1, first GIDX, payload offset and the exact-layout flag. */
+    public static long[] header(byte[] data) {
+        return nativeHeader(data);
+    }
+
     public static int count(byte[] data) {
         return nativeCount(data);
     }
@@ -26,6 +33,7 @@ public final class Re6Texture {
         return nativeDecodeRgba(data, index, level, face);
     }
 
+    private static native long[] nativeHeader(byte[] data);
     private static native int nativeCount(byte[] data);
     private static native int[] nativeInfo(byte[] data, int index);
     private static native long[] nativeLayout(byte[] data, int index);

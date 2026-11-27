@@ -5561,6 +5561,34 @@ static int nut_from_blob(JNIEnv *env, jbyteArray blob, unsigned char **bytes,
     return R6_OK;
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_Re6Texture_nativeHeader(JNIEnv *env, jclass cls,
+                                            jbyteArray data) {
+    unsigned char *bytes = NULL;
+    size_t length = 0;
+    r6_nut_container_facts_t facts;
+    jlong values[11];
+    jlongArray out = NULL;
+    (void)cls;
+    if (raw_from_blob(env, data, &bytes, &length) == R6_OK &&
+        r6_nut_container_facts(bytes, length, &facts) == R6_OK) {
+        values[0] = (jlong)facts.container;
+        values[1] = (jlong)facts.version;
+        values[2] = (jlong)facts.entries;
+        values[3] = (jlong)facts.total;
+        values[4] = (jlong)facts.payload_size;
+        values[5] = (jlong)facts.descriptor_size;
+        values[6] = (jlong)facts.packed0;
+        values[7] = (jlong)facts.packed1;
+        values[8] = (jlong)facts.first_gidx;
+        values[9] = (jlong)facts.payload_offset;
+        values[10] = (jlong)facts.exact;
+        out = pe_new_longs(env, values, 11);
+    }
+    free(bytes);
+    return out;
+}
+
 JNIEXPORT jint JNICALL
 Java_com_wmmt_re6rr_Re6Texture_nativeCount(JNIEnv *env, jclass cls,
                                             jbyteArray data) {

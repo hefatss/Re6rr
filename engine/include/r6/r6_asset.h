@@ -113,6 +113,27 @@ typedef struct r6_ntwd_header {
 R6_API int r6_ntwd_parse(const void *data, size_t size, r6_ntwd_header *out,
                          r6_ntwd_texture *textures, size_t capacity);
 
+/* File-level NTWD/NTLX header facts. `container` is the first four bytes as
+ * a little-endian u32 (NTWD = 0x4457544e, NTLX = 0x584c544e); packed0/packed1
+ * and first_gidx are copied verbatim. `exact` is the empirical predicate
+ * size == payload_offset + entries*payload_size, not a native validator. */
+typedef struct r6_nut_container_facts_t {
+    uint32_t container;
+    uint32_t version;
+    uint32_t entries;
+    uint64_t total;
+    uint32_t payload_size;
+    uint32_t descriptor_size;
+    uint32_t packed0;
+    uint32_t packed1;
+    uint64_t first_gidx;
+    uint64_t payload_offset;
+    uint32_t exact;
+} r6_nut_container_facts_t;
+
+R6_API int r6_nut_container_facts(const void *data, size_t size,
+                                  r6_nut_container_facts_t *out);
+
 /* Derived mip-payload layout for one NTWD/NTLX texture descriptor. Sizes come
  * from the shipped 16-byte-aligned mip model; available_levels is clipped by
  * the descriptor payload size. No file or pixel data is read. */

@@ -111,8 +111,8 @@ RDEF fields, 7 SHDR operand/modifier totals, 7 ISGN/OSGN totals and one creator
 string, `ShaderControlFlow` resolves the 303 shipped
 structured SM4 blocks by shader/stage with case and break/continue spans, `ShaderUsage`
 resolves reflected uniforms and texture/sampler keys with operand counts per stage,
-`Re6Texture` derives NTWD/NTLX mip payload layout and returns RGBA8 pixels from
-inflated containers, `Re6Audio` reads `.nub` bank metadata, tone
+`Re6Texture` exposes the 11 NTWD/NTLX file-level header fields, derives mip
+payload layout and returns RGBA8 pixels from inflated containers, `Re6Audio` reads `.nub` bank metadata, tone
 control fields, four getter user parameters, codec-1 total samples, opaque
 registration bytes and PCM bytes, `EngineSound` selects car/tune layer tones and
 envelopes, `VertexLayout` reads vertex locations, semantics and masks, and
