@@ -348,7 +348,10 @@ exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
-resolves symbolic sounds;
+resolves symbolic sounds. Java `long` key lookups in `EnmaEnums.find`,
+`EnmaDefaults.findField`, `NameRuns.findUser`, `RefWords.find`,
+`PdataStats.find` and `PeInventory.funcFind` reject negative or
+wider-than-U32 inputs before the native cast;
 the JNI host supplies
 pow/exp2 from libm and sizes tone arrays, but
 none opens an audio or GL device. JNI C

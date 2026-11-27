@@ -37,6 +37,9 @@ public final class EnmaEnums {
 
     /** Symbol for an integer value, or null when absent. */
     public static String find(byte[] blob, int index, long value) {
+        if (value < 0 || value > 0xFFFFFFFFL) {
+            return null;
+        }
         return nativeFind(blob, index, value);
     }
 

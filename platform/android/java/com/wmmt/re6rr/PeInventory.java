@@ -22,6 +22,9 @@ public final class PeInventory {
 
     /** row index for an exact function RVA; -1 if absent. */
     public static long funcFind(byte[] blob, long rva) {
+        if (rva < 0 || rva > 0xFFFFFFFFL) {
+            return -1;
+        }
         return nativeFuncFind(blob, rva);
     }
 

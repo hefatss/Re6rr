@@ -31,6 +31,9 @@ public final class PdataStats {
 
     /** largest-row index for an exact begin RVA; -1 if absent. */
     public static long find(byte[] blob, long begin) {
+        if (begin < 0 || begin > 0xFFFFFFFFL) {
+            return -1;
+        }
         return nativeFind(blob, begin);
     }
 

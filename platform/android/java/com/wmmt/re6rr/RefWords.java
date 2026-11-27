@@ -25,6 +25,9 @@ public final class RefWords {
 
     /** word index for an exact raw value; -1 if absent. */
     public static long find(byte[] blob, long value) {
+        if (value < 0 || value > 0xFFFFFFFFL) {
+            return -1;
+        }
         return nativeFind(blob, value);
     }
 

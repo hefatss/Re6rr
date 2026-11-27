@@ -36,6 +36,9 @@ public final class EnmaDefaults {
 
     /** field index for an exact write offset; -1 if absent. */
     public static long findField(byte[] blob, int index, long offset) {
+        if (offset < 0 || offset > 0xFFFFFFFFL) {
+            return -1;
+        }
         return nativeFindField(blob, index, offset);
     }
 

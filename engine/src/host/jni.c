@@ -552,6 +552,9 @@ Java_com_wmmt_re6rr_EnmaEnums_nativeFind(JNIEnv *env, jclass cls,
     size_t length = 0;
     jstring out = NULL;
     (void)cls;
+    if (value < 0 || value > 0xFFFFFFFFLL) {
+        return NULL;
+    }
     if (raw_from_blob(env, blob, &bytes, &length) != R6_OK ||
         r6_enma_enum_find(bytes, length, (uint32_t)index,
                           (uint32_t)value, name, sizeof(name)) != R6_OK) {
@@ -699,7 +702,8 @@ Java_com_wmmt_re6rr_EnmaDefaults_nativeFindField(JNIEnv *env, jclass cls,
     size_t length = 0;
     jlong result = -1;
     (void)cls;
-    if (raw_from_blob(env, blob, &bytes, &length) != R6_OK) {
+    if (offset < 0 || offset > 0xFFFFFFFFLL ||
+        raw_from_blob(env, blob, &bytes, &length) != R6_OK) {
         return -1;
     }
     if (r6_enma_defaults_find_field(bytes, length, (uint32_t)index,
@@ -2229,7 +2233,7 @@ Java_com_wmmt_re6rr_RefWords_nativeFind(JNIEnv *env, jclass cls,
     size_t length = 0;
     unsigned char *bytes = pe_copy_blob(env, blob, &length);
     (void)cls;
-    if (!bytes ||
+    if (!bytes || value < 0 || value > 0xFFFFFFFFLL ||
         r6_ref_words_find(bytes, length, (uint32_t)value, &index) != R6_OK) {
         free(bytes);
         return -1;
@@ -2366,7 +2370,7 @@ Java_com_wmmt_re6rr_PdataStats_nativeFind(JNIEnv *env, jclass cls,
     size_t length = 0;
     unsigned char *bytes = pe_copy_blob(env, blob, &length);
     (void)cls;
-    if (!bytes ||
+    if (!bytes || begin < 0 || begin > 0xFFFFFFFFLL ||
         r6_pdata_stats_find(bytes, length, (uint32_t)begin, &index) != R6_OK) {
         free(bytes);
         return -1;
@@ -2689,7 +2693,7 @@ Java_com_wmmt_re6rr_PeInventory_nativeFuncFind(JNIEnv *env, jclass cls,
     size_t length = 0;
     unsigned char *bytes = pe_copy_blob(env, blob, &length);
     (void)cls;
-    if (!bytes ||
+    if (!bytes || rva < 0 || rva > 0xFFFFFFFFLL ||
         r6_pe_inventory_func_find(bytes, length, (uint32_t)rva, &index) !=
             R6_OK) {
         free(bytes);
