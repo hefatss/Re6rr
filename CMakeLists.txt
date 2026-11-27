@@ -73,6 +73,7 @@ set(R6_CORE
     engine/src/game/shader_param_catalog.c
     engine/src/game/wmbk_bank_catalog.c
     engine/src/game/filter_dictionary_catalog.c
+    engine/src/game/nut_file_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

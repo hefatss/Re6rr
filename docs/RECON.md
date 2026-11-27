@@ -212,7 +212,8 @@ gzip-wrapped, with the same prefix/descriptor layout, descriptor size `0x50`,
 GIDX offset zero at `+0x30`, and payload bytes per pixel of either 1 or 4; 140
 of 143 files match the exact layout. Pixel-format semantics are not inferred.
 `tools/engine/nut_texture.py` inventories the corpus without storing texture
-data.
+data. `tools/engine/nut_file_catalog.py` packs all 11,151 file-level headers
+into `.r6ntf`; no payload or pixel bytes are copied.
 
 Shader folder holds compiled DXBC blobs inside `NSXR`, not HLSL source, so a
 port translates behaviour rather than recompiling shaders. SM4 control flow is
