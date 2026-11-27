@@ -33,6 +33,12 @@ public final class StringXrefs {
         return nativeFind(blob, name);
     }
 
+    /** every global RVA index with that exact RVA, in stored order;
+     *  null when absent or invalid. */
+    public static long[] findRva(byte[] blob, long rva) {
+        return nativeFindRva(blob, rva);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native String nativeName(byte[] blob, int index);
@@ -45,4 +51,6 @@ public final class StringXrefs {
                                              int localIndex);
 
     private static native long nativeFind(byte[] blob, String name);
+
+    private static native long[] nativeFindRva(byte[] blob, long rva);
 }

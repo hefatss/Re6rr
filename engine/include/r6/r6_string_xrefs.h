@@ -50,6 +50,13 @@ R6_API int r6_string_xref_name_rva(const void *data, size_t size,
 R6_API int r6_string_xref_find(const void *data, size_t size,
                                const char *name, uint32_t *index);
 
+/* All global RVA indices with that exact RVA, in stored order. *count receives
+ * the total hit count; up to capacity indices are copied. R6_ERR_NOT_FOUND
+ * means no row matched; R6_ERR_BUFFER means capacity was short. */
+R6_API int r6_string_xref_find_rva(const void *data, size_t size, uint32_t rva,
+                                   uint32_t *indices, uint32_t capacity,
+                                   uint32_t *count);
+
 #ifdef __cplusplus
 }
 #endif

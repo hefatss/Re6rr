@@ -335,8 +335,10 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_pdata_stats_parse()/bucket()/largest()/find()` — read the derived `R6PDS`
   statistics: seven function-size buckets and the twenty largest `.pdata`
   functions with copied unwind chain fields.
-- `r6_string_xref_parse()/name()/rva()/name_rva()/find()` — read the derived
-  `R6SXR` scan totals and 195 raw string-xref names with 222 instruction RVAs.
+- `r6_string_xref_parse()/name()/rva()/name_rva()/find()/find_rva()` — read the
+  derived `R6SXR` scan totals and 195 raw string-xref names with 222 instruction
+  RVAs. `find_rva()` returns every global RVA index with that exact RVA, so
+  many-to-one hits are not collapsed to the first one.
 - `r6_context_path()` — produce one of the 12 slash-separated relative Lua
   script paths in shipped load order (tire, position, shader, specification,
   colour) from a car and model name. Existence checks and script bytes stay
@@ -434,7 +436,7 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words and 174,507 xrefs, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs and scan totals, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words and 174,507 xrefs, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs, scan totals and all reverse RVA hits, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
@@ -540,7 +542,7 @@ Verified on this dump:
 | EES type filter | 183600 shipped camera types across 720 files match the `FUN_1401ca060` type 0/2 rule |
 | EES car_info | all 10800 shipped ids match the `0x8c` record words; short and null inputs rejected |
 | EES car_disp | all 10800 shipped records match `ees_fields.car_disp_record()` including 896 non-finite yaw rows; NaN/Inf, short offset and null arguments rejected |
-| String xrefs | all 195 names, 222 RVAs and scan totals match `xrefs.json`; find, bad blob, index, row and capacity rejected |
+| String xrefs | all 195 names, 222 RVAs, duplicate-RVA groups and scan totals match `xrefs.json`; both find directions, bad blob, index, row, RVA and capacity rejected |
 | .pdata stats | all 7 buckets and 20 largest functions match `pdata.json`; find, bad blob, index, row and capacity rejected |
 | Reference words | all 98,805 words and 174,507 xrefs match `refs.json`; find, bad blob, index, row and xref rejected |
 | Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; find, bad blob, index, row and capacity rejected |

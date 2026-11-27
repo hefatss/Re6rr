@@ -50,6 +50,9 @@ def configure(lib):
     lib.r6_string_xref_find.restype = ctypes.c_int
     lib.r6_string_xref_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32]
+    lib.r6_string_xref_find_rva.restype = ctypes.c_int
+    lib.r6_string_xref_find_rva.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32, U32, PU32]
 
 
 def check(lib):
@@ -105,6 +108,42 @@ def check(lib):
         source, len(blob), b"R6_NO_SUCH_XREF",
         ctypes.byref(found)) == R6_ERR_NOT_FOUND
 
+    by_rva = {}
+    global_index = 0
+    for refs in data["hits"].values():
+        for expected_rva in refs:
+            by_rva.setdefault(expected_rva, []).append(global_index)
+            global_index += 1
+    duplicates = 0
+    for expected_rva, want in by_rva.items():
+        hits = (U32 * len(want))()
+        total = U32()
+        assert lib.r6_string_xref_find_rva(
+            source, len(blob), expected_rva, hits, len(hits),
+            ctypes.byref(total)) == R6_OK
+        assert total.value == len(want) and list(hits) == want
+        if len(want) > 1:
+            duplicates += 1
+            short = (U32 * (len(want) - 1))()
+            assert lib.r6_string_xref_find_rva(
+                source, len(blob), expected_rva, short, len(short),
+                ctypes.byref(total)) == R6_ERR_BUFFER
+            assert total.value == len(want) and list(short) == want[:-1]
+    assert duplicates
+    assert 0x1000 not in by_rva
+    assert lib.r6_string_xref_find_rva(
+        source, len(blob), 0x1000, None, 0,
+        ctypes.byref(total)) == R6_ERR_NOT_FOUND and total.value == 0
+    for bad_rva in (0xfff, 34308096):
+        assert lib.r6_string_xref_find_rva(
+            source, len(blob), bad_rva, None, 0,
+            ctypes.byref(total)) == R6_ERR_ARG
+    assert lib.r6_string_xref_find_rva(
+        source, len(blob), next(iter(by_rva)), None, 1,
+        ctypes.byref(total)) == R6_ERR_ARG
+    assert lib.r6_string_xref_find_rva(
+        source, len(blob), next(iter(by_rva)), None, 0, None) == R6_ERR_BUFFER
+
     assert lib.r6_string_xref_name(
         source, len(blob), 195, name, len(name), ctypes.byref(first),
         ctypes.byref(count)) == R6_ERR_ARG
@@ -144,8 +183,9 @@ def check(lib):
     source = ctypes.create_string_buffer(bytes(bad), len(bad))
     assert lib.r6_string_xref_rva(
         source, len(bad), 0, ctypes.byref(rva)) == R6_ERR_FORMAT
-    print("string xrefs: 195 names, 222 RVAs and scan totals match "
-          "xrefs.json; find, bad blob, index, row and capacity rejected")
+    print("string xrefs: 195 names, 222 RVAs, %d duplicate-RVA groups and scan "
+          "totals match xrefs.json; both find directions, bad blob, index, row "
+          "and capacity rejected" % duplicates)
 
 
 def main():

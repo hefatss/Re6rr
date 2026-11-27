@@ -3094,6 +3094,54 @@ Java_com_wmmt_re6rr_StringXrefs_nativeFind(JNIEnv *env, jclass cls,
     return (jlong)index;
 }
 
+/* Reverse lookup returns every stored RVA index for an exact RVA, not just the
+ * first one. Java receives plain longs; the count is the array length. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StringXrefs_nativeFindRva(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jlong rva) {
+    uint32_t count = 0;
+    uint32_t second = 0;
+    uint32_t *indices = NULL;
+    jlong *values = NULL;
+    jlongArray result = NULL;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    uint32_t index;
+    (void)cls;
+    if (!bytes || rva < 0 || rva > 0xffffffffL) {
+        free(bytes);
+        return NULL;
+    }
+    if (r6_string_xref_find_rva(bytes, length, (uint32_t)rva, NULL, 0,
+                                &count) != R6_ERR_BUFFER || !count) {
+        free(bytes);
+        return NULL;
+    }
+    indices = (uint32_t *)malloc((size_t)count * sizeof(*indices));
+    values = (jlong *)malloc((size_t)count * sizeof(*values));
+    if (!indices || !values) {
+        free(indices);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    if (r6_string_xref_find_rva(bytes, length, (uint32_t)rva, indices, count,
+                                &second) != R6_OK || second != count) {
+        free(indices);
+        free(values);
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (index = 0; index < count; index++) {
+        values[index] = (jlong)indices[index];
+    }
+    result = pe_new_longs(env, values, (jsize)count);
+    free(indices);
+    free(values);
+    return result;
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_wmmt_re6rr_PeInventory_nativeDirectoryFind(JNIEnv *env, jclass cls,
                                                     jbyteArray blob,
