@@ -68,6 +68,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_msgdb_namespace.h"
 #include "r6/r6_shader_param_catalog.h"
 #include "r6/r6_wmbk_bank_catalog.h"
+#include "r6/r6_filter_dictionary_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7499,6 +7500,112 @@ Java_com_wmmt_re6rr_WmbkBankCatalog_nativeRecord(JNIEnv *env, jclass cls,
     values[3] = (jlong)record.version;
     values[4] = (jlong)record.payload_length;
     result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+/* Filter dictionary Lua line shapes: copied paths, counts and row facts. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_FilterDictionaryCatalog_nativeHeader(JNIEnv *env,
+                                                         jclass cls,
+                                                         jbyteArray blob) {
+    r6_filter_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes ||
+        r6_filter_dictionary_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.source_lines;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_FilterDictionaryCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    r6_filter_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_filter_dictionary_file(bytes, length, (uint32_t)index,
+                                  &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.source_size;
+    values[3] = (jlong)file.line_count;
+    values[4] = (jlong)file.active;
+    values[5] = (jlong)file.commented;
+    values[6] = (jlong)file.bool_count;
+    values[7] = (jlong)file.table;
+    values[8] = (jlong)file.function;
+    values[9] = (jlong)file.row_first;
+    values[10] = (jlong)file.row_count;
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_FilterDictionaryCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_filter_dictionary_path(bytes, length, (uint32_t)index, path,
+                                  sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_FilterDictionaryCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    r6_filter_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_filter_dictionary_row(bytes, length, (uint32_t)index,
+                                 &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.file_index;
+    values[1] = (jlong)row.line_index;
+    values[2] = (jlong)row.byte_offset;
+    values[3] = (jlong)row.line_length;
+    values[4] = (jlong)row.kind;
+    values[5] = (jlong)row.value;
+    result = pe_new_longs(env, values, 6);
     return result;
 }
 
