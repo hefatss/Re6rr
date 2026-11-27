@@ -564,8 +564,10 @@ to be written must:
 
 ## Gaps
 
-- Recompiler (P1) still lacks indirect calls/host stubs, bounded loops and
-  XMM/SIMD; 16/18 sampled functions pass.
+- Recompiler (P1) still lacks indirect calls/host stubs and XMM/SIMD.
+  `difftest.py --bounded` aligns the two `memcpy`-style contexts, so all 18
+  sampled functions pass (16 random + 2 bounded); other loops still need
+  per-function register ranges.
 - BC1/BC2/BC3/ARGB8/A8R8G8B8 decode is in the C core and in
   `tools/engine/nut_texture.py`; GPU texture upload remains outside the core.
 - `r6_glsl_pack_ubo()` writes reflected std140 members and

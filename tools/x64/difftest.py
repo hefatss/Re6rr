@@ -1,6 +1,6 @@
 """Differential test: real bytes under Unicorn vs the lifted IR.
 
-    python tools/x64/difftest.py [f_8555 f_68e0 ...] [--seeds 50] [--trace]
+    python tools/x64/difftest.py [f_8555 f_68e0 ...] [--seeds 50] [--trace] [--bounded]
 
 Both sides start from the same random register context, the same stack and the
 same scratch block. The test passes when the 16 general registers and the
@@ -75,7 +75,7 @@ def image_bytes(pe):
     return img
 
 
-def context(seed):
+def context(seed, bounded=False):
     rnd = random.Random(seed)
     scratch = bytearray(rnd.getrandbits(8) for _ in range(SCRATCH_SIZE))
     regs = {}
@@ -84,6 +84,14 @@ def context(seed):
             continue
         regs[name] = SCRATCH + rnd.randrange(0, 0x800)
     regs["rsp"] = STACK + STACK_SIZE - 0x200
+    if bounded:
+        # Copy loops end at `cmp rcx, rdx`; independent random pointers never
+        # meet. Use an aligned source window and a non-overlapping destination.
+        count = rnd.randrange(0, 17)  # 0 covers the empty copy
+        slot = (seed % 16) * 0x100
+        regs["rcx"] = SCRATCH + 0x1000 + slot
+        regs["rdx"] = regs["rcx"] + count * 16  # multiple of 8 and 16
+        regs["r8"] = SCRATCH + 0x4000 + slot
     return regs, scratch
 
 
@@ -143,6 +151,8 @@ def main():
     ap.add_argument("--exe", default=r"D:\Games\W6W-05\wmn6r.exe")
     ap.add_argument("--seeds", type=int, default=20)
     ap.add_argument("--trace", action="store_true")
+    ap.add_argument("--bounded", action="store_true",
+                    help="align rcx/rdx/r8 so bounded copy loops terminate")
     args = ap.parse_args()
 
     sample = args.funcs or ["f_8555", "f_68e0", "f_2ad7", "f_42cb", "f_73a2", "f_98f8"]
@@ -214,7 +224,7 @@ def main():
         mismatch = 0
         first = None
         for seed in range(args.seeds):
-            regs, scratch = context(seed)
+            regs, scratch = context(seed, bounded=args.bounded)
             try:
                 uc_regs, uc_mem, state = unicorn_run(pe, img, pe.image_base + start, end, regs, scratch)
             except Exception as exc:  # mapping trouble

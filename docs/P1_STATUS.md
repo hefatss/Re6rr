@@ -42,7 +42,8 @@ See `docs/recon/BINDINGS.md`, `XREFS.md` and `NAME_TABLE.md`.
 ## Differential test
 
     16 functions × 20 random contexts = 320 comparisons, all matching
-    2 more functions skipped: loops whose exit depends on unrelated random pointers
+    2 functions × 20 bounded contexts = 40 comparisons, all matching
+    The same 18 functions with `--bounded` = 360 comparisons, all matching
 
 The set includes straight-line code, conditionals (`je`, `jne`, `jbe`, `jb`,
 `setne`, `cmovl`), read-modify-write of memory and direct calls to lifted leaf
@@ -62,6 +63,7 @@ or a setup bug; this loop already caught four:
 Run it with:
 
     python tools/x64/difftest.py f_8555 f_bf00 f_1d7bb --seeds 30
+    python tools/x64/difftest.py f_584f60 f_9e3650 --bounded --seeds 20
     python tools/x64/emit_c.py f_8555 f_bf00
 
 C output goes to `docs/recon/c/` (gitignored).
@@ -88,7 +90,8 @@ opencode processes is needed for that path. None of this blocks the lift spike.
 2. **Fragments.** Some `.pdata` entries are chunks of a larger function: their
    branch target is another `.pdata` start. `difftest.py` reports them as
    fragments instead of comparing.
-3. **Bounded contexts.** Wrappers around `memcpy`-style loops need register
-   ranges, not random pointers, before they can be compared.
+3. **Bounded contexts.** `--bounded` aligns `rcx`/`rdx`/`r8` for the two
+   `memcpy`-style samples. Other functions still need per-function ranges when
+   their exit condition depends on register relationships.
 4. **Floating point and SIMD.** D3D/math code uses XMM (`movaps`, `cvtps2pd`,
    `andpd`, …) which the IR does not cover yet.

@@ -122,5 +122,6 @@ needed.
    side.~~ Done in `engine/src/core/lua_host.c`; failed calls return zero.
 3. ~~Wire car position/colour to the Phase 2 loaders.~~ `r6_engine_load_context`
    and the first asset parsers are in `engine/`; see `docs/ENGINE.md`.
-4. Extend recompiler gaps: indirect calls/host stubs, bounded loops, XMM/SIMD.
+4. Extend recompiler gaps: indirect calls/host stubs, per-function bounded
+   contexts beyond the two `memcpy` samples, XMM/SIMD.
 5. Proceed to P4 physics/race and P5 game systems.
