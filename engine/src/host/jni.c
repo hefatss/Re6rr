@@ -7535,6 +7535,50 @@ Java_com_wmmt_re6rr_NshContainer_nativeStatFacts(JNIEnv *env, jclass cls) {
     return pe_new_longs(env, values, 30);
 }
 
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeReflectionFacts(JNIEnv *env,
+                                                       jclass cls) {
+    r6_dxbc_reflection_facts_t facts;
+    jlong values[23];
+    (void)cls;
+    r6_dxbc_reflection_facts(&facts);
+    values[0] = (jlong)facts.record_count;
+    values[1] = (jlong)facts.vertex_count;
+    values[2] = (jlong)facts.pixel_count;
+    values[3] = (jlong)facts.target_version;
+    values[4] = (jlong)facts.flags;
+    values[5] = (jlong)facts.cbuffer_count;
+    values[6] = (jlong)facts.cbuffer_bytes;
+    values[7] = (jlong)facts.variable_count;
+    values[8] = (jlong)facts.resource_count;
+    values[9] = (jlong)facts.resource_cbuffer;
+    values[10] = (jlong)facts.resource_texture;
+    values[11] = (jlong)facts.resource_sampler;
+    values[12] = (jlong)facts.class_scalar;
+    values[13] = (jlong)facts.class_vector;
+    values[14] = (jlong)facts.class_matrix_rows;
+    values[15] = (jlong)facts.type_float;
+    values[16] = (jlong)facts.type_uint;
+    values[17] = (jlong)facts.nonzero_member_offsets;
+    values[18] = (jlong)facts.dimension_0;
+    values[19] = (jlong)facts.dimension_4;
+    values[20] = (jlong)facts.dimension_9;
+    values[21] = (jlong)facts.sample_count_0;
+    values[22] = (jlong)facts.sample_count_all;
+    return pe_new_longs(env, values, 23);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeReflectionCreator(JNIEnv *env,
+                                                         jclass cls) {
+    char text[R6_DXBC_CREATOR_CAP];
+    (void)cls;
+    if (r6_dxbc_reflection_creator(text, sizeof(text)) != R6_OK) {
+        return NULL;
+    }
+    return (*env)->NewStringUTF(env, text);
+}
+
 JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_EesCamera_nativeFields(JNIEnv *env, jclass cls,
                                            jbyteArray raw, jint offset) {

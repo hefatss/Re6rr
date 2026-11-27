@@ -29,10 +29,26 @@ public final class NshContainer {
         return nativeStatFacts();
     }
 
+    /** 23 values: record/stage counts, target/flags, cbuffer/variable/resource
+     *  totals, class/type histograms, nonzero member offsets and dimension /
+     *  sample-count codes summed from the 446 shipped RDEF chunks. */
+    public static long[] reflectionFacts() {
+        return nativeReflectionFacts();
+    }
+
+    /** The single shipped RDEF creator string. */
+    public static String reflectionCreator() {
+        return nativeReflectionCreator();
+    }
+
     private static native long[] nativeParse(byte[] raw);
 
     private static native long[] nativeChunkFind(byte[] raw, int record,
                                                  int tag);
 
     private static native long[] nativeStatFacts();
+
+    private static native long[] nativeReflectionFacts();
+
+    private static native String nativeReflectionCreator();
 }

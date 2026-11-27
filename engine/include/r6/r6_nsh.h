@@ -1,6 +1,7 @@
 /* Freestanding reader for the shipped NSXR (.nsh) container and its DXBC
  * chunk tables. No files, allocation or D3D objects: the host supplies bytes.
- * SHDR/RDEF/ISGN/OSGN payload interpretation stays in the Python recon tools.
+ * Detailed SHDR/RDEF/ISGN/OSGN payload interpretation stays in the Python
+ * recon tools; only aggregate RDEF/STAT facts are copied here.
  */
 #ifndef R6_NSH_H
 #define R6_NSH_H
@@ -95,6 +96,43 @@ typedef struct r6_dxbc_stat_facts_t {
 } r6_dxbc_stat_facts_t;
 
 R6_API void r6_dxbc_stat_facts(r6_dxbc_stat_facts_t *out);
+
+/* Sums of the RDEF reflection header, cbuffer, variable and resource fields
+ * across the 446 shipped records. Histogram keys are the verbatim numeric codes
+ * used by nsxr_shader.py; no RDEF chunk is read or rewritten here. */
+typedef struct r6_dxbc_reflection_facts_t {
+    uint32_t record_count;
+    uint32_t vertex_count;
+    uint32_t pixel_count;
+    uint32_t target_version;
+    uint32_t flags;
+    uint32_t cbuffer_count;
+    uint32_t cbuffer_bytes;
+    uint32_t variable_count;
+    uint32_t resource_count;
+    uint32_t resource_cbuffer;
+    uint32_t resource_texture;
+    uint32_t resource_sampler;
+    uint32_t class_scalar;
+    uint32_t class_vector;
+    uint32_t class_matrix_rows;
+    uint32_t type_float;
+    uint32_t type_uint;
+    uint32_t nonzero_member_offsets;
+    uint32_t dimension_0;
+    uint32_t dimension_4;
+    uint32_t dimension_9;
+    uint32_t sample_count_0;
+    uint32_t sample_count_all;
+} r6_dxbc_reflection_facts_t;
+
+enum { R6_DXBC_CREATOR_CAP = 0x40 };
+
+R6_API void r6_dxbc_reflection_facts(r6_dxbc_reflection_facts_t *out);
+
+/* Copies the one shipped RDEF creator string; R6_ERR_BUFFER reports that
+ * capacity is smaller than the terminated string. */
+R6_API int r6_dxbc_reflection_creator(char *out, size_t capacity);
 
 #ifdef __cplusplus
 }

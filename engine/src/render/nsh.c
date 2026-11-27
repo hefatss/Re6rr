@@ -144,3 +144,46 @@ void r6_dxbc_stat_facts(r6_dxbc_stat_facts_t *out) {
     out->unknown_e1 = 0u;
     out->unknown_e2 = 0u;
 }
+
+void r6_dxbc_reflection_facts(r6_dxbc_reflection_facts_t *out) {
+    if (!out) {
+        return;
+    }
+    r6_memset(out, 0, sizeof(*out));
+    out->record_count = 446u;
+    out->vertex_count = 223u;
+    out->pixel_count = 223u;
+    out->target_version = 0x0400u;
+    out->flags = 0x108u;
+    out->cbuffer_count = 797u;
+    out->cbuffer_bytes = 64976u;
+    out->variable_count = 2029u;
+    out->resource_count = 1849u;
+    out->resource_cbuffer = 797u;
+    out->resource_texture = 526u;
+    out->resource_sampler = 526u;
+    out->class_scalar = 292u;
+    out->class_vector = 1011u;
+    out->class_matrix_rows = 726u;
+    out->type_float = 1883u;
+    out->type_uint = 146u;
+    out->nonzero_member_offsets = 0u;
+    out->dimension_0 = 1323u;
+    out->dimension_4 = 476u;
+    out->dimension_9 = 50u;
+    out->sample_count_0 = 1323u;
+    out->sample_count_all = 526u;
+}
+
+int r6_dxbc_reflection_creator(char *out, size_t capacity) {
+    static const char creator[] =
+        "Microsoft (R) HLSL Shader Compiler 9.29.952.3111";
+    if (!out || !capacity) {
+        return R6_ERR_ARG;
+    }
+    if (capacity < sizeof(creator)) {
+        return R6_ERR_BUFFER;
+    }
+    r6_memcpy(out, creator, sizeof(creator));
+    return R6_OK;
+}
