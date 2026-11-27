@@ -249,10 +249,11 @@ platform/android/java/        Java side of the JNI bridge
   — read the derived `R6PEI` counts: 70,377 `.pdata` rows, 28 DLLs, 825
   imports, 7 sections, 8 directories, 2 exports and one TLS callback. RVAs are copied as
   numbers; no PE bytes are mapped or executed.
-- `r6_name_runs_parse()/run()/name()/run_name()/user()/find()` — read the
+- `r6_name_runs_parse()/run()/name()/run_name()/user()/find()/find_user()` — read the
   derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names and 888
-  code references. `find()` returns the first exact match by run, local and
-  global index; RVAs are never dereferenced.
+  code references. `find()` returns the first exact name by run, local and
+  global index; `find_user()` returns the first code-reference row with an
+  exact RVA. RVAs are never dereferenced.
 - `r6_lua_reg_parse()/table()/entry()/table_entry()/user()/find()` — read the
   derived `R6LREG` inventory of 3 shipped `luaL_Reg` tables and 42 name/function
   rows. Signature-like labels are copied verbatim, not interpreted.
@@ -444,7 +445,7 @@ Verified on this dump:
 | Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; find, bad blob, index, row and capacity rejected |
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
 | luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
-| Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; find, bad blob, index, row and capacity rejected |
+| Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; name/user find, bad blob, index, row and capacity rejected |
 | PE inventory | all 70,377 `.pdata` rows, 825 named/ordinal imports, 28 DLLs, 7 sections, 8 directories, 2 exports and PDB data match `pe.json`/`pdata.json`; RVA/directory/DLL/import find, bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; ext/magic/folder/shader find, bad blob, index and capacity rejected |
 | Lua inventory | 2 roots, 158 dirs and all root counts match `lua.json`; bad blob, root and capacity rejected |

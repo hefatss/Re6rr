@@ -219,3 +219,30 @@ int r6_name_runs_find(const void *data, size_t size, const char *name,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+int r6_name_runs_find_user(const void *data, size_t size, uint32_t rva,
+                           uint32_t *index) {
+    r6_name_runs_header header;
+    uint32_t at;
+    int result = name_runs_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    for (at = 0; at < header.user_count; at++) {
+        uint32_t found = 0;
+        result = r6_name_runs_user(data, size, at, &found);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (found == rva) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

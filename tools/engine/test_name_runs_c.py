@@ -48,6 +48,9 @@ def configure(lib):
     lib.r6_name_runs_user.restype = ctypes.c_int
     lib.r6_name_runs_user.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
+    lib.r6_name_runs_find_user.restype = ctypes.c_int
+    lib.r6_name_runs_find_user.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, PU32]
     lib.r6_name_runs_find.restype = ctypes.c_int
     lib.r6_name_runs_find.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, ctypes.c_char_p, PU32, PU32, PU32]
@@ -135,6 +138,17 @@ def check(lib):
         ctypes.byref(first_user), ctypes.byref(user_count)) == R6_ERR_ARG
     assert lib.r6_name_runs_name(
         source, len(blob), 13283, out, len(out)) == R6_ERR_ARG
+    found_user = U32()
+    firsts = {}
+    for index, value in enumerate(users):
+        firsts.setdefault(value, index)
+    for value, first in firsts.items():
+        assert lib.r6_name_runs_find_user(
+            source, len(blob), value, ctypes.byref(found_user)) == R6_OK
+        assert found_user.value == first
+    assert lib.r6_name_runs_find_user(
+        source, len(blob), 0, ctypes.byref(found_user)) == R6_ERR_NOT_FOUND
+
     assert lib.r6_name_runs_user(
         source, len(blob), 888, ctypes.byref(rva)) == R6_ERR_ARG
     assert lib.r6_name_runs_name(
@@ -155,7 +169,8 @@ def check(lib):
         ctypes.byref(stride), ctypes.byref(count), ctypes.byref(first_name),
         ctypes.byref(first_user), ctypes.byref(user_count)) == R6_ERR_FORMAT
     print("name runs: 521 runs, 13283 names and 888 code refs match "
-          "name_tables.json; find, bad blob, index, row and capacity rejected")
+          "name_tables.json; name/user find, bad blob, index, row and "
+          "capacity rejected")
 
 
 def first_name_for(runs, index):

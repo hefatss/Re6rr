@@ -28,6 +28,11 @@ public final class NameRuns {
         return nativeUser(blob, index);
     }
 
+    /** first code-reference row with an exact RVA; -1 if absent. */
+    public static long findUser(byte[] blob, long rva) {
+        return nativeFindUser(blob, rva);
+    }
+
     /** run, local and global indexes of the first exact match; null if none. */
     public static long[] find(byte[] blob, String name) {
         return nativeFind(blob, name);
@@ -45,4 +50,6 @@ public final class NameRuns {
     private static native long nativeUser(byte[] blob, int index);
 
     private static native long[] nativeFind(byte[] blob, String name);
+
+    private static native long nativeFindUser(byte[] blob, long rva);
 }

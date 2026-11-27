@@ -53,6 +53,10 @@ R6_API int r6_name_runs_find(const void *data, size_t size, const char *name,
                              uint32_t *run_index, uint32_t *local_index,
                              uint32_t *global_index);
 
+/* First code-reference row with the exact RVA. */
+R6_API int r6_name_runs_find_user(const void *data, size_t size, uint32_t rva,
+                                  uint32_t *index);
+
 #ifdef __cplusplus
 }
 #endif

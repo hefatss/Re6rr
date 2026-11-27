@@ -1662,6 +1662,24 @@ Java_com_wmmt_re6rr_NameRuns_nativeUser(JNIEnv *env, jclass cls,
     return (jlong)rva;
 }
 
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_NameRuns_nativeFindUser(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jlong rva) {
+    uint32_t index = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong result = -1;
+    (void)cls;
+    if (!bytes) {
+        return -1;
+    }
+    if (r6_name_runs_find_user(bytes, length, (uint32_t)rva, &index) == R6_OK) {
+        result = (jlong)index;
+    }
+    free(bytes);
+    return result;
+}
+
 JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_NameRuns_nativeFind(JNIEnv *env, jclass cls,
                                         jbyteArray blob, jstring name) {
