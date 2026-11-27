@@ -90,6 +90,7 @@ SOURCES = [
     "engine/src/game/xmlt_lists.c",
     "engine/src/game/msgdb_namespace.c",
     "engine/src/game/shader_param_catalog.c",
+    "engine/src/game/wmbk_bank_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

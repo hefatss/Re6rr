@@ -67,6 +67,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_xmlt_lists.h"
 #include "r6/r6_msgdb_namespace.h"
 #include "r6/r6_shader_param_catalog.h"
+#include "r6/r6_wmbk_bank_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7400,6 +7401,104 @@ Java_com_wmmt_re6rr_ShaderParamCatalog_nativeModel(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, model);
+    return result;
+}
+
+/* Root FBK/GBK WMBK banks: copied paths, gzip words and record headers. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_WmbkBankCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_wmbk_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_wmbk_bank_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.record_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.compressed_total;
+    values[5] = (jlong)header.inflated_total;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_WmbkBankCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_wmbk_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_wmbk_bank_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.compressed;
+    values[3] = (jlong)file.inflated;
+    values[4] = (jlong)file.mtime;
+    values[5] = (jlong)file.isize;
+    values[6] = (jlong)file.record_first;
+    values[7] = (jlong)file.record_count;
+    values[8] = (jlong)file.flg;
+    values[9] = (jlong)file.xfl;
+    values[10] = (jlong)file.os;
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_WmbkBankCatalog_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_wmbk_bank_path(bytes, length, (uint32_t)index, path,
+                          sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_WmbkBankCatalog_nativeRecord(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_wmbk_record_t record;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_wmbk_bank_record(bytes, length, (uint32_t)index, &record) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)record.file_index;
+    values[1] = (jlong)record.byte_offset;
+    values[2] = (jlong)record.magic;
+    values[3] = (jlong)record.version;
+    values[4] = (jlong)record.payload_length;
+    result = pe_new_longs(env, values, 5);
     return result;
 }
 

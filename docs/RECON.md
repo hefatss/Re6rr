@@ -50,6 +50,11 @@ must come from imports, string references, RTTI and pattern matching.
 | `.med` | 28 + 39 | 3.9 MB | motion data |
 | `.gz` | 1,087 | 36.8 MB | stage effects; `tools/engine/gz_effect_catalog.py` verifies CRC/ISIZE and inventories gzip headers plus 16-byte inflated prefixes |
 
+The 20 root `FBK_W6W_*.bin` / `GBK_W6W_*.bin` files are gzip banks with 22
+`WMBK` records total; each F/G pair inflates byte-identically.
+`tools/engine/wmbk_bank_catalog.py` copies gzip header words, record headers
+and byte spans, but does not decode record payload words.
+
 All 170 `.act` files start with `RESOURCE:NU`; their paths, sizes and first 64
 bytes are inventoried by `tools/engine/act_headers_catalog.py`, but no section
 or animation semantics are inferred. The 67 `.med` files all have zero bytes
