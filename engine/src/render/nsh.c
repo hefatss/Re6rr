@@ -91,3 +91,19 @@ int r6_nsh_parse(const void *data, size_t size, r6_nsh_t *out) {
     }
     return R6_OK;
 }
+
+int r6_nsh_chunk_find(const r6_nsh_t *nsh, uint32_t record, uint32_t tag,
+                      r6_nsh_chunk_t *out) {
+    uint32_t at;
+    if (!nsh || !out || record >= nsh->record_count) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < nsh->records[record].chunk_count; at++) {
+        const r6_nsh_chunk_t *chunk = &nsh->records[record].chunks[at];
+        if (chunk->tag == tag) {
+            r6_memcpy(out, chunk, sizeof(*out));
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}

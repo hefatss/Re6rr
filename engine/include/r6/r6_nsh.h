@@ -54,6 +54,10 @@ typedef struct r6_nsh_t {
 
 R6_API int r6_nsh_parse(const void *data, size_t size, r6_nsh_t *out);
 
+/* First chunk with the given four-CC tag in one parsed record. */
+R6_API int r6_nsh_chunk_find(const r6_nsh_t *nsh, uint32_t record,
+                             uint32_t tag, r6_nsh_chunk_t *out);
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,7 @@ import test_engine  # noqa: E402
 R6_OK = 0
 R6_ERR_ARG = -1
 R6_ERR_FORMAT = -5
+R6_ERR_NOT_FOUND = -7
 
 
 class Chunk(ctypes.Structure):
@@ -49,6 +50,9 @@ def check(dump, lib):
     lib.r6_nsh_parse.restype = ctypes.c_int
     lib.r6_nsh_parse.argtypes = [ctypes.c_void_p, ctypes.c_size_t,
                                  ctypes.POINTER(Nsh)]
+    lib.r6_nsh_chunk_find.restype = ctypes.c_int
+    lib.r6_nsh_chunk_find.argtypes = [ctypes.POINTER(Nsh), ctypes.c_uint32,
+                                      ctypes.c_uint32, ctypes.POINTER(Chunk)]
     root = os.path.join(dump, nsxr_shader.SHADER_DIR)
     names = sorted(name for name in os.listdir(root) if name.endswith(".nsh"))
     assert len(names) == 223
@@ -89,6 +93,27 @@ def check(dump, lib):
                 assert cpart.data_offset == part["data_offset"], (name, index)
                 chunks += 1
 
+    first_raw = open(os.path.join(root, names[0]), "rb").read()
+    source = ctypes.create_string_buffer(first_raw, len(first_raw))
+    got = Nsh()
+    assert lib.r6_nsh_parse(source, len(first_raw), ctypes.byref(got)) == R6_OK
+    found = Chunk()
+    for record_index in range(got.record_count):
+        if not got.records[record_index].chunk_count:
+            continue
+        expected = got.records[record_index].chunks[0]
+        assert lib.r6_nsh_chunk_find(
+            ctypes.byref(got), record_index, expected.tag,
+            ctypes.byref(found)) == R6_OK
+        assert found.tag == expected.tag
+        assert found.offset == expected.offset
+        assert found.size == expected.size
+        assert found.data_offset == expected.data_offset
+    assert lib.r6_nsh_chunk_find(
+        ctypes.byref(got), 0, 0, ctypes.byref(found)) == R6_ERR_NOT_FOUND
+    assert lib.r6_nsh_chunk_find(
+        ctypes.byref(got), 2, 0, ctypes.byref(found)) == R6_ERR_ARG
+
     header = Nsh()
     assert lib.r6_nsh_parse(None, 0x80, ctypes.byref(header)) == R6_ERR_ARG
     assert lib.r6_nsh_parse(bytes(0x7F), 0x7F,
@@ -109,8 +134,8 @@ def check(dump, lib):
     assert lib.r6_nsh_parse(source, len(bad),
                             ctypes.byref(header)) == R6_ERR_FORMAT
     print("NSXR: %d files, 2 records each and %d DXBC chunks match "
-          "nsxr_shader.parse_nsh(); short, bad magic and bad sizes rejected" %
-          (len(names), chunks))
+          "nsxr_shader.parse_nsh(); chunk find, short, bad magic and bad "
+          "sizes rejected" % (len(names), chunks))
 
 
 def main():

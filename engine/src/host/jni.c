@@ -2799,6 +2799,30 @@ Java_com_wmmt_re6rr_GlslBindings_nativeFindRecord(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NshContainer_nativeChunkFind(JNIEnv *env, jclass cls,
+                                                 jbyteArray raw, jint record,
+                                                 jint tag) {
+    r6_nsh_t nsh;
+    r6_nsh_chunk_t chunk;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, raw, &length);
+    jlong values[4];
+    (void)cls;
+    if (!bytes || r6_nsh_parse(bytes, length, &nsh) != R6_OK ||
+        r6_nsh_chunk_find(&nsh, (uint32_t)record, (uint32_t)tag, &chunk) !=
+            R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)chunk.tag;
+    values[1] = (jlong)chunk.offset;
+    values[2] = (jlong)chunk.size;
+    values[3] = (jlong)chunk.data_offset;
+    return pe_new_longs(env, values, 4);
+}
+
+JNIEXPORT jlongArray JNICALL
 Java_com_wmmt_re6rr_HonorSchema_nativeHeader(JNIEnv *env, jclass cls,
                                              jbyteArray blob) {
     r6_honor_schema_header header;

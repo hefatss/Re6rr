@@ -17,5 +17,14 @@ public final class NshContainer {
         return nativeParse(raw);
     }
 
+    /** tag, offset, size and data offset of the first matching chunk;
+     *  null for a bad record or absent tag. */
+    public static long[] chunkFind(byte[] raw, int record, int tag) {
+        return nativeChunkFind(raw, record, tag);
+    }
+
     private static native long[] nativeParse(byte[] raw);
+
+    private static native long[] nativeChunkFind(byte[] raw, int record,
+                                                 int tag);
 }
