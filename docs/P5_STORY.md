@@ -83,6 +83,12 @@ message-DB-only. `StoryKeyNamespace` wraps that blob with `header()`, `name()`,
 `find()` and `fact()`. No scene, dialogue, unlock or mission-order semantics
 are inferred.
 
+`msgdb_namespace_catalog.py` goes one step further and packs all 31,021 ASCII
+MessageIDs from `msgdb.lua` into `.r6mns` with their byte offsets and 58
+four-character groups; the 647 `drive_story_` keys remain countable as a
+subset. `MsgdbNamespace` wraps that blob with `header()`, `key()`, `find()`,
+`fact()` and `group()`. Only keys, offsets and groups are copied.
+
 ## JNI
 
 `Re6Engine.StoryKeys` wraps the `.r6sk` blob on Android with `counts()`,

@@ -88,6 +88,7 @@ SOURCES = [
     "engine/src/game/loadlist_catalog.c",
     "engine/src/game/gz_effect_catalog.c",
     "engine/src/game/xmlt_lists.c",
+    "engine/src/game/msgdb_namespace.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

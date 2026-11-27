@@ -65,6 +65,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_reloc_inventory.h"
 #include "r6/r6_gz_effect_catalog.h"
 #include "r6/r6_xmlt_lists.h"
+#include "r6/r6_msgdb_namespace.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7171,6 +7172,113 @@ Java_com_wmmt_re6rr_XmltLists_nativeTag(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_xmlt_tag(bytes, length, (uint32_t)index, name,
                     sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Complete msgdb.lua MessageID namespace: copied keys and numbers only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_MsgdbNamespace_nativeHeader(JNIEnv *env, jclass cls,
+                                                jbyteArray blob) {
+    r6_msgdb_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_msgdb_namespace_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.count;
+    values[2] = (jlong)header.group_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.msgdb_size;
+    values[5] = (jlong)header.story_count;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_MsgdbNamespace_nativeKey(JNIEnv *env, jclass cls,
+                                             jbyteArray blob, jint index) {
+    char key[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_msgdb_namespace_key(bytes, length, (uint32_t)index, key,
+                               sizeof(key)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, key);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_MsgdbNamespace_nativeFind(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jstring key) {
+    const char *text;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint result = -1;
+    (void)cls;
+    if (!bytes || !key) {
+        free(bytes);
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, key, NULL);
+    if (text) {
+        result = (jint)r6_msgdb_namespace_find(bytes, length, text);
+        (*env)->ReleaseStringUTFChars(env, key, text);
+    }
+    free(bytes);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_MsgdbNamespace_nativeFact(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    uint32_t offset = 0;
+    uint32_t group = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_msgdb_namespace_fact(bytes, length, (uint32_t)index, &offset,
+                                &group) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)offset;
+    values[1] = (jlong)group;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_MsgdbNamespace_nativeGroup(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char name[8];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_msgdb_namespace_group(bytes, length, (uint32_t)index, name,
+                                 sizeof(name)) != R6_OK) {
         free(bytes);
         return NULL;
     }
