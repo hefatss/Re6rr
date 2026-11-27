@@ -39,6 +39,11 @@ public final class PeInventory {
         return nativeDllRange(blob, index);
     }
 
+    /** first named import row in one DLL range; -1 if absent. */
+    public static long importFind(byte[] blob, int dllIndex, String name) {
+        return nativeImportFind(blob, dllIndex, name);
+    }
+
     /** Import kind (0 = name, 1 = ordinal) and ordinal value. */
     public static long[] imp(byte[] blob, int index) {
         return nativeImp(blob, index);
@@ -103,6 +108,9 @@ public final class PeInventory {
     private static native long[] nativeImp(byte[] blob, int index);
 
     private static native String nativeImportName(byte[] blob, int index);
+
+    private static native long nativeImportFind(byte[] blob, int dllIndex,
+                                                String name);
 
     private static native String nativeSectionName(byte[] blob, int index);
 

@@ -72,6 +72,12 @@ R6_API int r6_pe_inventory_import(const void *data, size_t size,
                                   uint32_t *ordinal, char *name,
                                   size_t capacity);
 
+/* First named import row inside one DLL's import range. Ordinal rows have
+ * no name and are skipped; the returned index is global. */
+R6_API int r6_pe_inventory_import_find(const void *data, size_t size,
+                                       uint32_t dll_index, const char *name,
+                                       uint32_t *index);
+
 R6_API int r6_pe_inventory_section(const void *data, size_t size,
                                    uint32_t index, char *name,
                                    size_t capacity, uint32_t *vsize,

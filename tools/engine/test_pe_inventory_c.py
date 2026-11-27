@@ -57,6 +57,9 @@ def configure(lib):
     lib.r6_pe_inventory_dll.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, BUF, ctypes.c_size_t,
         PU32, PU32]
+    lib.r6_pe_inventory_import_find.restype = ctypes.c_int
+    lib.r6_pe_inventory_import_find.argtypes = [
+        ctypes.c_void_p, ctypes.c_size_t, U32, ctypes.c_char_p, PU32]
     lib.r6_pe_inventory_import.restype = ctypes.c_int
     lib.r6_pe_inventory_import.argtypes = [
         ctypes.c_void_p, ctypes.c_size_t, U32, PU32, PU32, BUF,
@@ -157,12 +160,28 @@ def check(lib):
             ctypes.byref(dll_index)) == R6_OK
         assert dll_index.value == index
 
+        found_import = U32()
+        for sub, fn in enumerate(item["functions"]):
+            if "name" not in fn:
+                continue
+            assert lib.r6_pe_inventory_import_find(
+                source, len(blob), index, fn["name"].encode("ascii"),
+                ctypes.byref(found_import)) == R6_OK
+            assert found_import.value == first.value + sub
         total += count.value
         imports.extend(item["functions"])
     assert total == 825
     absent = U32()
     assert lib.r6_pe_inventory_dll_find(source, len(blob), b"R6_NO_SUCH_DLL",
                                         ctypes.byref(absent)) == R6_ERR_NOT_FOUND
+
+    absent_import = U32()
+    assert lib.r6_pe_inventory_import_find(
+        source, len(blob), 0, b"R6_NO_SUCH_IMPORT",
+        ctypes.byref(absent_import)) == R6_ERR_NOT_FOUND
+    assert lib.r6_pe_inventory_import_find(
+        source, len(blob), 28, b"GetProcAddress",
+        ctypes.byref(absent_import)) == R6_ERR_ARG
 
     kind = U32()
     ordinal = U32()
@@ -290,9 +309,10 @@ def check(lib):
     assert lib.r6_pe_inventory_directory(
         source, len(bad), 0, ctypes.byref(directory_index),
         ctypes.byref(directory_rva), ctypes.byref(directory_size)) == R6_ERR_FORMAT
-    print("PE inventory: 70377 functions, 825 imports, 28 DLLs, 7 sections, "
-          "8 directories and PDB data match pe.json/pdata.json; find, bad "
-          "blob, index, row and capacity rejected")
+    print("PE inventory: 70377 functions, 825 named/ordinal imports, 28 DLLs, "
+          "7 sections, 8 directories and PDB data match pe.json/pdata.json; "
+          "RVA/directory/DLL/import find, bad blob, index, row and "
+          "capacity rejected")
 
 
 def main():

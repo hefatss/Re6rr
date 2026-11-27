@@ -255,6 +255,52 @@ int r6_pe_inventory_import(const void *data, size_t size, uint32_t index,
     return R6_OK;
 }
 
+int r6_pe_inventory_import_find(const void *data, size_t size,
+                                uint32_t dll_index, const char *name,
+                                uint32_t *index) {
+    uint32_t first = 0;
+    uint32_t count = 0;
+    uint32_t at;
+    size_t wanted;
+    char dll_name[256];
+    int result = r6_pe_inventory_dll(data, size, dll_index, dll_name,
+                                     sizeof(dll_name), &first, &count);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (!name) {
+        return R6_ERR_ARG;
+    }
+    wanted = r6_strlen(name);
+    if (!wanted) {
+        return R6_ERR_ARG;
+    }
+    for (at = first; at < first + count; at++) {
+        uint32_t kind = 0;
+        uint32_t ordinal = 0;
+        char found[256];
+        result = r6_pe_inventory_import(data, size, at, &kind, &ordinal,
+                                        found, sizeof(found));
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (kind != R6_PE_INVENTORY_IMPORT_NAME) {
+            continue;
+        }
+        if (r6_strlen(found) == wanted &&
+            r6_memcmp(found, name, wanted) == 0) {
+            if (index) {
+                *index = at;
+            }
+            return R6_OK;
+        }
+    }
+    return R6_ERR_NOT_FOUND;
+}
+
 int r6_pe_inventory_section(const void *data, size_t size, uint32_t index,
                             char *name, size_t capacity, uint32_t *vsize,
                             uint32_t *vaddr, uint32_t *raw_size,
