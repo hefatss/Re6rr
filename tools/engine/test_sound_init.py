@@ -29,6 +29,17 @@ class SoundInit(ctypes.Structure):
                 ("stream_bytes", ctypes.c_uint32)]
 
 
+class SoundImplTail(ctypes.Structure):
+    _fields_ = [("size", ctypes.c_uint32),
+                ("zero_quad_offset", ctypes.c_uint32),
+                ("zero_quad_count", ctypes.c_uint32),
+                ("volume_a_offset", ctypes.c_uint32),
+                ("volume_b_offset", ctypes.c_uint32),
+                ("sentinel_offset", ctypes.c_uint32),
+                ("sentinel_value", ctypes.c_uint32),
+                ("volume_value", ctypes.c_float)]
+
+
 def config_bytes(banks=8, requests=0x22, streams=1,
                  pointers=(0x1407D674D, 0x180000000, 0x18001C9E0)):
     # Pointer slots are 8-byte aligned in the 0x28-byte config.
@@ -47,6 +58,10 @@ def check(dump):
             facts["core_init"]) == (0x10, 0x18, 0x20)
     impl = facts["impl"]
     assert impl["size"] == 0x98
+    assert impl["stream_buffer_size"] == 0xAC440 and impl["output_mode"] == 4
+    assert impl["zero_quad_offset"] == 0x60
+    assert impl["volume_offsets"] == (0x80, 0x88)
+    assert impl["sentinel_offset"] == 0x90
 
     lib = test_engine.load_core(
         os.path.join(ROOT, "build", "engine", "r6_engine.dll"), dump)
@@ -75,9 +90,22 @@ def check(dump):
     assert lib.r6_sound_init_parse(None, len(raw),
                                    ctypes.byref(out)) == R6_ERR_ARG
     assert lib.r6_sound_init_parse(source, len(raw), None) == R6_ERR_ARG
-    print("sound init: shipped 0x28 config counts, three opaque pointer slots "
-          "and 0x98 Impl vector sizes match; bad counts and short input "
-          "rejected")
+
+    lib.r6_sound_impl_tail.restype = ctypes.c_int
+    lib.r6_sound_impl_tail.argtypes = [ctypes.POINTER(SoundImplTail)]
+    tail = SoundImplTail()
+    assert lib.r6_sound_impl_tail(ctypes.byref(tail)) == R6_OK
+    assert tail.size == impl["size"]
+    assert tail.zero_quad_offset == impl["zero_quad_offset"]
+    assert tail.zero_quad_count == 4
+    assert (tail.volume_a_offset, tail.volume_b_offset) == impl[
+        "volume_offsets"]
+    assert tail.sentinel_offset == impl["sentinel_offset"]
+    assert tail.sentinel_value == 0xFFFFFFFF and tail.volume_value == 1.0
+    assert lib.r6_sound_impl_tail(None) == R6_ERR_ARG
+    print("sound init: shipped 0x28 config counts, three opaque pointer slots, "
+          "0x98 Impl vector sizes and tail constants match; bad counts and "
+          "short input rejected")
 
 
 def main():

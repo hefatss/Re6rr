@@ -6562,6 +6562,30 @@ Java_com_wmmt_re6rr_SoundInit_nativeParse(JNIEnv *env, jclass cls,
 }
 
 JNIEXPORT jdoubleArray JNICALL
+Java_com_wmmt_re6rr_SoundInit_nativeTail(JNIEnv *env, jclass cls) {
+    r6_sound_impl_tail_t tail;
+    jdouble values[8];
+    jdoubleArray out;
+    (void)cls;
+    if (r6_sound_impl_tail(&tail) != R6_OK) {
+        return NULL;
+    }
+    values[0] = (jdouble)tail.size;
+    values[1] = (jdouble)tail.zero_quad_offset;
+    values[2] = (jdouble)tail.zero_quad_count;
+    values[3] = (jdouble)tail.volume_a_offset;
+    values[4] = (jdouble)tail.volume_b_offset;
+    values[5] = (jdouble)tail.sentinel_offset;
+    values[6] = (jdouble)tail.sentinel_value;
+    values[7] = (jdouble)tail.volume_value;
+    out = (*env)->NewDoubleArray(env, 8);
+    if (out) {
+        (*env)->SetDoubleArrayRegion(env, out, 0, 8, values);
+    }
+    return out;
+}
+
+JNIEXPORT jdoubleArray JNICALL
 Java_com_wmmt_re6rr_BgmFade_nativeRead(JNIEnv *env, jclass cls,
                                        jbyteArray stream) {
     r6_bgm_fade_state state;

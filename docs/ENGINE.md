@@ -9,7 +9,7 @@ Nothing in `engine/` reads the dump or touches the Windows API.
 ```
 engine/include/r6/r6.h        public API: init, scripts, calls, errors
 engine/include/r6/r6_asset.h  XMD / NDWD / NTWD structures and parsers
-engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control, string-table, bank-registration view, layout facts and Sound::Initialize config structures
+engine/include/r6/r6_audio.h  nuSound2 .nub header, tone, control, string-table, bank-registration view, layout facts, Sound::Initialize config and Impl tail constants
 engine/include/r6/r6_bgm.h  packed BGM lookups, stream fade state and manager id dispatch
 engine/include/r6/r6_mixer.h  recovered mixer bus layout, fade and dB conversions
 engine/include/r6/r6_engine_sound.h  packed car/tune engine-sound selection and layer envelopes
@@ -97,6 +97,9 @@ platform/android/java/        Java side of the JNI bridge
 - `r6_sound_init_parse()` — validate the shipped 0x28 `Sound::Initialize`
   config (bank/reqid/stream counts), copy its three opaque 64-bit pointer
   slots and report the 0x98 Impl vector byte sizes. No pointer is dereferenced.
+- `r6_sound_impl_tail()` — return the verbatim shipped Impl tail constants:
+  four zero qwords at `+0x60`, floats `1.0` at `+0x80`/`+0x88` and
+  `0xFFFFFFFF` at `+0x90`. No Impl object is allocated or written.
 - `r6_bank_setup_init()` — read the bank-registration view used by
   nuSound2BankRegister (FUN_18002eb80): version, tone count, data window,
   record table and per-tone length/offset/format count into caller storage.
@@ -429,7 +432,7 @@ Verified on this dump:
 | nuSound2 string tables | 1 bank table and 8 tone tables (648 rows) match `nub_audio.parse_string_table()`; bank ids 1–7, truncated ENGINE id 0 and SYSTEM tone 47 `select.wav` checked; all 648 row names and 601 distinct WAV paths resolve through `find`/`findValue`, absent name/path rejected, bad version/size/kind, short and out-of-range inputs rejected |
 | Lua sound bindings | all 12 `luaL_Reg` rows match `audio_events.resolved_bindings()`: address, native call and fixed bank/tone; SELECT/CANCEL/CURSOR resolved, bad index and missing name rejected |
 | stream arithmetic | BGM frame deltas at 60 fps and stream reservation against the 0x20000000 cap match `audio_events.fade_frames_to_ms()` and `stream_reserve()` |
-| Sound::Initialize config | 0x28 config counts, three opaque pointer slots and 0x98 Impl vector sizes match `audio_events.sound_init_facts()` on the shipped exe; bad counts and short input rejected |
+| Sound::Initialize config | 0x28 config counts, three opaque pointer slots, 0x98 Impl vector sizes and tail constants match `audio_events.sound_init_facts()` on the shipped exe; bad counts, short input and null output rejected |
 | stream fade state | nine fields at the recovered offsets read exact; 2000 ms produces the same frames/step as `audio_events.stream_fade_frames()`/`.stream_fade_step()`, and already-fading, not-playing and fallback-stop paths match the native statuses |
 | BGM manager dispatch | current/next at 0x44c/0x450 and all six playBGM id paths (no change, no-sound fade, random rejection, play, already, queue) match `audio_events.BGM_PLAYBACK`; short buffer and null arguments rejected |
 | sound dispatch arrays | 8 bank slots, 34 loop records and 2 positional 0x24 records match `audio_events.dispatch_facts()`; out-of-range indices and short buffers rejected |

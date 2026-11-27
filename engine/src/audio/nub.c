@@ -296,6 +296,21 @@ int r6_sound_init_parse(const void *data, size_t size, r6_sound_init *out) {
     return R6_OK;
 }
 
+int r6_sound_impl_tail(r6_sound_impl_tail_t *out) {
+    if (!out) {
+        return R6_ERR_ARG;
+    }
+    out->size = R6_SOUND_IMPL_SIZE;
+    out->zero_quad_offset = 0x60u;
+    out->zero_quad_count = 4u;
+    out->volume_a_offset = 0x80u;
+    out->volume_b_offset = 0x88u;
+    out->sentinel_offset = 0x90u;
+    out->sentinel_value = 0xFFFFFFFFu;
+    out->volume_value = 1.0f;
+    return R6_OK;
+}
+
 int r6_sound_bank_slot(const void *data, size_t size, uint32_t index,
                        r6_sound_bank_slot_t *out) {
     size_t at = (size_t)index * R6_SOUND_BANK_STRIDE;

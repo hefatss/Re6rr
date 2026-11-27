@@ -119,7 +119,7 @@ sections, prefix counts and 416 source WAV names with exact-name lookup,
 copied extension blobs, `Config3D` reads and validates 3D sound sections, `BankSetup` reads
 .nub registration views, `AudioStream` handles fade timing and stream
 reservation, `VoiceChain` copies chained-voice records and applies core fields,
-`SoundInit` validates the Sound::Initialize config, `BgmFade` reads and updates
+`SoundInit` validates the Sound::Initialize config and reports the shipped Impl tail constants, `BgmFade` reads and updates
 stream fade state, `BgmManager` applies playBGM id dispatch, `SoundDispatch`
 copies bank/loop/positional SE records, `SoundConfig` parses config.bin,
 `BankSlots` finds free registration slots, `SoundStrings` finds bank/tone

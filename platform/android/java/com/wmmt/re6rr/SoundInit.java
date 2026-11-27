@@ -17,5 +17,13 @@ public final class SoundInit {
         return nativeParse(config);
     }
 
+    /** {size, zero offset/count, two volume offsets, sentinel offset/value,
+     *  volume float} from the shipped Impl tail writes. */
+    public static double[] tail() {
+        return nativeTail();
+    }
+
     private static native long[] nativeParse(byte[] config);
+
+    private static native double[] nativeTail();
 }

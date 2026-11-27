@@ -59,6 +59,20 @@ typedef struct r6_sound_init {
 R6_API int r6_sound_init_parse(const void *data, size_t size,
                                r6_sound_init *out);
 
+/* Verbatim tail constants written by FUN_140c53260 / c52e00 / c52f20. */
+typedef struct r6_sound_impl_tail {
+    uint32_t size;
+    uint32_t zero_quad_offset;
+    uint32_t zero_quad_count;
+    uint32_t volume_a_offset;
+    uint32_t volume_b_offset;
+    uint32_t sentinel_offset;
+    uint32_t sentinel_value;
+    float volume_value;
+} r6_sound_impl_tail_t;
+
+R6_API int r6_sound_impl_tail(r6_sound_impl_tail_t *out);
+
 /* sys::Sound::Impl dispatch arrays: bank slots, 8-byte SE loop records and
  * 0x24-byte positional SE records. The handle is an opaque 32-bit value at
  * +0x18; the ready state sits at +0x1c, so the two do not overlap. */
