@@ -72,8 +72,9 @@ is 56 bytes.
   raw-blob reads of the mapping section; a hit returns the car index.
 
 JNI exposes `Re6Engine.CarCatalog` with `count()`, `model(index)`,
-`info(index)`, `characterCount()`, `carIndexForCharacter(name)` and
-`modelForCharacter(name)`. The numeric array is
+`info(index)`, `engineSound(index)`, `name(index)`, `maker(index)`,
+`indexForModel(model)`, `indexForId(modelId)`, `characterCount()`,
+`carIndexForCharacter(name)` and `modelForCharacter(name)`. The numeric array is
 `modelId visualId horsepower cc drive mission flags tireFront tireRear
 widthFront widthRear`.
 
@@ -83,7 +84,7 @@ widthFront widthRear`.
 generator, finds `PLC_928GT` by both model code and `ModelID` 120, resolves
 three character cars, and rejects truncated data, bad magic, a bad record
 size, a bad mapping count, an empty blob and short capacity. Result: 151 cars,
-77 mappings, 25,464 bytes, 16 makers.
+77 mappings, 26,068 bytes, 16 makers.
 
 ## Gaps
 

@@ -403,7 +403,7 @@ the loaded Lua context, step, read state, destroy) and the `nativeRace*`
 family (create with SConfigPlay-like rules, step with course vertices and a
 vehicle state, read state, destroy), the `nativeGame*` family (phase flow
 and SConfigPlay byte round-trip), the `nativeCarCatalog*` family (model,
-numeric, EngineSound and cp932 text lookup) and the `nativeCustomCatalog*`
+numeric, EngineSound, cp932 text and exact model/ID lookup) and the `nativeCustomCatalog*`
 family (records plus exact colour/wheel/aero/tune lookups). Java owns assets and
 gzip reads and passes plain bytes; the core never touches `AssetManager`.
 `Re6Texture` reads NTWD/NTLX headers and RGBA8 pixels, `Re6Container` walks

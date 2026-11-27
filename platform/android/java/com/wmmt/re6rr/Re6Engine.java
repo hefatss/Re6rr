@@ -305,6 +305,16 @@ public final class Re6Engine implements AutoCloseable {
             return nativeCarCatalogEngineSound(blob, index);
         }
 
+        /** Catalog index for a PLC_* model, or -1 when absent. */
+        public int indexForModel(String model) {
+            return nativeCarCatalogFindModel(blob, model);
+        }
+
+        /** Catalog index for a ModelID, or -1 when absent. */
+        public int indexForId(int modelId) {
+            return nativeCarCatalogFindId(blob, modelId);
+        }
+
         /** Raw model code bytes, normally ASCII such as PLC_928GT. */
         public byte[] model(int index) {
             return nativeCarCatalogModel(blob, index);
@@ -552,6 +562,8 @@ public final class Re6Engine implements AutoCloseable {
     private static native int nativeCarCatalogCount(byte[] blob);
     private static native int nativeCarCatalogEngineSound(byte[] blob,
                                                           int index);
+    private static native int nativeCarCatalogFindModel(byte[] blob, String model);
+    private static native int nativeCarCatalogFindId(byte[] blob, int modelId);
     private static native byte[] nativeCarCatalogText(byte[] blob, int index,
                                                        int field);
     private static native byte[] nativeCarCatalogModel(byte[] blob, int index);

@@ -4512,6 +4512,79 @@ Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogEngineSound(
     return out;
 }
 
+static int car_catalog_cars_from_blob(JNIEnv *env, jbyteArray blob,
+                                      r6_car_info **cars, size_t *count) {
+    unsigned char *bytes = NULL;
+    jsize length = 0;
+    size_t needed = 0;
+    if (!blob || !cars || !count) {
+        return R6_ERR_ARG;
+    }
+    length = (*env)->GetArrayLength(env, blob);
+    bytes = (unsigned char *)malloc((size_t)length ? (size_t)length : 1);
+    if (!bytes) {
+        return R6_ERR_MEMORY;
+    }
+    (*env)->GetByteArrayRegion(env, blob, 0, length, (jbyte *)bytes);
+    if (r6_car_catalog_parse(bytes, (size_t)length, NULL, 0, &needed) !=
+        R6_ERR_BUFFER) {
+        free(bytes);
+        return R6_ERR_FORMAT;
+    }
+    *cars = (r6_car_info *)malloc(needed ? needed * sizeof(**cars) : 1);
+    if (!*cars) {
+        free(bytes);
+        return R6_ERR_MEMORY;
+    }
+    if (r6_car_catalog_parse(bytes, (size_t)length, *cars, needed, count) !=
+        R6_OK) {
+        free(*cars);
+        *cars = NULL;
+        free(bytes);
+        return R6_ERR_FORMAT;
+    }
+    free(bytes);
+    return R6_OK;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogFindModel(
+        JNIEnv *env, jclass cls, jbyteArray blob, jstring model) {
+    r6_car_info *cars = NULL;
+    size_t count = 0;
+    const char *text;
+    jint result = -1;
+    (void)cls;
+    if (!model || car_catalog_cars_from_blob(env, blob, &cars, &count) !=
+        R6_OK) {
+        return -1;
+    }
+    text = (*env)->GetStringUTFChars(env, model, NULL);
+    if (text) {
+        result = (jint)r6_car_catalog_find_model(cars, count, text);
+        (*env)->ReleaseStringUTFChars(env, model, text);
+    }
+    free(cars);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogFindId(
+        JNIEnv *env, jclass cls, jbyteArray blob, jint model_id) {
+    r6_car_info *cars = NULL;
+    size_t count = 0;
+    jint result = -1;
+    (void)cls;
+    if (model_id < 0 || model_id > 0xffff ||
+        car_catalog_cars_from_blob(env, blob, &cars, &count) != R6_OK) {
+        return -1;
+    }
+    result = (jint)r6_car_catalog_find_id(cars, count,
+                                          (uint16_t)model_id);
+    free(cars);
+    return result;
+}
+
 JNIEXPORT jbyteArray JNICALL
 Java_com_wmmt_re6rr_Re6Engine_nativeCarCatalogText(JNIEnv *env, jclass cls,
                                                    jbyteArray blob, jint index,
