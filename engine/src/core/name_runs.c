@@ -246,3 +246,42 @@ int r6_name_runs_find_user(const void *data, size_t size, uint32_t rva,
     }
     return R6_ERR_NOT_FOUND;
 }
+
+int r6_name_runs_find_user_rva(const void *data, size_t size, uint32_t rva,
+                               uint32_t *indices, uint32_t capacity,
+                               uint32_t *count) {
+    r6_name_runs_header header;
+    uint32_t total = 0;
+    uint32_t copied = 0;
+    uint32_t at;
+    int result = name_runs_header(data, size, &header);
+    if (result != R6_OK) {
+        return result;
+    }
+    if (rva < 0x1000u || rva >= 34308096u || (capacity && !indices)) {
+        return R6_ERR_ARG;
+    }
+    for (at = 0; at < header.user_count; at++) {
+        uint32_t found = 0;
+        result = r6_name_runs_user(data, size, at, &found);
+        if (result == R6_ERR_ARG) {
+            return R6_ERR_FORMAT;
+        }
+        if (result != R6_OK) {
+            return result;
+        }
+        if (found == rva) {
+            if (copied < capacity) {
+                indices[copied++] = at;
+            }
+            total++;
+        }
+    }
+    if (count) {
+        *count = total;
+    }
+    if (!total) {
+        return R6_ERR_NOT_FOUND;
+    }
+    return total > capacity ? R6_ERR_BUFFER : R6_OK;
+}

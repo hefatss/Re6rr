@@ -41,6 +41,14 @@ public final class NameRuns {
         return nativeFind(blob, name);
     }
 
+    /** every code-reference row with that exact RVA; null when absent. */
+    public static long[] findUserRva(byte[] blob, long rva) {
+        if (rva < 0 || rva > 0xFFFFFFFFL) {
+            return null;
+        }
+        return nativeFindUserRva(blob, rva);
+    }
+
     private static native long[] nativeHeader(byte[] blob);
 
     private static native long[] nativeRun(byte[] blob, int index);
@@ -55,4 +63,6 @@ public final class NameRuns {
     private static native long[] nativeFind(byte[] blob, String name);
 
     private static native long nativeFindUser(byte[] blob, long rva);
+
+    private static native long[] nativeFindUserRva(byte[] blob, long rva);
 }

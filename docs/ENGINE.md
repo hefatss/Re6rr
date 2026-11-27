@@ -318,12 +318,13 @@ platform/android/java/        Java side of the JNI bridge
   `.pdata` RVA range/entry size, symbol table/count, debug type and copied
   SHA-256 / source path offsets. RVAs are copied as numbers; no PE bytes are
   mapped or executed.
-- `r6_name_runs_parse()/run()/name()/run_name()/user()/find()/find_user()` — read the
-  derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names and 888
-  code references. `find()` returns the first exact name by run, local and
-  global index; `find_user()` returns the first code-reference row with an
-  exact RVA. RVAs are never dereferenced; the Java bridge rejects negative or
-  wider-than-U32 RVA inputs before the cast.
+- `r6_name_runs_parse()/run()/name()/run_name()/user()/find()/find_user()/find_user_rva()`
+  — read the derived `R6NTR` inventory of 521 string-pointer runs, 13,283 names
+  and 888 code references. `find()` returns the first exact name by run, local
+  and global index; `find_user()` returns the first code-reference row with an
+  exact RVA, and `find_user_rva()` returns every row with that RVA. RVAs are
+  never dereferenced; the Java bridge rejects negative or wider-than-U32 RVA
+  inputs before the cast.
 - `r6_lua_reg_parse()/table()/entry()/table_entry()/user()/find()` — read the
   derived `R6LREG` inventory of 3 shipped `luaL_Reg` tables and 42 name/function
   rows. Signature-like labels are copied verbatim, not interpreted.
@@ -439,12 +440,12 @@ fields, filters type 0/2 and resolves frames with last-match semantics,
 `EesCarInfo` reads car ids, `EesCarEffect` copies the 40
 runtime fields, `EesCarDisp` reads display records, `AudioLayoutFacts` exposes bank/voice table offsets, `VoiceDispatchFacts`
 exposes recovered status codes and call sites, `VoiceCoreTableFacts` exposes the
-192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs and resolves an RVA to every location using it, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs with 13,283 names, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words, 174,507 xrefs and all reverse RVA hits, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs, scan totals and all reverse RVA hits, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
+192-entry lookup layout, `ContextPaths` returns ordered Lua bundle paths, `LuaGlobals` exposes the 219-call-site inventory, `LuaXrefs` maps names to native refs and resolves an RVA to every location using it, `LuaInventory` counts 158 Lua directories, `AssetInventory` reads 32 extensions and 27 folders, `PeInventory` reads 70,377 `.pdata` rows, 825 imports and 8 PE directories, `NameRuns` reads 521 pointer runs, 13,283 names and all code refs for an RVA, `LuaRegTables` reads 3 `luaL_Reg` tables with 42 rows, `PathStrings` reads 1,693 exe/source path strings, `EnmaSimFacts` reads 6 input getters and 4096 config bytes, `RefWords` reads 98,805 words, 174,507 xrefs and all reverse RVA hits, `PdataStats` reads 7 size buckets and 20 largest functions, `StringXrefs` reads 195 raw string xrefs, scan totals and all reverse RVA hits, `EnmaEnums` exposes 16 enum domains, `EnmaDefaults` copies 32 SetDefault layouts, `EnmaExports` resolves 172 DLL symbols, `SceneEnvStats` inventories 122 scene directories, `HonorSchema` reads the 13 predicate types, `EnvironmentLua` parses scene scripts, `NativeNames`
 resolves shipped pointer-table names, `SceneConfig` packs scenes and resolves
 native names, and
 `StageEffect`
 resolves symbolic sounds. Java `long` key lookups in `EnmaEnums.find`,
-`EnmaDefaults.findField`, `NameRuns.findUser`, `RefWords.find`,
+`EnmaDefaults.findField`, `NameRuns.findUser` / `findUserRva`, `RefWords.find` / `findRva`,
 `PdataStats.find` and `PeInventory.funcFind` reject negative or
 wider-than-U32 inputs before the native cast;
 the JNI host supplies
@@ -551,7 +552,7 @@ Verified on this dump:
 | Enma sim facts | all 6 getters, 4 probe hits and 4096 config bytes match `enma_sim.json`; find, bad blob, index, row and capacity rejected |
 | Path strings | all 1,271 executable and 422 source strings match `exe_paths.json`/`source_paths.json`; find, bad blob, index, group and capacity rejected |
 | luaL_Reg tables | all 3 tables, 42 name/function rows and one code ref match `name_tables.json`; find, bad blob, index, row and capacity rejected |
-| Name runs | all 521 runs, 13,283 names and 888 code refs match `name_tables.json`; name/user find, bad blob, index, row and capacity rejected |
+| Name runs | all 521 runs, 13,283 names, 888 code refs and 8 duplicate user RVAs match `name_tables.json`; both find directions, bad blob, index, row and capacity rejected |
 | PE inventory | all 70,377 `.pdata` rows, 825 named/ordinal imports, 28 DLLs, 7 sections, 8 directories, 2 exports, PDB and provenance metadata match `pe.json`/`pdata.json`; RVA/directory/DLL/import find, all interior/gap RVA covers, bad blob, index, row and capacity rejected |
 | Asset inventory | 2 roots, 32 extensions, 7 magics, 27 folders and 40 shader samples match `assets.json`; ext/magic/folder/shader find, bad blob, index and capacity rejected |
 | Lua inventory | 2 roots, 158 dirs, all root counts, 1,252 defined names and all 215 native / 280 undefined top name/count pairs match `lua.json`; bad blob, root, kind, capacity and missing name rejected |
