@@ -393,6 +393,13 @@ Three `data_jp/scene/func/Func_*.Lua` files total 4,289 bytes and
 expressions. `scene_func_catalog.py` copies paths, names and return
 expressions; CP932 comments and scene logic stay unparsed.
 
+240 `data/car/tire/model_type/TireModelType_*.lua` files total
+165,906 bytes and 7,201 CRLF lines. Each has 8 fixed sections:
+4 `inc_normal` and 4 `inc_size_up` TIRE names, 4 wheel-scale and
+4 tire-width tokens, one `wheel_default` and one `wheel_color`.
+`tire_model_catalog.py` copies the names, tokens, defaults and
+colors; two float fields and CP932 comments stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

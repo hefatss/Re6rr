@@ -101,6 +101,7 @@ set(R6_CORE
     engine/src/game/xmd_v1_directory_catalog.c
     engine/src/game/strobo_parameter_catalog.c
     engine/src/game/scene_func_catalog.c
+    engine/src/game/tire_model_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
