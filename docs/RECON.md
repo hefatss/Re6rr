@@ -412,6 +412,11 @@ row, with 8 `SettingConst` tokens and 5 hex literals.
 `setting_default_catalog.py` copies names, flags and value tokens;
 Japanese comments and setting behavior stay unparsed.
 
+Two `data/etc/ntp.*.conf` files total 1,425 bytes and 61 LF lines.
+They hold 23 active directives, 22 comment lines and 16 blanks.
+`ntp_config_catalog.py` copies paths and verbatim ASCII lines;
+time-service behavior stays unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

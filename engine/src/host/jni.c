@@ -100,6 +100,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_tire_model_catalog.h"
 #include "r6/r6_rival_block_catalog.h"
 #include "r6/r6_setting_default_catalog.h"
+#include "r6/r6_ntp_config_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10982,6 +10983,114 @@ Java_com_wmmt_re6rr_SettingDefaultCatalog_nativeValue(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_setting_default_value(bytes, length, (uint32_t)index,
                                  text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* NTP config paths and copied ASCII lines. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NtpConfigCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_ntp_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_ntp_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.line_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NtpConfigCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_ntp_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ntp_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.line_base;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NtpConfigCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ntp_path(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NtpConfigCatalog_nativeLine(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_ntp_line_t line;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ntp_line(bytes, length, (uint32_t)index, &line) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)line.text_offset;
+    values[1] = (jlong)line.text_length;
+    values[2] = (jlong)line.kind;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NtpConfigCatalog_nativeText(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ntp_text(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

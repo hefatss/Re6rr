@@ -104,6 +104,7 @@ set(R6_CORE
     engine/src/game/tire_model_catalog.c
     engine/src/game/rival_block_catalog.c
     engine/src/game/setting_default_catalog.c
+    engine/src/game/ntp_config_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
