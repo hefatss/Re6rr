@@ -110,6 +110,7 @@ set(R6_CORE
     engine/src/game/spec_ma61_catalog.c
     engine/src/game/sdl_db_catalog.c
     engine/src/game/keyconfig_toml_catalog.c
+    engine/src/game/root_ini_keys_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

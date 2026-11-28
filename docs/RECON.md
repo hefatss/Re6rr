@@ -447,6 +447,11 @@ rows, 13 comments and 4 blanks. `keyconfig_toml_catalog.py`
 copies verbatim lines and kinds; key binding meaning and SDL
 token resolution stay unparsed.
 
+`card.ini` and `teknoparrot.ini` are 63 and 715 bytes with 3 and
+36 lines. `root_ini_keys_catalog.py` copies section names, key
+names, line positions, value-presence flags and section indices;
+raw values, including identifiers, stay uncopied.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
