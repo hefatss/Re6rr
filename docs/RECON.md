@@ -534,6 +534,13 @@ scalar tokens at lines 26..29 (`tire_outside_front`,
 comment on `TireInfo`. `test_tire_model_shape.py` verifies the
 shipped layout; no token payload or semantic role is copied.
 
+`LibraryColor.lua` is 178,158 bytes and 5,147 lines with
+`COLOR_MAX = 250`, 250 name entries (`type0..type249`) and 250
+19-line blocks from line 274, each holding three vec4 rows, four
+float tokens and three int tokens. `test_library_color_shape.py`
+verifies the layout and token shapes; CP932 comments and color
+roles stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
