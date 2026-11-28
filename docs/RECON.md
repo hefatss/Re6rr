@@ -494,6 +494,11 @@ records and their semantics stay unparsed.
 copies paths, row lines, bank slots and 25,020 verbatim numeric
 tokens; CP932 color names and bank semantics stay unparsed.
 
+149 `CarHightDown_*.lua` scripts total 1,575,214 bytes; each has 231
+lines, 4 height rows and 12 aero rows labelled `N,A..K`.
+`car_height_catalog.py` copies paths, row lines, labels and 4,172
+verbatim numeric tokens; CP932 comments and role meanings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

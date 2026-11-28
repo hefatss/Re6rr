@@ -115,6 +115,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_color_vinyl_blend_catalog.h"
 #include "r6/r6_trail_header_catalog.h"
 #include "r6/r6_mini_sticker_color_catalog.h"
+#include "r6/r6_car_height_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12677,6 +12678,140 @@ Java_com_wmmt_re6rr_MiniStickerColorCatalog_nativeToken(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 || slot < 0 || slot > 2 ||
         r6_msc_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Car height and aero rows; labels and numeric tokens are copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_chg_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_chg_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.token_count;
+    values[4] = (jlong)header.line_count;
+    values[5] = (jlong)header.height_rows;
+    values[6] = (jlong)header.aero_rows;
+    values[7] = (jlong)header.source_bytes;
+    values[8] = (jlong)header.string_size;
+    values[9] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_chg_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_chg_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.row_base;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_chg_name(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_chg_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_chg_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.line;
+    values[1] = (jlong)row.token0_offset;
+    values[2] = (jlong)row.token1_offset;
+    values[3] = (jlong)row.label_offset;
+    values[4] = (jlong)row.label_length;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index,
+                                                 jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot > 1 ||
+        r6_chg_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CarHeightCatalog_nativeLabel(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_chg_label(bytes, length, (uint32_t)index,
                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;

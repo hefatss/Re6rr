@@ -119,6 +119,7 @@ set(R6_CORE
     engine/src/game/color_vinyl_blend_catalog.c
     engine/src/game/trail_header_catalog.c
     engine/src/game/mini_sticker_color_catalog.c
+    engine/src/game/car_height_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
