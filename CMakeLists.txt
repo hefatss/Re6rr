@@ -91,6 +91,7 @@ set(R6_CORE
     engine/src/game/scene_descriptors_catalog.c
     engine/src/game/stage_effect_filename_lists_catalog.c
     engine/src/game/story_series_tokens_catalog.c
+    engine/src/game/setting_lua_gz_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

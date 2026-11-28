@@ -110,6 +110,7 @@ SOURCES = [
     "engine/src/game/scene_descriptors_catalog.c",
     "engine/src/game/stage_effect_filename_lists_catalog.c",
     "engine/src/game/story_series_tokens_catalog.c",
+    "engine/src/game/setting_lua_gz_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

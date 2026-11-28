@@ -333,6 +333,12 @@ the paths and names only, with no effect behavior.
 `story_series_tokens_catalog.py` copies the headers and token text verbatim
 without deriving race, story or carryover rules.
 
+Six root `*setting.lua.gz` files total 2,882 compressed bytes and inflate to
+7,258 ASCII bytes. Each has the same gzip envelope format and 60 lines: a
+three-line header, a blank line, 53 `NAME = INTEGER` rows and a three-line
+footer. `setting_lua_gz_catalog.py` copies paths, gzip words, key names and
+integer literals only; deflate payloads and setting meanings are not inferred.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
