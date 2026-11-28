@@ -250,6 +250,16 @@ outputs, 797 cbuffers with 2,029 reflected std140 member offsets, 526 samplers
 and the UBO/array-mode flag. `glsl_ubo.py` and `r6_glsl_pack_ubo()` pack scalar, vec4 and mat4 values into
 those reflected offsets; sampler binding and GPU upload are still open. Details in `recon/RENDER_NSXR.md`.
 
+- `AMCUS/AMUpdaterData/Graphics` has 8 TGA files: 4 type-2 exact-size images
+  and 4 type-10 RLE images, all with the 26-byte `TRUEVISION-XFILE.` footer.
+  `tga_inventory_catalog.py` copies headers and sizes but no pixel bytes.
+- `data/course/street_lamp` has 168 `LAMP_*.bin` files with 24,916 stride-28
+  records and 697,648 bytes. `street_lamp_catalog.py` copies paths, strides,
+  counts and u32 flag ranges but no coordinate floats.
+- `data/effect/stage_effect` has 757 `PCV_*.bin` files with 19,551 stride-12
+  float triples and 234,612 bytes. `pcv_inventory_catalog.py` copies paths and
+  triple counts but no float bit patterns or effect semantics.
+
 ## Lua
 
 - 4,885 scripts in `data`, 167 in `data_jp`; text, no `require` usage, no bytecode.
@@ -261,6 +271,15 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
   log values.
 - `data_jp/filter` has 17 Lua files; `tools/engine/filter_dictionary_catalog.py`
   copies line kinds, byte spans and true/false tokens but no dictionary words.
+- `data_jp/menu/Zenichi/ZenichiConfig.lua` is 30,209 bytes; its
+  `NAME_PLATE_INFO` table has 276 contiguous rows with ids 1..276, variation
+  1..6, layout 0..1 and 273 distinct texture names. `zenichi_config_catalog.py`
+  copies those facts but no title/reward behaviour.
+- `data_jp/platform_parameters/lua/ghost_expedition_sugoroku.lua` is 19,910
+  bytes; `ItemTable` has 6 categories and 115 item ids, `SquareTable` has 7
+  stages, 14 pages, 361 squares, 7 square tokens and 6 reward categories.
+  `sugoroku_board_catalog.py` copies aggregate counts and function names but
+  not per-square selections or dice/reward rules.
 - 219 identifiers called from Lua that exist as strings in the executable — the
   candidate native binding surface (top: `GetShaderCarVec4/Float/Int`, `GetTirePos`,
   `GetCenterPos`, `GetCustomGTWingPos`, `GetCarHightDown`, `GetCarAeroTireOffset`,
