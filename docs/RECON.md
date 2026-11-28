@@ -462,6 +462,12 @@ fallback behavior stay unparsed.
 copies the words verbatim; timestamp units, record flags and
 sample encodings stay unparsed.
 
+Three AMCUS INI files total 5,139 bytes and 204 CRLF lines:
+`AMConfig.ini`, `AMConfig.ini.orig` and `WritableConfig.ini`.
+`amcus_ini_keys_catalog.py` copies section/key names, line kinds,
+positions, value-presence flags and section indices; values and
+CP932 comments stay uncopied.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
