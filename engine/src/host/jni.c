@@ -77,6 +77,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_street_lamp_catalog.h"
 #include "r6/r6_pcv_inventory_catalog.h"
 #include "r6/r6_zenichi_config_catalog.h"
+#include "r6/r6_sugoroku_board_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8224,6 +8225,109 @@ Java_com_wmmt_re6rr_ZenichiConfigCatalog_nativeName(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_zenichi_name(bytes, length, (uint32_t)index, name,
                         sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Sugoroku board facts: copied counts, ranges and function names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SugorokuBoardCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob) {
+    r6_sugoroku_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_sugoroku_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.category_count;
+    values[2] = (jlong)header.stage_count;
+    values[3] = (jlong)header.page_count;
+    values[4] = (jlong)header.function_count;
+    values[5] = (jlong)header.item_count;
+    values[6] = (jlong)header.square_count;
+    values[7] = (jlong)header.string_size;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SugorokuBoardCatalog_nativeCategory(JNIEnv *env, jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    r6_sugoroku_category_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_sugoroku_category(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_offset;
+    values[1] = (jlong)row.name_length;
+    values[2] = (jlong)row.groups;
+    values[3] = (jlong)row.ids;
+    values[4] = (jlong)row.id_min;
+    values[5] = (jlong)row.id_max;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SugorokuBoardCatalog_nativePage(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_sugoroku_page_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[16];
+    jlongArray result = NULL;
+    size_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_sugoroku_page(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.stage;
+    values[1] = (jlong)row.page;
+    values[2] = (jlong)row.squares;
+    for (at = 0; at < 7; at++) {
+        values[3 + at] = (jlong)row.tokens[at];
+    }
+    for (at = 0; at < 6; at++) {
+        values[10 + at] = (jlong)row.rewards[at];
+    }
+    result = pe_new_longs(env, values, 16);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SugorokuBoardCatalog_nativeFunction(JNIEnv *env, jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_sugoroku_function(bytes, length, (uint32_t)index, name,
+                             sizeof(name)) != R6_OK) {
         free(bytes);
         return NULL;
     }
