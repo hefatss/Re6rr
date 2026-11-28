@@ -96,6 +96,7 @@ SOURCES = [
     "engine/src/game/default_ghost_catalog.c",
     "engine/src/game/enma_error_log_catalog.c",
     "engine/src/game/ghost_region_catalog.c",
+    "engine/src/game/tga_inventory_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

@@ -77,6 +77,7 @@ set(R6_CORE
     engine/src/game/default_ghost_catalog.c
     engine/src/game/enma_error_log_catalog.c
     engine/src/game/ghost_region_catalog.c
+    engine/src/game/tga_inventory_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
