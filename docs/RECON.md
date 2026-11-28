@@ -525,6 +525,15 @@ total 350,159 bytes with 10 rows each and ids 0..9.
 `sticker_color_catalog.py` copies paths, corpus kinds, row lines,
 ids and three numeric tokens per row; CP932 color names stay unparsed.
 
+240 `TireModelType_*.lua` scripts total 165,906 bytes. 239 have 30
+lines and nine sections: four four-entry lists (`inc_normal`,
+`inc_size_up`, `wheel_scale`, `tire_width`) at lines 2..25 and four
+scalar tokens at lines 26..29 (`tire_outside_front`,
+`tire_outside_rear`, `wheel_default`, `wheel_color`). One file,
+`TireModelType_PLC_VMG.lua`, has an extra opener line and a CP932
+comment on `TireInfo`. `test_tire_model_shape.py` verifies the
+shipped layout; no token payload or semantic role is copied.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
