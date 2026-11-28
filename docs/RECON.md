@@ -318,6 +318,11 @@ ASCII model names and `DebugAccessor.lua` defines ten `GetDebug*` functions.
 The catalog copies paths, ids, comments, names and function names without
 rendering or gameplay meaning.
 
+Seventy `data_jp/scene/**/Scene.Lua` files total 8,629 bytes and each has the
+same five-line shape: `S_DATA_ROOT`, `S_ENVIRONMENT_DATA =
+"/Environment.Lua"`, `I_EVENT_NUM = 0` and an empty `S_EVENT` table. The catalog
+copies those strings and counts without camera or scene semantics.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

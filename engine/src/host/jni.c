@@ -84,6 +84,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_related_section_catalog.h"
 #include "r6/r6_event_scene_hide_clip_catalog.h"
 #include "r6/r6_debug_tdb_registry_catalog.h"
+#include "r6/r6_scene_descriptors_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8853,6 +8854,117 @@ Java_com_wmmt_re6rr_DebugTdbRegistry_nativeAccessor(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Scene.Lua descriptor facts: copied paths, strings and counts. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneDescriptors_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_scene_descriptors_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_scene_descriptors_parse(bytes, length,
+                                             &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.string_size;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneDescriptors_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_scene_descriptors_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    size_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_descriptors_file(bytes, length, (uint32_t)index,
+                                  &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.root_offset;
+    values[3] = (jlong)file.root_length;
+    values[4] = (jlong)file.environment_offset;
+    values[5] = (jlong)file.environment_length;
+    values[6] = (jlong)file.size;
+    values[7] = (jlong)file.event_num;
+    values[8] = (jlong)file.event_count;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneDescriptors_nativePath(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_descriptors_path(bytes, length, (uint32_t)index,
+                                  text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneDescriptors_nativeRoot(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_descriptors_root(bytes, length, (uint32_t)index,
+                                  text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneDescriptors_nativeEnvironment(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    char text[32];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_descriptors_environment(bytes, length, (uint32_t)index,
+                                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
     return result;
 }
 

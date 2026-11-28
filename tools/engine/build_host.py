@@ -107,6 +107,7 @@ SOURCES = [
     "engine/src/game/related_section_catalog.c",
     "engine/src/game/event_scene_hide_clip_catalog.c",
     "engine/src/game/debug_tdb_registry_catalog.c",
+    "engine/src/game/scene_descriptors_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
