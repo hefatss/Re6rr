@@ -89,6 +89,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_story_series_tokens_catalog.h"
 #include "r6/r6_setting_lua_gz_catalog.h"
 #include "r6/r6_hide_clip_model_tables_catalog.h"
+#include "r6/r6_navimap_param_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9392,6 +9393,155 @@ Java_com_wmmt_re6rr_HideClipModelTables_nativeName(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_hide_clip_name(bytes, length, (uint32_t)index,
                           text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* NavimapParam.lua facts: copied names and integer literals. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_navimap_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_navimap_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.string_size;
+    values[2] = (jlong)header.source_bytes;
+    values[3] = (jlong)header.source_lines;
+    values[4] = (jlong)header.scalar_count;
+    values[5] = (jlong)header.table_count;
+    values[6] = (jlong)header.path_offset;
+    values[7] = (jlong)header.path_length;
+    values[8] = (jlong)header.table_name_offset;
+    values[9] = (jlong)header.table_name_length;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeScalar(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_navimap_scalar_t scalar;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_navimap_scalar(bytes, length, (uint32_t)index, &scalar) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)scalar.name_offset;
+    values[1] = (jlong)scalar.name_length;
+    values[2] = (jlong)scalar.value_offset;
+    values[3] = (jlong)scalar.value_length;
+    values[4] = (jlong)scalar.active;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativePath(JNIEnv *env, jclass cls,
+                                            jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_navimap_path(bytes, length, text,
+                                  sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeTableName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_navimap_table_name(bytes, length, text,
+                                        sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeScalarName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_navimap_scalar_name(bytes, length, (uint32_t)index,
+                               text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeScalarValue(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_navimap_scalar_value(bytes, length, (uint32_t)index,
+                                text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NavimapParam_nativeTableValue(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_navimap_table_value(bytes, length, (uint32_t)index,
+                               text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

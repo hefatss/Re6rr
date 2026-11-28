@@ -346,6 +346,12 @@ closing brace; the filename suffix matches the table id. The catalog copies
 paths, sizes, timestamps and 2,972 ASCII model names without clip timing,
 render state or geometry.
 
+`data/course/parameter/navimap/NavimapParam.lua` is 1,137 bytes and 32 CRLF
+lines. It has four ASCII scalar rows (two active, two commented) and eleven
+`0/1/2` rows in `NAVIMAP_USE`. `navimap_param_catalog.py` copies the path,
+global names and integer literals; Shift-JIS comments and navimap behavior stay
+unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
