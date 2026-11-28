@@ -400,6 +400,12 @@ expressions; CP932 comments and scene logic stay unparsed.
 `tire_model_catalog.py` copies the names, tokens, defaults and
 colors; two float fields and CP932 comments stay unparsed.
 
+`data/Enma/ytConfigStoryRival.txt` is 145,966 bytes and 5,261
+LF lines. It defines 398 `ECharacter_*` blocks with 201 unique
+names and five keyword rows each. `rival_block_catalog.py` copies
+names, line spans, ASCII keyword rows and counts; CP932 comments,
+float fields and rival behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

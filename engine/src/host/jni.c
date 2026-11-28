@@ -98,6 +98,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_strobo_parameter_catalog.h"
 #include "r6/r6_scene_func_catalog.h"
 #include "r6/r6_tire_model_catalog.h"
+#include "r6/r6_rival_block_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10759,6 +10760,119 @@ Java_com_wmmt_re6rr_TireModelCatalog_nativeDefault(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_tire_default(bytes, length, (uint32_t)index,
                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Story rival block names, line spans and copied keyword rows. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RivalBlockCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_rival_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_rival_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.block_count;
+    values[3] = (jlong)header.unique_count;
+    values[4] = (jlong)header.string_size;
+    values[5] = (jlong)header.source_bytes;
+    values[6] = (jlong)header.lines;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RivalBlockCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_rival_path(bytes, length, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RivalBlockCatalog_nativeBlock(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_rival_block_t block;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[19];
+    jlongArray result = NULL;
+    uint32_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_rival_block(bytes, length, (uint32_t)index, &block) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)block.name_offset;
+    values[1] = (jlong)block.name_length;
+    values[2] = (jlong)block.line_start;
+    values[3] = (jlong)block.line_count;
+    for (at = 0; at < 5; at++) {
+        values[4 + at * 2] = (jlong)block.row_offset[at];
+        values[5 + at * 2] = (jlong)block.row_length[at];
+    }
+    for (at = 0; at < 5; at++) {
+        values[14 + at] = (jlong)block.count[at];
+    }
+    result = pe_new_longs(env, values, 19);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RivalBlockCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_rival_name(bytes, length, (uint32_t)index,
+                      text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RivalBlockCatalog_nativeKeyword(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index, jint keyword) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || keyword < 0 || keyword >= 5 ||
+        r6_rival_keyword(bytes, length, (uint32_t)index,
+                         (uint32_t)keyword, text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
