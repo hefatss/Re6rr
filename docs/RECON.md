@@ -442,6 +442,11 @@ comments, 5 blanks and 1,904 active rows. `sdl_db_catalog.py` copies
 verbatim ASCII/tab lines, id/name/platform spans and field counts;
 SDL button meaning and remap behavior stay unparsed.
 
+`keyconfig.toml` is 1,106 bytes and 39 CRLF lines: 22 active
+rows, 13 comments and 4 blanks. `keyconfig_toml_catalog.py`
+copies verbatim lines and kinds; key binding meaning and SDL
+token resolution stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

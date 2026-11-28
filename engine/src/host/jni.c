@@ -105,6 +105,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_carryover_catalog.h"
 #include "r6/r6_spec_ma61_catalog.h"
 #include "r6/r6_sdl_db_catalog.h"
+#include "r6/r6_keyconfig_toml_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -11611,6 +11612,97 @@ Java_com_wmmt_re6rr_SdlDbCatalog_nativeFieldText(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 || field < 0 || field >= 3 ||
         r6_sdl_field_text(bytes, length, (uint32_t)index,
                           (uint32_t)field, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* keyconfig.toml paths and copied verbatim lines. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_KeyconfigTomlCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob) {
+    r6_keyconfig_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_keyconfig_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.line_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.active_count;
+    values[6] = (jlong)header.comment_count;
+    values[7] = (jlong)header.blank_count;
+    values[8] = (jlong)header.path_offset;
+    values[9] = (jlong)header.path_length;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_KeyconfigTomlCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    char text[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_keyconfig_path(bytes, length,
+                                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_KeyconfigTomlCatalog_nativeLine(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_keyconfig_line_t line;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_keyconfig_line(bytes, length, (uint32_t)index, &line) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)line.text_offset;
+    values[1] = (jlong)line.text_length;
+    values[2] = (jlong)line.kind;
+    values[3] = (jlong)line.line;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_KeyconfigTomlCatalog_nativeText(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_keyconfig_text(bytes, length, (uint32_t)index,
+                          text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
