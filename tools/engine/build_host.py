@@ -131,6 +131,7 @@ SOURCES = [
     "engine/src/game/keyconfig_toml_catalog.c",
     "engine/src/game/root_ini_keys_catalog.c",
     "engine/src/game/neon_color_catalog.c",
+    "engine/src/game/phantom_run_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

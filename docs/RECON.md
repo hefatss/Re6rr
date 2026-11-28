@@ -457,6 +457,11 @@ raw values, including identifiers, stay uncopied.
 verbatim numeric token bytes; CP932 comment text, index order and
 fallback behavior stay unparsed.
 
+`data/Enma/ytPhantomTempRun.bin` is 18,728 bytes: 6 header words,
+5 u64 timestamps and 2,333 u64 records. `phantom_run_catalog.py`
+copies the words verbatim; timestamp units, record flags and
+sample encodings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

@@ -108,6 +108,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_keyconfig_toml_catalog.h"
 #include "r6/r6_root_ini_keys_catalog.h"
 #include "r6/r6_neon_color_catalog.h"
+#include "r6/r6_phantom_run_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -11915,6 +11916,71 @@ Java_com_wmmt_re6rr_NeonColorCatalog_nativeToken(JNIEnv *env, jclass cls,
     free(bytes);
     result = (*env)->NewStringUTF(env, text);
     return result;
+}
+
+/* Phantom run binary header words and u64 rows. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_PhantomRunCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_phantom_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_phantom_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.record_count;
+    values[3] = (jlong)header.timestamp_count;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.words[0];
+    values[6] = (jlong)header.words[1];
+    values[7] = (jlong)header.words[2];
+    values[8] = (jlong)header.words[3];
+    values[9] = (jlong)header.words[4];
+    values[10] = (jlong)header.words[5];
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PhantomRunCatalog_nativeTimestamp(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    uint64_t value = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_phantom_timestamp(bytes, length, (uint32_t)index,
+                             &value) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)value;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_wmmt_re6rr_PhantomRunCatalog_nativeRecord(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    uint64_t value = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_phantom_record(bytes, length, (uint32_t)index, &value) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    return (jlong)value;
 }
 
 /* GLSL binding manifest. Java owns the byte[]; the reader copies nothing and
