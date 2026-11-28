@@ -97,6 +97,7 @@ set(R6_CORE
     engine/src/game/effect_set_inventory_catalog.c
     engine/src/game/root_ini_catalog.c
     engine/src/game/distclip_catalog.c
+    engine/src/game/course_tuning_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

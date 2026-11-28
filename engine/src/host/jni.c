@@ -93,6 +93,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_effect_set_inventory_catalog.h"
 #include "r6/r6_root_ini_catalog.h"
 #include "r6/r6_distclip_catalog.h"
+#include "r6/r6_course_tuning_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9982,6 +9983,255 @@ Java_com_wmmt_re6rr_DistClipCatalog_nativeRowValue(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (jint)value;
+    return result;
+}
+
+/* Course tuning integer maps and copied ASCII symbol names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    r6_course_tuning_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_course_tuning_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.ramp_rows;
+    values[3] = (jlong)header.ta_rows;
+    values[4] = (jlong)header.string_size;
+    values[5] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    r6_course_tuning_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.global_offset;
+    values[5] = (jlong)file.global_length;
+    values[6] = (jlong)file.row_base;
+    values[7] = (jlong)file.rows;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_path(bytes, length, (uint32_t)index,
+                              text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeGlobal(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_global(bytes, length, (uint32_t)index,
+                                text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeRampRow(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    r6_course_tuning_ramp_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ramp_row(bytes, length, (uint32_t)index,
+                                  &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.normal;
+    values[1] = (jlong)row.extreme;
+    values[2] = (jlong)row.gid_offset;
+    values[3] = (jlong)row.gid_length;
+    values[4] = (jlong)row.name_offset;
+    values[5] = (jlong)row.name_length;
+    values[6] = (jlong)row.alias_offset;
+    values[7] = (jlong)row.alias_length;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeTaRow(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_course_tuning_ta_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ta_row(bytes, length, (uint32_t)index,
+                                &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.value;
+    values[1] = (jlong)row.gid_offset;
+    values[2] = (jlong)row.gid_length;
+    values[3] = (jlong)row.name_offset;
+    values[4] = (jlong)row.name_length;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeRampGid(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ramp_gid(bytes, length, (uint32_t)index,
+                                  text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeRampName(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ramp_name(bytes, length, (uint32_t)index,
+                                   text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeRampAlias(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ramp_alias(bytes, length, (uint32_t)index,
+                                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeTaGid(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ta_gid(bytes, length, (uint32_t)index,
+                                text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CourseTuningCatalog_nativeTaName(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_course_tuning_ta_name(bytes, length, (uint32_t)index,
+                                 text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
     return result;
 }
 

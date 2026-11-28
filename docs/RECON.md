@@ -370,6 +370,12 @@ from a fixed ten-key vocabulary. `distclip_catalog.py` copies paths,
 table names, keys and integers; comment lines and clip rendering are
 not parsed.
 
+`data/course/parameter/tuning/RampParam.lua` and `TAParam.lua` total
+5,267 bytes and 101 CRLF lines. They hold 39 two-integer ramp rows
+and 25 one-integer TA rows with copied ASCII `GID_*`, `ERamp_*` and
+`EStage_TA_*` labels. `course_tuning_catalog.py` copies integers and
+ASCII labels; CP932 header comments and tuning behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
