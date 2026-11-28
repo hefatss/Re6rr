@@ -504,6 +504,12 @@ verbatim numeric tokens; CP932 comments and role meanings stay unparsed.
 `char_color_catalog.py` copies paths, block lines, names and tokens;
 CP932 comments, color roles and enum meanings stay unparsed.
 
+255 `getTirePos_*.lua` scripts total 22,041,850 bytes with 28,797
+sections, 23,759 three-token vector rows and 14,022 scalar counts.
+`tire_lamp_pos_catalog.py` copies paths, embedded car ids, section
+keys/lines, count tokens and numeric token bytes; CP932 comments,
+axis meanings and lighting roles stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

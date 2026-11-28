@@ -140,6 +140,7 @@ SOURCES = [
     "engine/src/game/mini_sticker_color_catalog.c",
     "engine/src/game/car_height_catalog.c",
     "engine/src/game/char_color_catalog.c",
+    "engine/src/game/tire_lamp_pos_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

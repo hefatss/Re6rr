@@ -117,6 +117,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_mini_sticker_color_catalog.h"
 #include "r6/r6_car_height_catalog.h"
 #include "r6/r6_char_color_catalog.h"
+#include "r6/r6_tire_lamp_pos_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12932,6 +12933,212 @@ Java_com_wmmt_re6rr_CharColorCatalog_nativeToken(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 || slot < 0 || slot >= 19 ||
         r6_ccc_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Tire, lamp and strobo row shapes; names, keys and tokens are copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_tlp_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_tlp_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.section_count;
+    values[3] = (jlong)header.list_count;
+    values[4] = (jlong)header.scalar_count;
+    values[5] = (jlong)header.row_count;
+    values[6] = (jlong)header.token_count;
+    values[7] = (jlong)header.line_count;
+    values[8] = (jlong)header.source_bytes;
+    values[9] = (jlong)header.string_size;
+    values[10] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_tlp_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.car_id_offset;
+    values[3] = (jlong)file.car_id_length;
+    values[4] = (jlong)file.size;
+    values[5] = (jlong)file.lines;
+    values[6] = (jlong)file.section_base;
+    values[7] = (jlong)file.section_count;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_name(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeCarId(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_car_id(bytes, length, (uint32_t)index,
+                      text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeSection(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    r6_tlp_section_t section;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_section(bytes, length, (uint32_t)index, &section) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)section.key_offset;
+    values[1] = (jlong)section.key_length;
+    values[2] = (jlong)section.line;
+    values[3] = (jlong)section.kind;
+    values[4] = (jlong)section.value_offset;
+    values[5] = (jlong)section.value_length;
+    values[6] = (jlong)section.row_base;
+    values[7] = (jlong)section.row_count;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeKey(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_key(bytes, length, (uint32_t)index,
+                   text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeValue(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_value(bytes, length, (uint32_t)index,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_tlp_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_tlp_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.line;
+    values[1] = (jlong)row.token0_offset;
+    values[2] = (jlong)row.token1_offset;
+    values[3] = (jlong)row.token2_offset;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TireLampPosCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index, jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot > 2 ||
+        r6_tlp_token(bytes, length, (uint32_t)index, (uint32_t)slot,
                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
