@@ -113,6 +113,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_color_block_catalog.h"
 #include "r6/r6_root_gz_envelope_catalog.h"
 #include "r6/r6_color_vinyl_blend_catalog.h"
+#include "r6/r6_trail_header_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12440,6 +12441,124 @@ Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeFunctionName(JNIEnv *env,
     if (!bytes || index < 0 ||
         r6_cvb_function_name(bytes, length, (uint32_t)index,
                              text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Enma trail header words and ASCII link names; records are not copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TrailHeaderCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_th_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_th_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.source_bytes;
+    values[4] = (jlong)header.record_count;
+    values[5] = (jlong)header.record_size;
+    values[6] = (jlong)header.string_size;
+    values[7] = (jlong)header.marker_word;
+    values[8] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TrailHeaderCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_th_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_th_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.links;
+    values[4] = (jlong)file.name_base;
+    values[5] = (jlong)file.name_count;
+    values[6] = (jlong)file.marker_offset;
+    values[7] = (jlong)file.marker_word;
+    values[8] = (jlong)file.record_count;
+    values[9] = (jlong)file.trailer;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TrailHeaderCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_th_path(bytes, length, (uint32_t)index,
+                   text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_TrailHeaderCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_th_name_t name;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_th_name(bytes, length, (uint32_t)index, &name) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)name.name_offset;
+    values[1] = (jlong)name.name_length;
+    values[2] = (jlong)name.source_offset;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_TrailHeaderCatalog_nativeNameText(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_th_name_text(bytes, length, (uint32_t)index,
+                        text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

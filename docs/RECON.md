@@ -484,6 +484,11 @@ and empty flags; inflated payloads stay uncopied.
 20-row blend lists (60 pairs) and four accessor declarations;
 CP932 comments and role meanings stay unparsed.
 
+`ytSamplingTempFile.trail` and `ytTrailTempFile.trail` are 34,414 and
+173,250 bytes. `trail_header_catalog.py` copies 8 ASCII link names,
+marker words, 661/3330 record counts and trailer words. The 52-byte
+records and their semantics stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
