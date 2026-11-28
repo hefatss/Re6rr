@@ -76,6 +76,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_tga_inventory_catalog.h"
 #include "r6/r6_street_lamp_catalog.h"
 #include "r6/r6_pcv_inventory_catalog.h"
+#include "r6/r6_zenichi_config_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8136,6 +8137,98 @@ Java_com_wmmt_re6rr_PcvInventoryCatalog_nativePath(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+/* Zenichi name-plate table: copied ids, integers and texture names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ZenichiConfigCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob) {
+    r6_zenichi_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_zenichi_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.row_count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.source_size;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ZenichiConfigCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob, jint index) {
+    r6_zenichi_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_zenichi_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.item;
+    values[1] = (jlong)row.variation;
+    values[2] = (jlong)row.name_offset;
+    values[3] = (jlong)row.name_length;
+    values[4] = (jlong)row.layout;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ZenichiConfigCatalog_nativeFindId(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint item) {
+    r6_zenichi_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || item < 0 || item > 0xffff ||
+        r6_zenichi_find_id(bytes, length, (uint32_t)item, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.item;
+    values[1] = (jlong)row.variation;
+    values[2] = (jlong)row.name_offset;
+    values[3] = (jlong)row.name_length;
+    values[4] = (jlong)row.layout;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ZenichiConfigCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_zenichi_name(bytes, length, (uint32_t)index, name,
+                        sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
     return result;
 }
 

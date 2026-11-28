@@ -80,6 +80,7 @@ set(R6_CORE
     engine/src/game/tga_inventory_catalog.c
     engine/src/game/street_lamp_catalog.c
     engine/src/game/pcv_inventory_catalog.c
+    engine/src/game/zenichi_config_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
