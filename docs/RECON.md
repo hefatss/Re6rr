@@ -280,6 +280,10 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
   stages, 14 pages, 361 squares, 7 square tokens and 6 reward categories.
   `sugoroku_board_catalog.py` copies aggregate counts and function names but
   not per-square selections or dice/reward rules.
+- `data_jp/menu/menuTex/Customframe/Customframe.lua` is 26,386 bytes; its
+  `CUSTOM_FRAME_INFO` table has 183 contiguous ids and 732 unique 21-character
+  `cmn_cf_*.nut` names with six accessor functions. `custom_frame_catalog.py`
+  copies those names but no frame behaviour or texture payload.
 - 219 identifiers called from Lua that exist as strings in the executable — the
   candidate native binding surface (top: `GetShaderCarVec4/Float/Int`, `GetTirePos`,
   `GetCenterPos`, `GetCustomGTWingPos`, `GetCarHightDown`, `GetCarAeroTireOffset`,

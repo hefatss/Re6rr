@@ -101,6 +101,7 @@ SOURCES = [
     "engine/src/game/pcv_inventory_catalog.c",
     "engine/src/game/zenichi_config_catalog.c",
     "engine/src/game/sugoroku_board_catalog.c",
+    "engine/src/game/custom_frame_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

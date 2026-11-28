@@ -78,6 +78,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_pcv_inventory_catalog.h"
 #include "r6/r6_zenichi_config_catalog.h"
 #include "r6/r6_sugoroku_board_catalog.h"
+#include "r6/r6_custom_frame_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8328,6 +8329,96 @@ Java_com_wmmt_re6rr_SugorokuBoardCatalog_nativeFunction(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_sugoroku_function(bytes, length, (uint32_t)index, name,
                              sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Custom-frame ids and copied texture names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CustomFrameCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_custom_frame_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_custom_frame_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.row_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.function_count;
+    values[4] = (jlong)header.string_size;
+    values[5] = (jlong)header.source_size;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CustomFrameCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_custom_frame_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    size_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_custom_frame_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.id;
+    for (at = 0; at < 4; at++) {
+        values[1 + at * 2] = (jlong)row.name_offset[at];
+        values[2 + at * 2] = (jlong)row.name_length[at];
+    }
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CustomFrameCatalog_nativeTexture(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob, jint index,
+                                                    jint slot) {
+    char name[32];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot > 3 ||
+        r6_custom_frame_texture(bytes, length, (uint32_t)index,
+                                (uint32_t)slot, name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CustomFrameCatalog_nativeFunction(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_custom_frame_function(bytes, length, (uint32_t)index, name,
+                                 sizeof(name)) != R6_OK) {
         free(bytes);
         return NULL;
     }
