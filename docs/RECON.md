@@ -388,6 +388,11 @@ with 5 and 3 rows, and four accessor definitions.
 `strobo_parameter_catalog.py` copies those integers and ASCII
 names; CP932 comments and timing/rendering behavior stay unparsed.
 
+Three `data_jp/scene/func/Func_*.Lua` files total 4,289 bytes and
+223 CRLF lines. They define 43 functions with copied ASCII return
+expressions. `scene_func_catalog.py` copies paths, names and return
+expressions; CP932 comments and scene logic stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

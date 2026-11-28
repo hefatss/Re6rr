@@ -96,6 +96,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_course_tuning_catalog.h"
 #include "r6/r6_xmd_v1_directory_catalog.h"
 #include "r6/r6_strobo_parameter_catalog.h"
+#include "r6/r6_scene_func_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10497,6 +10498,136 @@ Java_com_wmmt_re6rr_StroboParameter_nativeFunction(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_strobo_function(bytes, length, (uint32_t)index,
                            text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Scene function names and copied ASCII return expressions. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_scene_func_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_scene_func_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.function_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_scene_func_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_func_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.function_base;
+    values[5] = (jlong)file.count;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_func_path(bytes, length, (uint32_t)index,
+                           text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativeFunc(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_scene_func_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_func_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_offset;
+    values[1] = (jlong)row.name_length;
+    values[2] = (jlong)row.result_offset;
+    values[3] = (jlong)row.result_length;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_func_name(bytes, length, (uint32_t)index,
+                           text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SceneFuncCatalog_nativeResult(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_scene_func_result(bytes, length, (uint32_t)index,
+                             text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
