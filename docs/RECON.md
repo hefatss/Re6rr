@@ -430,6 +430,13 @@ series token, five scalar lines and four fixed data rows.
 `carryover_catalog.py` copies tokens verbatim; carryover rules,
 checkpoint tokens, coordinates and float semantics stay unparsed.
 
+`data_jp/car/specification/PLC_MA61_Specification.lua` is 139,729
+bytes and 3,000 CRLF lines. `CarDataList` spans lines 12–387 with
+373 scalar rows: 317 integers, 2 floats, 38 ASCII strings and 16
+non-ASCII literals. `spec_ma61_catalog.py` copies keys, ASCII
+literals and comment flags; Japanese literals/comments and tuning
+meaning stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

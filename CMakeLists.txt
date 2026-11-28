@@ -107,6 +107,7 @@ set(R6_CORE
     engine/src/game/ntp_config_catalog.c
     engine/src/game/accessor_script_catalog.c
     engine/src/game/carryover_catalog.c
+    engine/src/game/spec_ma61_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

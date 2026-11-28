@@ -103,6 +103,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_ntp_config_catalog.h"
 #include "r6/r6_accessor_script_catalog.h"
 #include "r6/r6_carryover_catalog.h"
+#include "r6/r6_spec_ma61_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -11362,6 +11363,118 @@ Java_com_wmmt_re6rr_CarryoverCatalog_nativeField(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 || field < 0 || field >= 7 ||
         r6_carryover_field(bytes, length, (uint32_t)index,
                            (uint32_t)field, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* MA61 specification scalar rows: copied key and ASCII literal tokens. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SpecMa61Catalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_spec_ma61_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_spec_ma61_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.lines;
+    values[6] = (jlong)header.table_start;
+    values[7] = (jlong)header.table_end;
+    values[8] = (jlong)header.path_offset;
+    values[9] = (jlong)header.path_length;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SpecMa61Catalog_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_spec_ma61_path(bytes, length,
+                                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SpecMa61Catalog_nativeRow(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_spec_ma61_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_spec_ma61_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.key_offset;
+    values[1] = (jlong)row.key_length;
+    values[2] = (jlong)row.literal_offset;
+    values[3] = (jlong)row.literal_length;
+    values[4] = (jlong)row.kind;
+    values[5] = (jlong)row.line;
+    values[6] = (jlong)row.comment;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SpecMa61Catalog_nativeKey(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_spec_ma61_key(bytes, length, (uint32_t)index,
+                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SpecMa61Catalog_nativeLiteral(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_spec_ma61_literal(bytes, length, (uint32_t)index,
+                             text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
