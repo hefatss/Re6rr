@@ -425,6 +425,11 @@ bytes and 1,290 LF lines. They define 155 top-level functions.
 first return expressions and line positions; CP932 comments,
 `unpack()` semantics and render/tuning behavior stay unparsed.
 
+`data/Enma/ytCarryover.txt` is 398 bytes and 10 CRLF lines: one
+series token, five scalar lines and four fixed data rows.
+`carryover_catalog.py` copies tokens verbatim; carryover rules,
+checkpoint tokens, coordinates and float semantics stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
