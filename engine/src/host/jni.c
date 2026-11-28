@@ -86,6 +86,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_debug_tdb_registry_catalog.h"
 #include "r6/r6_scene_descriptors_catalog.h"
 #include "r6/r6_stage_effect_filename_lists_catalog.h"
+#include "r6/r6_story_series_tokens_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9054,6 +9055,94 @@ Java_com_wmmt_re6rr_StageEffectFilenameLists_nativeName(JNIEnv *env,
     if (!bytes || index < 0 ||
         r6_stage_effect_filename_name(bytes, length, (uint32_t)index,
                                       text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Story-series token facts: copied block headers and token lines. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StorySeriesTokens_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_story_series_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_story_series_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.block_count;
+    values[2] = (jlong)header.line_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_size;
+    values[5] = (jlong)header.source_lines;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StorySeriesTokens_nativeBlock(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_story_series_block_t block;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_story_series_block(bytes, length, (uint32_t)index,
+                              &block) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)block.header_offset;
+    values[1] = (jlong)block.header_length;
+    values[2] = (jlong)block.lines;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StorySeriesTokens_nativeHeaderToken(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_story_series_header(bytes, length, (uint32_t)index,
+                               text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StorySeriesTokens_nativeLine(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_story_series_line(bytes, length, (uint32_t)index,
+                             text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

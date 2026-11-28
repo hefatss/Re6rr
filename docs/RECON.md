@@ -328,6 +328,11 @@ bytes. Each begins with the literal `filename.txt` and then lists 4 to 8 ASCII
 `.lua` basenames, 34 in total. `stage_effect_filename_lists_catalog.py` copies
 the paths and names only, with no effect behavior.
 
+`data/Enma/ytConfigStorySeries.txt` is 28,433 bytes and 1,511 lines. It has 125
+`ESeries_*` block headers and 1,249 token lines before `//` comments.
+`story_series_tokens_catalog.py` copies the headers and token text verbatim
+without deriving race, story or carryover rules.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
