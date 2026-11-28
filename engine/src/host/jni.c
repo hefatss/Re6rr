@@ -94,6 +94,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_root_ini_catalog.h"
 #include "r6/r6_distclip_catalog.h"
 #include "r6/r6_course_tuning_catalog.h"
+#include "r6/r6_xmd_v1_directory_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10232,6 +10233,121 @@ Java_com_wmmt_re6rr_CourseTuningCatalog_nativeTaName(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* XMD version 0/1 stream directory facts. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmdV1Directory_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_xmd_v1_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_xmd_v1_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.stream_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmdV1Directory_nativeFile(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_xmd_v1_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmd_v1_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.version;
+    values[4] = (jlong)file.table_end;
+    values[5] = (jlong)file.stream_index;
+    values[6] = (jlong)file.count;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_XmdV1Directory_nativePath(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmd_v1_path(bytes, length, (uint32_t)index,
+                       text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmdV1Directory_nativeStream(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_xmd_v1_stream_t stream;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmd_v1_stream(bytes, length, (uint32_t)index, &stream) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)stream.offset;
+    values[1] = (jlong)stream.length;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_XmdV1Directory_nativeMagic(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_xmd_v1_stream_t stream;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_xmd_v1_stream(bytes, length, (uint32_t)index, &stream) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)(uint32_t)(stream.magic[0] | (stream.magic[1] << 8) |
+                                  (stream.magic[2] << 16) |
+                                  ((uint32_t)stream.magic[3] << 24));
+    values[1] = (jlong)(uint32_t)(stream.magic[4] | (stream.magic[5] << 8) |
+                                  (stream.magic[6] << 16) |
+                                  ((uint32_t)stream.magic[7] << 24));
+    result = pe_new_longs(env, values, 2);
     return result;
 }
 

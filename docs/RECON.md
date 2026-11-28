@@ -376,6 +376,12 @@ and 25 one-integer TA rows with copied ASCII `GID_*`, `ERamp_*` and
 `EStage_TA_*` labels. `course_tuning_catalog.py` copies integers and
 ASCII labels; CP932 header comments and tuning behavior stay unparsed.
 
+Three `XMD\0001\0` containers outside the `.TEX`/`.MDL` family total
+527,072 bytes and 30 streams: two flash files with version 1 and
+three streams, plus `honor.bin` with version 0 and 24 streams.
+`xmd_v1_directory_catalog.py` copies paths, sizes, offset tables
+and eight magic bytes per stream; payloads stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

@@ -117,6 +117,7 @@ SOURCES = [
     "engine/src/game/root_ini_catalog.c",
     "engine/src/game/distclip_catalog.c",
     "engine/src/game/course_tuning_catalog.c",
+    "engine/src/game/xmd_v1_directory_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

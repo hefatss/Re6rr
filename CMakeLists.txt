@@ -98,6 +98,7 @@ set(R6_CORE
     engine/src/game/root_ini_catalog.c
     engine/src/game/distclip_catalog.c
     engine/src/game/course_tuning_catalog.c
+    engine/src/game/xmd_v1_directory_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
