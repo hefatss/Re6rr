@@ -499,6 +499,11 @@ lines, 4 height rows and 12 aero rows labelled `N,A..K`.
 `car_height_catalog.py` copies paths, row lines, labels and 4,172
 verbatim numeric tokens; CP932 comments and role meanings stay unparsed.
 
+100 `CRC_*_DefaultColor.lua` scripts total 535,375 bytes with
+`COLOR_MAX` 1/6/3 (95/4/1 files), 122 blocks and 2,318 tokens.
+`char_color_catalog.py` copies paths, block lines, names and tokens;
+CP932 comments, color roles and enum meanings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

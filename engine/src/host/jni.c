@@ -116,6 +116,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_trail_header_catalog.h"
 #include "r6/r6_mini_sticker_color_catalog.h"
 #include "r6/r6_car_height_catalog.h"
+#include "r6/r6_char_color_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12812,6 +12813,125 @@ Java_com_wmmt_re6rr_CarHeightCatalog_nativeLabel(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 ||
         r6_chg_label(bytes, length, (uint32_t)index,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* charCar default color blocks; names, positions and numeric tokens only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CharColorCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_ccc_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[11];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_ccc_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.token_count;
+    values[4] = (jlong)header.line_count;
+    values[5] = (jlong)header.source_bytes;
+    values[6] = (jlong)header.string_size;
+    values[7] = (jlong)header.max_one;
+    values[8] = (jlong)header.max_six;
+    values[9] = (jlong)header.max_three;
+    values[10] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 11);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CharColorCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_ccc_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ccc_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.color_max;
+    values[5] = (jlong)file.start_line;
+    values[6] = (jlong)file.row_base;
+    values[7] = (jlong)file.block_lines;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CharColorCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ccc_name(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_CharColorCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_ccc_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_ccc_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_offset;
+    values[1] = (jlong)row.name_length;
+    values[2] = (jlong)row.line;
+    values[3] = (jlong)row.token_offset;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_CharColorCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index,
+                                                 jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot >= 19 ||
+        r6_ccc_token(bytes, length, (uint32_t)index, (uint32_t)slot,
                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
