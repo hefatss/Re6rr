@@ -89,6 +89,7 @@ set(R6_CORE
     engine/src/game/event_scene_hide_clip_catalog.c
     engine/src/game/debug_tdb_registry_catalog.c
     engine/src/game/scene_descriptors_catalog.c
+    engine/src/game/stage_effect_filename_lists_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

@@ -323,6 +323,11 @@ same five-line shape: `S_DATA_ROOT`, `S_ENVIRONMENT_DATA =
 "/Environment.Lua"`, `I_EVENT_NUM = 0` and an empty `S_EVENT` table. The catalog
 copies those strings and counts without camera or scene semantics.
 
+Six `data/effect/stage_effect/**/parameter/filename.txt` files total 1,023
+bytes. Each begins with the literal `filename.txt` and then lists 4 to 8 ASCII
+`.lua` basenames, 34 in total. `stage_effect_filename_lists_catalog.py` copies
+the paths and names only, with no effect behavior.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

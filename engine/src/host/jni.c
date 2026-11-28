@@ -85,6 +85,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_event_scene_hide_clip_catalog.h"
 #include "r6/r6_debug_tdb_registry_catalog.h"
 #include "r6/r6_scene_descriptors_catalog.h"
+#include "r6/r6_stage_effect_filename_lists_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8960,6 +8961,99 @@ Java_com_wmmt_re6rr_SceneDescriptors_nativeEnvironment(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_scene_descriptors_environment(bytes, length, (uint32_t)index,
                                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Stage-effect filename lists: copied paths and .lua basenames. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StageEffectFilenameLists_nativeHeader(JNIEnv *env,
+                                                          jclass cls,
+                                                          jbyteArray blob) {
+    r6_stage_effect_filename_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_stage_effect_filename_parse(bytes, length,
+                                                 &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.string_size;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StageEffectFilenameLists_nativeFile(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    r6_stage_effect_filename_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stage_effect_filename_file(bytes, length, (uint32_t)index,
+                                      &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.names;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StageEffectFilenameLists_nativePath(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stage_effect_filename_path(bytes, length, (uint32_t)index,
+                                      text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StageEffectFilenameLists_nativeName(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stage_effect_filename_name(bytes, length, (uint32_t)index,
+                                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
