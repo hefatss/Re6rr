@@ -111,6 +111,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_phantom_run_catalog.h"
 #include "r6/r6_amcus_ini_keys_catalog.h"
 #include "r6/r6_color_block_catalog.h"
+#include "r6/r6_root_gz_envelope_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12229,6 +12230,79 @@ Java_com_wmmt_re6rr_ColorBlockCatalog_nativeToken(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 || slot < 0 || slot >= 19 ||
         r6_color_token(bytes, length, (uint32_t)index, (uint32_t)slot,
                        text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Root gzip envelope facts; inflated payloads are not copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RootGzEnvelopeCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob) {
+    r6_root_gz_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_root_gz_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.valid_count;
+    values[3] = (jlong)header.empty_count;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.string_size;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RootGzEnvelopeCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    r6_root_gz_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_gz_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.mtime;
+    values[4] = (jlong)file.crc32;
+    values[5] = (jlong)file.isize;
+    values[6] = (jlong)file.header_flags;
+    values[7] = (jlong)file.valid;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootGzEnvelopeCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_gz_name(bytes, length, (uint32_t)index,
+                        text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

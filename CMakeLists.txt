@@ -115,6 +115,7 @@ set(R6_CORE
     engine/src/game/phantom_run_catalog.c
     engine/src/game/amcus_ini_keys_catalog.c
     engine/src/game/color_block_catalog.c
+    engine/src/game/root_gz_envelope_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

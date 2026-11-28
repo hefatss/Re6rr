@@ -474,6 +474,11 @@ and 40. `color_block_catalog.py` copies block names, line positions
 and 855 verbatim numeric tokens; comments, color roles and enum
 meanings stay unparsed.
 
+25 root auxiliary `.gz` files outside `setting.lua.gz` total 1,239
+compressed bytes: 20 valid gzip envelopes and 5 empty files.
+`root_gz_envelope_catalog.py` copies names, gzip words, CRC32/ISIZE
+and empty flags; inflated payloads stay uncopied.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
