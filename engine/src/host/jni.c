@@ -107,6 +107,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_sdl_db_catalog.h"
 #include "r6/r6_keyconfig_toml_catalog.h"
 #include "r6/r6_root_ini_keys_catalog.h"
+#include "r6/r6_neon_color_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -11815,6 +11816,99 @@ Java_com_wmmt_re6rr_RootIniKeysCatalog_nativeName(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_ini_keys_name(bytes, length, (uint32_t)index,
                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* NeonColor Lua rows: copied path, line numbers and numeric token bytes. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NeonColorCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_neon_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_neon_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.line_count;
+    values[4] = (jlong)header.string_size;
+    values[5] = (jlong)header.source_bytes;
+    values[6] = (jlong)header.comment_rows;
+    values[7] = (jlong)header.reserved;
+    values[8] = (jlong)header.path_offset;
+    values[9] = (jlong)header.path_length;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NeonColorCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_neon_path(bytes, length, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_NeonColorCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_neon_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_neon_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.token_offset[0];
+    values[1] = (jlong)row.token_length[0];
+    values[2] = (jlong)row.token_offset[1];
+    values[3] = (jlong)row.token_length[1];
+    values[4] = (jlong)row.token_offset[2];
+    values[5] = (jlong)row.token_length[2];
+    values[6] = (jlong)row.has_comment;
+    values[7] = (jlong)row.line;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_NeonColorCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index,
+                                                 jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot >= 3 ||
+        r6_neon_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

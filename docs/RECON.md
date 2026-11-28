@@ -452,6 +452,11 @@ token resolution stay unparsed.
 names, line positions, value-presence flags and section indices;
 raw values, including identifiers, stay uncopied.
 
+`data/car/color/NeonColor.lua` is 1,180 bytes and 31 CRLF lines.
+`neon_color_catalog.py` copies the six row positions and 18
+verbatim numeric token bytes; CP932 comment text, index order and
+fallback behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
