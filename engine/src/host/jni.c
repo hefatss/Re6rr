@@ -112,6 +112,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_amcus_ini_keys_catalog.h"
 #include "r6/r6_color_block_catalog.h"
 #include "r6/r6_root_gz_envelope_catalog.h"
+#include "r6/r6_color_vinyl_blend_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -12303,6 +12304,142 @@ Java_com_wmmt_re6rr_RootGzEnvelopeCatalog_nativeName(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_root_gz_name(bytes, length, (uint32_t)index,
                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Car vinyl blend table names and verbatim numeric tokens. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                        jbyteArray blob) {
+    r6_cvb_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_cvb_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.token_count;
+    values[4] = (jlong)header.line_count;
+    values[5] = (jlong)header.string_size;
+    values[6] = (jlong)header.source_bytes;
+    values[7] = (jlong)header.function_count;
+    values[8] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_cvb_path(bytes, length, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    r6_cvb_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_cvb_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_offset;
+    values[1] = (jlong)row.name_length;
+    values[2] = (jlong)row.line;
+    values[3] = (jlong)row.token_offset;
+    values[4] = (jlong)row.token_count;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index, jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 ||
+        r6_cvb_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeFunction(JNIEnv *env,
+                                                          jclass cls,
+                                                          jbyteArray blob,
+                                                          jint index) {
+    r6_cvb_function_t function;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_cvb_function(bytes, length, (uint32_t)index,
+                        &function) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)function.name_offset;
+    values[1] = (jlong)function.name_length;
+    values[2] = (jlong)function.line;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_ColorVinylBlendCatalog_nativeFunctionName(JNIEnv *env,
+                                                              jclass cls,
+                                                              jbyteArray blob,
+                                                              jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_cvb_function_name(bytes, length, (uint32_t)index,
+                             text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

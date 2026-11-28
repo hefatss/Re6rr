@@ -479,6 +479,11 @@ compressed bytes: 20 valid gzip envelopes and 5 empty files.
 `root_gz_envelope_catalog.py` copies names, gzip words, CRC32/ISIZE
 and empty flags; inflated payloads stay uncopied.
 
+`ColorCommonParamerter.lua` is 8,579 bytes with 165 CRLF lines.
+`color_vinyl_blend_catalog.py` copies two luminosity scalars, three
+20-row blend lists (60 pairs) and four accessor declarations;
+CP932 comments and role meanings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
