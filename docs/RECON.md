@@ -468,6 +468,12 @@ Three AMCUS INI files total 5,139 bytes and 204 CRLF lines:
 positions, value-presence flags and section indices; values and
 CP932 comments stay uncopied.
 
+`PLC_MA61_DefaultColor.lua` and `PLC_MA61_CustomColor.lua` are
+8,065 and 32,131 bytes with 247 and 947 lines. `COLOR_MAX` is 5
+and 40. `color_block_catalog.py` copies block names, line positions
+and 855 verbatim numeric tokens; comments, color roles and enum
+meanings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

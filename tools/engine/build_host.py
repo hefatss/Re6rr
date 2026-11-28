@@ -133,6 +133,7 @@ SOURCES = [
     "engine/src/game/neon_color_catalog.c",
     "engine/src/game/phantom_run_catalog.c",
     "engine/src/game/amcus_ini_keys_catalog.c",
+    "engine/src/game/color_block_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
