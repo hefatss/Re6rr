@@ -382,6 +382,12 @@ three streams, plus `honor.bin` with version 0 and 24 streams.
 `xmd_v1_directory_catalog.py` copies paths, sizes, offset tables
 and eight magic bytes per stream; payloads stay unparsed.
 
+`data/car/position/StroboLightOnOffParameter.lua` is 3,771 bytes
+and 95 LF lines. It has `DEBUG_CODE = 0`, two integer-pair tables
+with 5 and 3 rows, and four accessor definitions.
+`strobo_parameter_catalog.py` copies those integers and ASCII
+names; CP932 comments and timing/rendering behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

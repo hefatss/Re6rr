@@ -95,6 +95,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_distclip_catalog.h"
 #include "r6/r6_course_tuning_catalog.h"
 #include "r6/r6_xmd_v1_directory_catalog.h"
+#include "r6/r6_strobo_parameter_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10348,6 +10349,159 @@ Java_com_wmmt_re6rr_XmdV1Directory_nativeMagic(JNIEnv *env, jclass cls,
                                   (stream.magic[6] << 16) |
                                   ((uint32_t)stream.magic[7] << 24));
     result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+/* StroboLightOnOffParameter.lua integer and name facts. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_strobo_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_strobo_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.table_count;
+    values[3] = (jlong)header.row_count;
+    values[4] = (jlong)header.function_count;
+    values[5] = (jlong)header.string_size;
+    values[6] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeFile(JNIEnv *env, jclass cls,
+                                               jbyteArray blob) {
+    r6_strobo_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_strobo_file(bytes, length, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.debug;
+    values[5] = (jlong)file.table_base;
+    values[6] = (jlong)file.row_base;
+    values[7] = (jlong)file.function_base;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_strobo_path(bytes, length, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeTable(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_strobo_table_t table;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_strobo_table(bytes, length, (uint32_t)index, &table) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)table.name_offset;
+    values[1] = (jlong)table.name_length;
+    values[2] = (jlong)table.row_base;
+    values[3] = (jlong)table.rows;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeTableName(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_strobo_table_name(bytes, length, (uint32_t)index,
+                             text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeRow(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_strobo_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[2];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_strobo_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.first;
+    values[1] = (jlong)row.second;
+    result = pe_new_longs(env, values, 2);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StroboParameter_nativeFunction(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_strobo_function(bytes, length, (uint32_t)index,
+                           text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
     return result;
 }
 
