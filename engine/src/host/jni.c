@@ -99,6 +99,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_scene_func_catalog.h"
 #include "r6/r6_tire_model_catalog.h"
 #include "r6/r6_rival_block_catalog.h"
+#include "r6/r6_setting_default_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -10873,6 +10874,114 @@ Java_com_wmmt_re6rr_RivalBlockCatalog_nativeKeyword(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 || keyword < 0 || keyword >= 5 ||
         r6_rival_keyword(bytes, length, (uint32_t)index,
                          (uint32_t)keyword, text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Default setting rows: m_* names, active flags and copied value tokens. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SettingDefaultCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob) {
+    r6_setting_default_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_setting_default_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.lines;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SettingDefaultCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || r6_setting_default_path(bytes, length,
+                                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_SettingDefaultCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    r6_setting_default_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_setting_default_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.name_offset;
+    values[1] = (jlong)row.name_length;
+    values[2] = (jlong)row.value_offset;
+    values[3] = (jlong)row.value_length;
+    values[4] = (jlong)row.active;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SettingDefaultCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob,
+                                                     jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_setting_default_name(bytes, length, (uint32_t)index,
+                                text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_SettingDefaultCatalog_nativeValue(JNIEnv *env, jclass cls,
+                                                      jbyteArray blob,
+                                                      jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_setting_default_value(bytes, length, (uint32_t)index,
+                                 text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

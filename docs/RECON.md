@@ -406,6 +406,12 @@ names and five keyword rows each. `rival_block_catalog.py` copies
 names, line spans, ASCII keyword rows and counts; CP932 comments,
 float fields and rival behavior stay unparsed.
 
+`data/setting/setting_default.lua` is 1,343 bytes and 34 LF
+lines. It has 13 `m_*` rows: 12 active and one commented locale
+row, with 8 `SettingConst` tokens and 5 hex literals.
+`setting_default_catalog.py` copies names, flags and value tokens;
+Japanese comments and setting behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

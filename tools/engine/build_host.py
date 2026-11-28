@@ -122,6 +122,7 @@ SOURCES = [
     "engine/src/game/scene_func_catalog.c",
     "engine/src/game/tire_model_catalog.c",
     "engine/src/game/rival_block_catalog.c",
+    "engine/src/game/setting_default_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
