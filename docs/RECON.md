@@ -510,6 +510,11 @@ sections, 23,759 three-token vector rows and 14,022 scalar counts.
 keys/lines, count tokens and numeric token bytes; CP932 comments,
 axis meanings and lighting roles stay unparsed.
 
+300 `*_Color.lua` playerCar scripts total 5,585,086 bytes with 6,133
+19-line blocks and 116,527 tokens. `player_color_catalog.py` copies
+paths, `COLOR_MAX`, block names/lines and tokens; CP932 comments,
+color roles and enum meanings stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
