@@ -515,6 +515,11 @@ axis meanings and lighting roles stay unparsed.
 paths, `COLOR_MAX`, block names/lines and tokens; CP932 comments,
 color roles and enum meanings stay unparsed.
 
+149 `getVinylSelect_*.lua` scripts total 722,358 bytes with 50 rows
+each and ids 59..108. `vinyl_select_catalog.py` copies paths, ids,
+row lines and numeric value tokens; CP932 labels and selection roles
+stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

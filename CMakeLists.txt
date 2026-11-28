@@ -123,6 +123,7 @@ set(R6_CORE
     engine/src/game/char_color_catalog.c
     engine/src/game/tire_lamp_pos_catalog.c
     engine/src/game/player_color_catalog.c
+    engine/src/game/vinyl_select_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

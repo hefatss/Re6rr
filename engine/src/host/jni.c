@@ -119,6 +119,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_char_color_catalog.h"
 #include "r6/r6_tire_lamp_pos_catalog.h"
 #include "r6/r6_player_color_catalog.h"
+#include "r6/r6_vinyl_select_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -13255,6 +13256,118 @@ Java_com_wmmt_re6rr_PlayerColorCatalog_nativeToken(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 || slot < 0 || slot >= 19 ||
         r6_pcc_token(bytes, length, (uint32_t)index, (uint32_t)slot,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Vinyl selector rows; ids and numeric values are copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VinylSelectCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_vsl_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_vsl_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.source_bytes;
+    values[4] = (jlong)header.line_count;
+    values[5] = (jlong)header.id_min;
+    values[6] = (jlong)header.id_max;
+    values[7] = (jlong)header.string_size;
+    values[8] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VinylSelectCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    r6_vsl_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_vsl_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.row_base;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_VinylSelectCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_vsl_name(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_VinylSelectCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_vsl_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[3];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_vsl_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.line;
+    values[1] = (jlong)row.ident;
+    values[2] = (jlong)row.value_offset;
+    result = pe_new_longs(env, values, 3);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_VinylSelectCatalog_nativeValue(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_vsl_value(bytes, length, (uint32_t)index,
                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
