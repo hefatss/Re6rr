@@ -114,6 +114,7 @@ SOURCES = [
     "engine/src/game/hide_clip_model_tables_catalog.c",
     "engine/src/game/navimap_param_catalog.c",
     "engine/src/game/effect_set_inventory_catalog.c",
+    "engine/src/game/root_ini_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

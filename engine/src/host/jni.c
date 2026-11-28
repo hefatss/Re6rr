@@ -91,6 +91,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_hide_clip_model_tables_catalog.h"
 #include "r6/r6_navimap_param_catalog.h"
 #include "r6/r6_effect_set_inventory_catalog.h"
+#include "r6/r6_root_ini_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9698,6 +9699,155 @@ Java_com_wmmt_re6rr_EffectSetInventory_nativeRowModel(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_effect_set_row_model(bytes, length, (uint32_t)index,
                                 text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Root INI facts: copied sections, keys, values and comments. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeHeader(JNIEnv *env, jclass cls,
+                                        jbyteArray blob) {
+    r6_root_ini_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_root_ini_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.key_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.comment_count;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeFile(JNIEnv *env, jclass cls,
+                                      jbyteArray blob, jint index) {
+    r6_root_ini_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[10];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.lines;
+    values[4] = (jlong)file.section_offset;
+    values[5] = (jlong)file.section_length;
+    values[6] = (jlong)file.key_base;
+    values[7] = (jlong)file.keys;
+    values[8] = (jlong)file.comment_base;
+    values[9] = (jlong)file.comments;
+    result = pe_new_longs(env, values, 10);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootIni_nativePath(JNIEnv *env, jclass cls,
+                                      jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_path(bytes, length, (uint32_t)index,
+                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeSection(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_section(bytes, length, (uint32_t)index,
+                            text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeKey(JNIEnv *env, jclass cls,
+                                     jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_key(bytes, length, (uint32_t)index,
+                        text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeValue(JNIEnv *env, jclass cls,
+                                       jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_value(bytes, length, (uint32_t)index,
+                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RootIni_nativeComment(JNIEnv *env, jclass cls,
+                                         jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_root_ini_comment(bytes, length, (uint32_t)index,
+                            text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }

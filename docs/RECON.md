@@ -358,6 +358,11 @@ and 1,899 `path`/`model` rows. Each has one set name, one `num`, one
 `effect_set_inventory_catalog.py` copies paths, set names, integer tokens and
 path/model strings only.
 
+`FFBPlugin.ini` and `BanaConfig.ini` total 1,039 bytes and 46 CRLF lines.
+They hold two `[Section]` names, 41 `Key=value` pairs and 3 `;` comment lines.
+`root_ini_catalog.py` copies section names, keys, values and comments; device,
+card and online behavior stays unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

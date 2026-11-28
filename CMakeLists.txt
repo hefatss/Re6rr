@@ -95,6 +95,7 @@ set(R6_CORE
     engine/src/game/hide_clip_model_tables_catalog.c
     engine/src/game/navimap_param_catalog.c
     engine/src/game/effect_set_inventory_catalog.c
+    engine/src/game/root_ini_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
