@@ -489,6 +489,11 @@ CP932 comments and role meanings stay unparsed.
 marker words, 661/3330 record counts and trailer words. The 52-byte
 records and their semantics stay unparsed.
 
+417 `getMiniStickerColor_*.lua` scripts total 986,467 bytes; each has
+61 lines, `VINYL_COLOR_MAX =  10` and 20 rows. `mini_sticker_color_catalog.py`
+copies paths, row lines, bank slots and 25,020 verbatim numeric
+tokens; CP932 color names and bank semantics stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

@@ -137,6 +137,7 @@ SOURCES = [
     "engine/src/game/root_gz_envelope_catalog.c",
     "engine/src/game/color_vinyl_blend_catalog.c",
     "engine/src/game/trail_header_catalog.c",
+    "engine/src/game/mini_sticker_color_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
