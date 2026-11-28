@@ -104,6 +104,7 @@ SOURCES = [
     "engine/src/game/custom_frame_catalog.c",
     "engine/src/game/introductory_motions_catalog.c",
     "engine/src/game/hints_catalog.c",
+    "engine/src/game/related_section_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

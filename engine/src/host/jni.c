@@ -81,6 +81,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_custom_frame_catalog.h"
 #include "r6/r6_introductory_motions_catalog.h"
 #include "r6/r6_hints_catalog.h"
+#include "r6/r6_related_section_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8563,6 +8564,98 @@ Java_com_wmmt_re6rr_HintsCatalog_nativeRow(JNIEnv *env, jclass cls,
         values[at] = (jlong)row.words[at];
     }
     result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+/* Related-section file facts and copied integer row pairs. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelatedSection_nativeHeader(JNIEnv *env, jclass cls,
+                                                jbyteArray blob) {
+    r6_related_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_related_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.pair_count;
+    values[4] = (jlong)header.load_speed_0;
+    values[5] = (jlong)header.load_speed_1;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelatedSection_nativeFile(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_related_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_related_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.pairs;
+    values[4] = (jlong)file.load_speed_0;
+    values[5] = (jlong)file.load_speed_1;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_RelatedSection_nativePath(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    char path[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_related_path(bytes, length, (uint32_t)index, path,
+                        sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_RelatedSection_nativePair(JNIEnv *env, jclass cls,
+                                              jbyteArray blob, jint index) {
+    r6_related_pair_t pair;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[12];
+    jlongArray result = NULL;
+    size_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_related_pair(bytes, length, (uint32_t)index, &pair) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (at = 0; at < 12; at++) {
+        values[at] = (jlong)pair.values[at];
+    }
+    result = pe_new_longs(env, values, 12);
     return result;
 }
 

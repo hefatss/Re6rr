@@ -301,6 +301,11 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
 zero byte at offset 15 of every record. `hints_catalog.py` copies the opaque
 words without decoding names or meanings.
 
+Five `data/course/parameter/relation/RelatedSection*.lua` files total 66,205
+bytes and contain 540 pairs of fixed six-integer arrays, all values at most 604,
+with `LOAD_SPEED = {5, 5}` in each file. `related_section_catalog.py` copies the
+paths, sizes and raw arrays without assigning section semantics.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
