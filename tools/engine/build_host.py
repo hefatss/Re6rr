@@ -127,6 +127,7 @@ SOURCES = [
     "engine/src/game/accessor_script_catalog.c",
     "engine/src/game/carryover_catalog.c",
     "engine/src/game/spec_ma61_catalog.c",
+    "engine/src/game/sdl_db_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [

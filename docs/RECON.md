@@ -437,6 +437,11 @@ non-ASCII literals. `spec_ma61_catalog.py` copies keys, ASCII
 literals and comment flags; Japanese literals/comments and tuning
 meaning stay unparsed.
 
+`gamecontrollerdb.txt` is 506,637 bytes and 1,916 CRLF lines: 7
+comments, 5 blanks and 1,904 active rows. `sdl_db_catalog.py` copies
+verbatim ASCII/tab lines, id/name/platform spans and field counts;
+SDL button meaning and remap behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

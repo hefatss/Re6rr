@@ -108,6 +108,7 @@ set(R6_CORE
     engine/src/game/accessor_script_catalog.c
     engine/src/game/carryover_catalog.c
     engine/src/game/spec_ma61_catalog.c
+    engine/src/game/sdl_db_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
