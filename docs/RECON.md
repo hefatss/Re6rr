@@ -352,6 +352,12 @@ lines. It has four ASCII scalar rows (two active, two commented) and eleven
 global names and integer literals; Shift-JIS comments and navimap behavior stay
 unparsed.
 
+Three hundred `data/effect/**/parameter/SET_*.lua` files total 501,917 bytes
+and 1,899 `path`/`model` rows. Each has one set name, one `num`, one
+`EffectSetNum` and a fixed row shape with float, transform and timing fields.
+`effect_set_inventory_catalog.py` copies paths, set names, integer tokens and
+path/model strings only.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
