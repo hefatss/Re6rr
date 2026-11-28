@@ -92,6 +92,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_navimap_param_catalog.h"
 #include "r6/r6_effect_set_inventory_catalog.h"
 #include "r6/r6_root_ini_catalog.h"
+#include "r6/r6_distclip_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9853,6 +9854,134 @@ Java_com_wmmt_re6rr_RootIni_nativeComment(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* DISTCLIP integer table facts: copied paths, names, keys and values. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob) {
+    r6_distclip_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_distclip_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    r6_distclip_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_distclip_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.table_offset;
+    values[3] = (jlong)file.table_length;
+    values[4] = (jlong)file.size;
+    values[5] = (jlong)file.lines;
+    values[6] = (jlong)file.row_base;
+    values[7] = (jlong)file.rows;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativePath(JNIEnv *env, jclass cls,
+                                               jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_distclip_path(bytes, length, (uint32_t)index,
+                         text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativeTable(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_distclip_table(bytes, length, (uint32_t)index,
+                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativeRowKey(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char text[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_distclip_row_key(bytes, length, (uint32_t)index,
+                            text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_wmmt_re6rr_DistClipCatalog_nativeRowValue(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    uint32_t value = 0;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jint result = -1;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_distclip_row_value(bytes, length, (uint32_t)index,
+                              &value) != R6_OK) {
+        free(bytes);
+        return -1;
+    }
+    free(bytes);
+    result = (jint)value;
     return result;
 }
 

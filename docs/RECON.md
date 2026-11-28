@@ -363,6 +363,13 @@ They hold two `[Section]` names, 41 `Key=value` pairs and 3 `;` comment lines.
 `root_ini_catalog.py` copies section names, keys, values and comments; device,
 card and online behavior stays unparsed.
 
+395 `data/course/stage/**/clip/DISTCLIP_*.lua` files total 83,284 bytes
+and 3,950 active integer rows. Every file has one table global
+(`DEFAULT_CLIP_DISTANCE` or `CLIP_DISTANCE_00`..`07`) and ten rows drawn
+from a fixed ten-key vocabulary. `distclip_catalog.py` copies paths,
+table names, keys and integers; comment lines and clip rendering are
+not parsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
