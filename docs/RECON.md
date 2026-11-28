@@ -306,6 +306,11 @@ bytes and contain 540 pairs of fixed six-integer arrays, all values at most 604,
 with `LOAD_SPEED = {5, 5}` in each file. `related_section_catalog.py` copies the
 paths, sizes and raw arrays without assigning section semantics.
 
+`EVENT_SCENE_HIDECLIP_ENDING.lua` is 250 bytes and lists four ASCII model names;
+`EventSceneAccessor.lua` is 553 bytes and defines
+`EventSceneHideClip_GetHideModel()` using `unpack`. The catalog copies the names
+and accessor name only, with no scene timing or visibility semantics.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

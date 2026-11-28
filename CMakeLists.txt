@@ -86,6 +86,7 @@ set(R6_CORE
     engine/src/game/introductory_motions_catalog.c
     engine/src/game/hints_catalog.c
     engine/src/game/related_section_catalog.c
+    engine/src/game/event_scene_hide_clip_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)
