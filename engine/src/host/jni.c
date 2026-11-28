@@ -74,6 +74,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_enma_error_log_catalog.h"
 #include "r6/r6_ghost_region_catalog.h"
 #include "r6/r6_tga_inventory_catalog.h"
+#include "r6/r6_street_lamp_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -7991,6 +7992,77 @@ Java_com_wmmt_re6rr_TgaInventoryCatalog_nativePath(JNIEnv *env, jclass cls,
     if (!bytes || index < 0 ||
         r6_tga_inventory_path(bytes, length, (uint32_t)index, path,
                               sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+/* Street-lamp tables: copied paths, counts and u32 flag ranges. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StreetLampCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob) {
+    r6_street_lamp_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[6];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_street_lamp_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.string_size;
+    values[3] = (jlong)header.total_bytes;
+    values[4] = (jlong)header.record_count;
+    values[5] = (jlong)header.stride;
+    result = pe_new_longs(env, values, 6);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StreetLampCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_street_lamp_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[8];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_street_lamp_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.record_count;
+    values[4] = (jlong)file.stride;
+    values[5] = (jlong)file.flag_min;
+    values[6] = (jlong)file.flag_max;
+    values[7] = (jlong)file.distinct;
+    result = pe_new_longs(env, values, 8);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StreetLampCatalog_nativePath(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char path[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_street_lamp_path(bytes, length, (uint32_t)index, path,
+                            sizeof(path)) != R6_OK) {
         free(bytes);
         return NULL;
     }

@@ -97,6 +97,7 @@ SOURCES = [
     "engine/src/game/enma_error_log_catalog.c",
     "engine/src/game/ghost_region_catalog.c",
     "engine/src/game/tga_inventory_catalog.c",
+    "engine/src/game/street_lamp_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
