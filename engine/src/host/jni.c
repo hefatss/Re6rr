@@ -79,6 +79,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_zenichi_config_catalog.h"
 #include "r6/r6_sugoroku_board_catalog.h"
 #include "r6/r6_custom_frame_catalog.h"
+#include "r6/r6_introductory_motions_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8418,6 +8419,96 @@ Java_com_wmmt_re6rr_CustomFrameCatalog_nativeFunction(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 ||
         r6_custom_frame_function(bytes, length, (uint32_t)index, name,
+                                 sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Introductory motion names, waits and accessor names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_IntroductoryMotions_nativeHeader(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob) {
+    r6_introductory_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_introductory_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.row_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.function_count;
+    values[4] = (jlong)header.string_size;
+    values[5] = (jlong)header.start_frame;
+    values[6] = (jlong)header.blank_frame;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_IntroductoryMotions_nativeRow(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    r6_introductory_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_introductory_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.left_offset;
+    values[1] = (jlong)row.left_length;
+    values[2] = (jlong)row.right_offset;
+    values[3] = (jlong)row.right_length;
+    values[4] = (jlong)row.wait;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_IntroductoryMotions_nativeName(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob, jint index,
+                                                  jint slot) {
+    char name[32];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot > 1 ||
+        r6_introductory_name(bytes, length, (uint32_t)index,
+                             (uint32_t)slot, name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_IntroductoryMotions_nativeFunction(JNIEnv *env, jclass cls,
+                                                       jbyteArray blob,
+                                                       jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_introductory_function(bytes, length, (uint32_t)index, name,
                                  sizeof(name)) != R6_OK) {
         free(bytes);
         return NULL;

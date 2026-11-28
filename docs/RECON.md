@@ -284,6 +284,10 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
   `CUSTOM_FRAME_INFO` table has 183 contiguous ids and 732 unique 21-character
   `cmn_cf_*.nut` names with six accessor functions. `custom_frame_catalog.py`
   copies those names but no frame behaviour or texture payload.
+- `data/motion/introduction/IntroductoryMotions.lua` is 2,443 bytes;
+  `MOTION_FILES` has DEFAULT and ZENICHI rows of two `.MED` names plus waits
+  20/60, two zero frame scalars and six accessors. `introductory_motions_catalog.py`
+  copies those facts but no `.MED` payload or animation semantics.
 - 219 identifiers called from Lua that exist as strings in the executable — the
   candidate native binding surface (top: `GetShaderCarVec4/Float/Int`, `GetTirePos`,
   `GetCenterPos`, `GetCustomGTWingPos`, `GetCarHightDown`, `GetCarAeroTireOffset`,
