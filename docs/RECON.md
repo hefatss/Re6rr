@@ -417,6 +417,14 @@ They hold 23 active directives, 22 comment lines and 16 blanks.
 `ntp_config_catalog.py` copies paths and verbatim ASCII lines;
 time-service behavior stays unparsed.
 
+Seven shipped `Accessor.lua`, `ParamAccessor.lua`,
+`SectionAccessor.lua`, `StageAccessor.lua`, `ShaderAccessor.lua`,
+`TireAccessor.lua` and `EffectSetTool.lua` scripts total 35,256
+bytes and 1,290 LF lines. They define 155 top-level functions.
+`accessor_script_catalog.py` copies paths, names, argument lists,
+first return expressions and line positions; CP932 comments,
+`unpack()` semantics and render/tuning behavior stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
