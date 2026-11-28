@@ -417,7 +417,7 @@ They hold 23 active directives, 22 comment lines and 16 blanks.
 `ntp_config_catalog.py` copies paths and verbatim ASCII lines;
 time-service behavior stays unparsed.
 
-Seven shipped `Accessor.lua`, `ParamAccessor.lua`,
+Seven shipped `AreaAccessor.lua`, `ParamAccessor.lua`,
 `SectionAccessor.lua`, `StageAccessor.lua`, `ShaderAccessor.lua`,
 `TireAccessor.lua` and `EffectSetTool.lua` scripts total 35,256
 bytes and 1,290 LF lines. They define 155 top-level functions.
