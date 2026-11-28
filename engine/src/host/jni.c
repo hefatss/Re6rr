@@ -80,6 +80,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_sugoroku_board_catalog.h"
 #include "r6/r6_custom_frame_catalog.h"
 #include "r6/r6_introductory_motions_catalog.h"
+#include "r6/r6_hints_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8515,6 +8516,53 @@ Java_com_wmmt_re6rr_IntroductoryMotions_nativeFunction(JNIEnv *env, jclass cls,
     }
     free(bytes);
     result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* hints.dat 16-byte record facts: copied opaque words only. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HintsCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                              jbyteArray blob) {
+    r6_hints_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_hints_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.record_count;
+    values[2] = (jlong)header.stride;
+    values[3] = (jlong)header.source_size;
+    values[4] = (jlong)header.distinct;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HintsCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                           jbyteArray blob, jint index) {
+    r6_hints_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    size_t at;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hints_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    for (at = 0; at < 4; at++) {
+        values[at] = (jlong)row.words[at];
+    }
+    result = pe_new_longs(env, values, 4);
     return result;
 }
 

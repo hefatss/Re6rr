@@ -84,6 +84,7 @@ set(R6_CORE
     engine/src/game/sugoroku_board_catalog.c
     engine/src/game/custom_frame_catalog.c
     engine/src/game/introductory_motions_catalog.c
+    engine/src/game/hints_catalog.c
 )
 
 set(MINIZ_SRC third_party/miniz-2.2.0)

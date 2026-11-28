@@ -297,6 +297,10 @@ those reflected offsets; sampler binding and GPU upload are still open. Details 
   `GetAfterFire_*`). Full list in `lua_api.txt`.
 - Extraction needed a CP932 fallback; the first pass (UTF-8 only) produced noise.
 
+`hints.dat` is 1,072 bytes: 67 stride-16 records with 61 distinct rows and a
+zero byte at offset 15 of every record. `hints_catalog.py` copies the opaque
+words without decoding names or meanings.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
