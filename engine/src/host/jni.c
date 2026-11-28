@@ -120,6 +120,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_tire_lamp_pos_catalog.h"
 #include "r6/r6_player_color_catalog.h"
 #include "r6/r6_vinyl_select_catalog.h"
+#include "r6/r6_sticker_color_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -13368,6 +13369,124 @@ Java_com_wmmt_re6rr_VinylSelectCatalog_nativeValue(JNIEnv *env, jclass cls,
     (void)cls;
     if (!bytes || index < 0 ||
         r6_vsl_value(bytes, length, (uint32_t)index,
+                     text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* Sticker and vinyl color rows; ids and numeric tokens are copied. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StickerColorCatalog_nativeHeader(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    r6_stc_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_stc_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.row_count;
+    values[3] = (jlong)header.side_files;
+    values[4] = (jlong)header.vinyl_files;
+    values[5] = (jlong)header.source_bytes;
+    values[6] = (jlong)header.line_count;
+    values[7] = (jlong)header.string_size;
+    values[8] = (jlong)header.reserved;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StickerColorCatalog_nativeFile(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    r6_stc_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stc_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.name_offset;
+    values[1] = (jlong)file.name_length;
+    values[2] = (jlong)file.kind;
+    values[3] = (jlong)file.size;
+    values[4] = (jlong)file.row_base;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StickerColorCatalog_nativeName(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stc_name(bytes, length, (uint32_t)index,
+                    text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_StickerColorCatalog_nativeRow(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob,
+                                                  jint index) {
+    r6_stc_row_t row;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[5];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_stc_row(bytes, length, (uint32_t)index, &row) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)row.line;
+    values[1] = (jlong)row.ident;
+    values[2] = (jlong)row.token0_offset;
+    values[3] = (jlong)row.token1_offset;
+    values[4] = (jlong)row.token2_offset;
+    result = pe_new_longs(env, values, 5);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_StickerColorCatalog_nativeToken(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index, jint slot) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 || slot < 0 || slot > 2 ||
+        r6_stc_token(bytes, length, (uint32_t)index, (uint32_t)slot,
                      text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;

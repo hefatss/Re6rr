@@ -520,6 +520,11 @@ each and ids 59..108. `vinyl_select_catalog.py` copies paths, ids,
 row lines and numeric value tokens; CP932 labels and selection roles
 stay unparsed.
 
+47 `getSideStickerColor_*.lua` and 111 `getVinylColor_*.lua` scripts
+total 350,159 bytes with 10 rows each and ids 0..9.
+`sticker_color_catalog.py` copies paths, corpus kinds, row lines,
+ids and three numeric tokens per row; CP932 color names stay unparsed.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

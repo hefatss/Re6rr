@@ -143,6 +143,7 @@ SOURCES = [
     "engine/src/game/tire_lamp_pos_catalog.c",
     "engine/src/game/player_color_catalog.c",
     "engine/src/game/vinyl_select_catalog.c",
+    "engine/src/game/sticker_color_catalog.c",
     "engine/src/host/dllmain.c",
 ]
 MINIZ = [
