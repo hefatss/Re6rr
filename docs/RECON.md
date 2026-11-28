@@ -339,6 +339,13 @@ three-line header, a blank line, 53 `NAME = INTEGER` rows and a three-line
 footer. `setting_lua_gz_catalog.py` copies paths, gzip words, key names and
 integer literals only; deflate payloads and setting meanings are not inferred.
 
+Six `HIDECLIP_*.lua` files under
+`data/course/stage/A_TOKYO_NGT_EXT/WANGAN/clip` total 140,107 bytes and 2,994
+lines. Each has a timestamp comment, one `HIDE_MODEL_NN = {` table and a
+closing brace; the filename suffix matches the table id. The catalog copies
+paths, sizes, timestamps and 2,972 ASCII model names without clip timing,
+render state or geometry.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English

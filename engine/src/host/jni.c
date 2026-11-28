@@ -88,6 +88,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_stage_effect_filename_lists_catalog.h"
 #include "r6/r6_story_series_tokens_catalog.h"
 #include "r6/r6_setting_lua_gz_catalog.h"
+#include "r6/r6_hide_clip_model_tables_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -9255,6 +9256,142 @@ Java_com_wmmt_re6rr_SettingLuaGz_nativeValue(JNIEnv *env, jclass cls,
         r6_setting_lua_gz_value(bytes, length, (uint32_t)file_index,
                                 (uint32_t)key_index,
                                 text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+/* WANGAN hide-clip model names: copied paths, tables and ASCII names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativeHeader(JNIEnv *env, jclass cls,
+                                                     jbyteArray blob) {
+    r6_hide_clip_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[7];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_hide_clip_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.name_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.source_bytes;
+    values[5] = (jlong)header.line_count;
+    values[6] = (jlong)header.table_count;
+    result = pe_new_longs(env, values, 7);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativeFile(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    r6_hide_clip_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hide_clip_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.table_offset;
+    values[3] = (jlong)file.table_length;
+    values[4] = (jlong)file.timestamp_offset;
+    values[5] = (jlong)file.timestamp_length;
+    values[6] = (jlong)file.size;
+    values[7] = (jlong)file.lines;
+    values[8] = (jlong)file.names;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativePath(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hide_clip_path(bytes, length, (uint32_t)index,
+                          text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativeTable(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hide_clip_table(bytes, length, (uint32_t)index,
+                           text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativeTimestamp(JNIEnv *env,
+                                                        jclass cls,
+                                                        jbyteArray blob,
+                                                        jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hide_clip_timestamp(bytes, length, (uint32_t)index,
+                               text, sizeof(text)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, text);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_HideClipModelTables_nativeName(JNIEnv *env, jclass cls,
+                                                   jbyteArray blob,
+                                                   jint index) {
+    char text[96];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_hide_clip_name(bytes, length, (uint32_t)index,
+                          text, sizeof(text)) != R6_OK) {
         free(bytes);
         return NULL;
     }
