@@ -83,6 +83,7 @@ extern double pow(double base, double exponent);
 #include "r6/r6_hints_catalog.h"
 #include "r6/r6_related_section_catalog.h"
 #include "r6/r6_event_scene_hide_clip_catalog.h"
+#include "r6/r6_debug_tdb_registry_catalog.h"
 #include "r6/r6_vertex_layout.h"
 #include "r6/r6_voice.h"
 
@@ -8715,6 +8716,138 @@ Java_com_wmmt_re6rr_EventSceneHideClip_nativeAccessor(JNIEnv *env, jclass cls,
     if (!bytes || r6_event_scene_hide_clip_accessor(bytes, length,
                                                     name, sizeof(name)) !=
         R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+/* Course-debug TDB ids, decimal comments and copied names. */
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativeHeader(JNIEnv *env, jclass cls,
+                                                  jbyteArray blob) {
+    r6_debug_tdb_header_t header;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[9];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || r6_debug_tdb_parse(bytes, length, &header) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)header.version;
+    values[1] = (jlong)header.file_count;
+    values[2] = (jlong)header.pair_count;
+    values[3] = (jlong)header.string_size;
+    values[4] = (jlong)header.table_bytes;
+    values[5] = (jlong)header.accessor_count;
+    values[6] = (jlong)header.accessor_size;
+    values[7] = (jlong)header.blink_count;
+    values[8] = (jlong)header.blink_size;
+    result = pe_new_longs(env, values, 9);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativeFile(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_debug_tdb_file_t file;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_debug_tdb_file(bytes, length, (uint32_t)index, &file) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)file.path_offset;
+    values[1] = (jlong)file.path_length;
+    values[2] = (jlong)file.size;
+    values[3] = (jlong)file.pairs;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativePath(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    char path[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_debug_tdb_path(bytes, length, (uint32_t)index,
+                          path, sizeof(path)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, path);
+    return result;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativePair(JNIEnv *env, jclass cls,
+                                                jbyteArray blob, jint index) {
+    r6_debug_tdb_pair_t pair;
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jlong values[4];
+    jlongArray result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_debug_tdb_pair(bytes, length, (uint32_t)index, &pair) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    values[0] = (jlong)pair.id;
+    values[1] = (jlong)pair.decimal;
+    values[2] = (jlong)pair.name_offset;
+    values[3] = (jlong)pair.name_length;
+    result = pe_new_longs(env, values, 4);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativeBlink(JNIEnv *env, jclass cls,
+                                                 jbyteArray blob, jint index) {
+    char name[128];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_debug_tdb_blink(bytes, length, (uint32_t)index,
+                           name, sizeof(name)) != R6_OK) {
+        free(bytes);
+        return NULL;
+    }
+    free(bytes);
+    result = (*env)->NewStringUTF(env, name);
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_wmmt_re6rr_DebugTdbRegistry_nativeAccessor(JNIEnv *env, jclass cls,
+                                                    jbyteArray blob,
+                                                    jint index) {
+    char name[64];
+    size_t length = 0;
+    unsigned char *bytes = pe_copy_blob(env, blob, &length);
+    jstring result = NULL;
+    (void)cls;
+    if (!bytes || index < 0 ||
+        r6_debug_tdb_accessor(bytes, length, (uint32_t)index,
+                              name, sizeof(name)) != R6_OK) {
         free(bytes);
         return NULL;
     }

@@ -311,6 +311,13 @@ paths, sizes and raw arrays without assigning section semantics.
 `EventSceneHideClip_GetHideModel()` using `unpack`. The catalog copies the names
 and accessor name only, with no scene timing or visibility semantics.
 
+Twenty-three `data/course/debug/DEBUG_TDB_A_*.lua` files total 603,341 bytes
+and contain 12,087 rows of `"0xHHHHHHHH", "ASCII_NAME", -- decimal`, where the
+decimal always equals the hexadecimal id. `DEBUG_BLINK_NUDS_LIST.lua` has four
+ASCII model names and `DebugAccessor.lua` defines ten `GetDebug*` functions.
+The catalog copies paths, ids, comments, names and function names without
+rendering or gameplay meaning.
+
 ## English patch
 
 Patch replaces text in `data_jp/**/*.xmlt` (verified: `Message.xmlt` is English
